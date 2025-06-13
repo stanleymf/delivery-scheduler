@@ -16,6 +16,70 @@ The system consists of two main components:
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
+## 🚀 Deployment
+
+### Quick Start
+
+**Option 1: Automated Deployment**
+```bash
+# Deploy both admin dashboard and customer widget
+./scripts/deploy.sh
+
+# Deploy only admin dashboard
+./scripts/deploy.sh --admin-only
+
+# Deploy only customer widget
+./scripts/deploy.sh --widget-only
+```
+
+**Option 2: Manual Deployment**
+```bash
+# Install dependencies
+pnpm install
+
+# Build both components
+pnpm build:all
+
+# Deploy admin dashboard to Railway
+pnpm deploy:admin
+
+# Deploy customer widget to Cloudflare Workers
+pnpm deploy
+```
+
+### 📚 Deployment Guides
+
+For detailed step-by-step instructions, see:
+
+- **[Complete Deployment Guide](docs/COMPLETE_DEPLOYMENT_GUIDE.md)** - Comprehensive guide covering all aspects
+- **[Quick Reference](docs/DEPLOYMENT_QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+- **[Original Deployment Guide](docs/DEPLOYMENT.md)** - Original detailed guide
+
+### 🎯 What You'll Deploy
+
+1. **Admin Dashboard** (Railway) - Full React application for managing delivery settings
+2. **Customer Widget** (Cloudflare Workers) - Lightweight embeddable component for Shopify stores
+3. **Shopify Integration** - API authentication and webhook configuration
+
+### 🔗 Shopify Integration
+
+Add this code to your Shopify theme's product page:
+
+```html
+<!-- Delivery Scheduler Widget -->
+<div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://your-worker-url.com/widget.js"></script>
+```
+
+For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## 🚀 Quick Start
 
 ### Option 1: Automated Deployment
@@ -108,50 +172,6 @@ SHOPIFY_SHOP_DOMAIN=your-store.myshopify.com
 SHOPIFY_ACCESS_TOKEN=shpat_your_access_token
 SHOPIFY_API_VERSION=2024-01
 ```
-
-## 🔗 Shopify Integration
-
-### Widget Installation
-
-Add this code to your Shopify theme's product page:
-
-```html
-<!-- Delivery Scheduler Widget -->
-<div id="delivery-scheduler-widget" 
-     data-delivery-scheduler 
-     data-shop-domain="{{ shop.domain }}"
-     data-product-id="{{ product.id }}"
-     data-variant-id="{{ product.selected_or_first_available_variant.id }}">
-</div>
-
-<!-- Widget Script -->
-<script src="https://your-worker-url.com/widget.js"></script>
-```
-
-### JavaScript API
-
-```javascript
-// Initialize widget programmatically
-window.DeliverySchedulerWidget.init({
-    shopDomain: 'your-store.myshopify.com',
-    productId: '123456789',
-    variantId: '987654321',
-    containerId: 'my-widget-container',
-    theme: 'light',
-    locale: 'en'
-});
-
-// Destroy widget
-window.DeliverySchedulerWidget.destroy('my-widget-container');
-```
-
-### Order Tags
-
-The system automatically generates Shopify order tags based on customer selections:
-
-- `Delivery`, `Collection`, or `Express` (delivery type)
-- `14:00-16:00` (time slot format)
-- `25/12/2024` (selected date)
 
 ## 🛠️ Technology Stack
 
