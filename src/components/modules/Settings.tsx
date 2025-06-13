@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette } from "lucide-react";
 import { mockSettings, type CollectionLocation } from "@/lib/mockData";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
+import { TagMappingSettings } from "./TagMappingSettings";
 
 export function Settings() {
   const [settings, setSettings] = useState(mockSettings);
@@ -237,6 +238,8 @@ export function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        <TagMappingSettings />
 
         <Card>
           <CardHeader>

@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.1.2] - 2025-06-13
+
+### Changed
+- **Sidebar UI Enhancement**: Removed emojis from sidebar menu items, keeping only icons
+- **Collapsible Sidebar**: Added ability to minimize/expand sidebar with toggle button
+- **Responsive Design**: Improved sidebar behavior on mobile and desktop
+- **Accessibility**: Added sidebar toggle button in main content area for better UX
+
+### Technical
+- Enhanced sidebar component with collapsible functionality
+- Improved responsive design and accessibility
+- Added keyboard shortcut support (Cmd/Ctrl + B) for sidebar toggle
+
+### Patch
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for patch release
+
+
+
+## [1.1.1] - 2025-06-13
+
+### Patch
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.1.0] - 2025-06-13
 
 ### Minor

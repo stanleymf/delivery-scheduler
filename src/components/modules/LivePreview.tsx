@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle } from "lucide-react";
-import { mockSettings, mockTimeslots, mockBlockedDates, mockBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange } from "@/lib/mockData";
+import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle, Tag } from "lucide-react";
+import { mockSettings, mockTimeslots, mockBlockedDates, mockBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange, type TagMapping } from "@/lib/mockData";
 
 type DeliveryType = 'delivery' | 'collection' | 'express';
 type WidgetStep = 'type-selection' | 'postal-validation' | 'location-selection' | 'date-selection' | 'timeslot-selection' | 'confirmation';
@@ -187,6 +187,68 @@ export function LivePreview() {
     }
     
     return true;
+  };
+
+  const generateOrderTags = (): string[] => {
+    if (!mockSettings.tagMapping.enableTagging) return [];
+    
+    const tags: string[] = [];
+    const { mappings, prefix, separator } = mockSettings.tagMapping;
+    
+    // Generate tags based on customer selections
+    mappings.forEach((mapping: TagMapping) => {
+      if (!mapping.enabled) return;
+      
+      let tagValue = '';
+      
+      switch (mapping.type) {
+        case 'delivery':
+          if (selectedType === 'delivery') {
+            tagValue = mapping.tag;
+          }
+          break;
+        case 'collection':
+          if (selectedType === 'collection') {
+            tagValue = mapping.tag;
+          }
+          break;
+        case 'express':
+          if (selectedType === 'express') {
+            tagValue = mapping.tag;
+          }
+          break;
+        case 'timeslot':
+          if (selectedTimeslot) {
+            const timeslot = timeslots.find(t => t.id === selectedTimeslot);
+            if (timeslot) {
+              // Format as hh:mm-hh:mm (24-hour format)
+              tagValue = `${timeslot.startTime}-${timeslot.endTime}`;
+            }
+          }
+          break;
+        case 'date':
+          if (selectedDate) {
+            // Format as dd/mm/yyyy
+            const day = selectedDate.getDate().toString().padStart(2, '0');
+            const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+            const year = selectedDate.getFullYear();
+            tagValue = `${day}/${month}/${year}`;
+          }
+          break;
+      }
+      
+      if (tagValue) {
+        tags.push(prefix + tagValue);
+      }
+    });
+    
+    return tags;
+  };
+
+  const getGeneratedTags = () => {
+    const tags = generateOrderTags();
+    if (tags.length === 0) return 'No tags generated (tagging disabled)';
+    return tags.join(mockSettings.tagMapping.separator);
   };
 
   return (
@@ -423,6 +485,23 @@ export function LivePreview() {
                         <div><strong>Time:</strong> {timeslots.find(t => t.id === selectedTimeslot)?.name}</div>
                       </div>
                     </div>
+                    
+                    {/* Generated Tags Section */}
+                    <div className="bg-blue-50 p-4 rounded-lg text-left">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Tag className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">Shopify Order Tags</span>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <code className="text-sm text-blue-700 break-all">
+                          {getGeneratedTags()}
+                        </code>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-2">
+                        These tags will be automatically added to the Shopify order
+                      </p>
+                    </div>
+                    
                     <Button 
                       onClick={resetWidget}
                       variant="outline"
@@ -502,6 +581,32 @@ export function LivePreview() {
                     <div><strong>Individual Blocks:</strong> {mockBlockedDates.length} dates</div>
                     <div><strong>Date Ranges:</strong> {mockBlockedDateRanges.length} ranges</div>
                     <div><strong>Future Order Limit:</strong> {mockSettings.futureOrderLimit} days</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  Order Tag Mapping
+                </Label>
+                <div className="text-sm text-muted-foreground">
+                  <div className="space-y-1">
+                    <div><strong>Tagging Enabled:</strong> {mockSettings.tagMapping.enableTagging ? 'Yes' : 'No'}</div>
+                    {mockSettings.tagMapping.enableTagging && (
+                      <>
+                        <div><strong>Active Mappings:</strong> {mockSettings.tagMapping.mappings.filter(m => m.enabled).length} of {mockSettings.tagMapping.mappings.length}</div>
+                        <div><strong>Tag Prefix:</strong> {mockSettings.tagMapping.prefix || 'None'}</div>
+                        <div><strong>Tag Separator:</strong> "{mockSettings.tagMapping.separator}"</div>
+                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                          <strong>Example Tags:</strong><br />
+                          {mockSettings.tagMapping.mappings
+                            .filter(m => m.enabled)
+                            .map(m => m.tag)
+                            .join(mockSettings.tagMapping.separator)}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

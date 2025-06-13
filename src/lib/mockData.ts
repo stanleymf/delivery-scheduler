@@ -53,10 +53,27 @@ export interface CollectionLocation {
   address: string;
 }
 
+export interface TagMapping {
+  id: string;
+  type: 'delivery' | 'collection' | 'express' | 'timeslot' | 'date';
+  label: string;
+  tag: string;
+  enabled: boolean;
+  description: string;
+}
+
+export interface TagMappingSettings {
+  mappings: TagMapping[];
+  enableTagging: boolean;
+  prefix: string;
+  separator: string;
+}
+
 export interface Settings {
   futureOrderLimit: number;
   collectionLocations: CollectionLocation[];
   theme: 'light' | 'dark';
+  tagMapping: TagMappingSettings;
 }
 
 // Mock data
@@ -228,6 +245,53 @@ export const mockSettings: Settings = {
     },
   ],
   theme: 'light',
+  tagMapping: {
+    mappings: [
+      {
+        id: 'delivery',
+        type: 'delivery',
+        label: 'Delivery',
+        tag: 'Delivery',
+        enabled: true,
+        description: 'Tag applied when customer selects delivery option'
+      },
+      {
+        id: 'collection',
+        type: 'collection',
+        label: 'Collection',
+        tag: 'Collection',
+        enabled: true,
+        description: 'Tag applied when customer selects collection option'
+      },
+      {
+        id: 'express',
+        type: 'express',
+        label: 'Express Delivery',
+        tag: 'Express',
+        enabled: true,
+        description: 'Tag applied when customer selects express delivery'
+      },
+      {
+        id: 'timeslot',
+        type: 'timeslot',
+        label: 'Timeslot',
+        tag: 'hh:mm-hh:mm',
+        enabled: true,
+        description: 'Tag applied with selected timeslot in 24-hour format'
+      },
+      {
+        id: 'date',
+        type: 'date',
+        label: 'Selected Date',
+        tag: 'dd/mm/yyyy',
+        enabled: true,
+        description: 'Tag applied with selected delivery date'
+      }
+    ],
+    enableTagging: true,
+    prefix: '',
+    separator: ',',
+  },
 };
 
 // Helper functions

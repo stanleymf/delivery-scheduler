@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DeliveryAreas } from "@/components/modules/DeliveryAreas";
 import { TimeSlots } from "@/components/modules/TimeSlots";
@@ -41,6 +41,10 @@ function App() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
         <SidebarInset className="flex-1">
+          <div className="flex items-center gap-2 p-4 border-b">
+            <SidebarTrigger className="md:hidden" />
+            <h1 className="text-lg font-semibold">Delivery Scheduler</h1>
+          </div>
           <main className="flex-1 p-6 overflow-auto">
             {renderModule()}
           </main>
