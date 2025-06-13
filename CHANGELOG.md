@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.1.3] - 2025-06-13
+
+### Changed
+- **Browser Tab Title**: Changed from "React Starter" to "Delivery Scheduler"
+- **Custom Favicon**: Added flower-themed SVG favicon matching the brand colors
+- **SEO Optimization**: Added comprehensive meta tags for better search engine visibility
+- **Social Media**: Added Open Graph and Twitter Card meta tags for better sharing
+
+### Technical
+- Enhanced HTML head with proper meta tags and favicon links
+- Added theme-color meta tag for mobile browser theming
+- Improved accessibility with proper icon references
+
+### Patch
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.1.2] - 2025-06-13
 
 ### Changed
