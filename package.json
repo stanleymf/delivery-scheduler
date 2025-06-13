@@ -1,6 +1,6 @@
 {
   "name": "delivery-scheduler",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Advanced delivery scheduling system with Shopify integration",
   "type": "module",
   "private": true,

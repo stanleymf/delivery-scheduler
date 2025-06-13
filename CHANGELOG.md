@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.16] - 2025-06-13
+
+### Patch
+- **Fixed DialogFooter import and BlockedDateRange property access errors**: Fixed DialogFooter import and BlockedDateRange property access errors
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.0.15] - 2025-06-13
 
 ### Patch

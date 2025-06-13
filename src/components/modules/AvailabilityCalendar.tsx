@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -306,8 +306,8 @@ export function AvailabilityCalendar() {
         const parsed = new Date(date);
         return !isNaN(parsed.getTime());
       })
-      .filter(dateStr => {
-        const date = new Date(dateStr);
+      .map(dateStr => new Date(dateStr))
+      .filter(date => {
         const isoDateStr = date.toISOString().split('T')[0];
         return !blockedDates.some(blocked => blocked.date === isoDateStr);
       });
@@ -1054,7 +1054,7 @@ export function AvailabilityCalendar() {
               <Label className="text-right">Range</Label>
               <div className="col-span-3">
                 <Input
-                  value={editingRange ? `${editingRange.from} to ${editingRange.to}` : ''}
+                  value={editingRange ? `${editingRange.startDate} to ${editingRange.endDate}` : ''}
                   disabled
                 />
               </div>
