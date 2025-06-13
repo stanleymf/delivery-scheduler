@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "prj_01jxm76nqkfqd9qtt026v96wkr",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-06-10",
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

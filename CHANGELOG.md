@@ -1,0 +1,143 @@
+# Changelog
+
+## [1.0.12] - 2025-06-13
+
+### Patch
+- **Test version update script**: Test version update script
+
+### Technical
+- Version bump for patch release
+
+
+
+All notable changes to the Delivery Scheduler project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.11] - 2025-06-13
+
+### Fixed
+- **DialogFooter Import Error**: Added missing `DialogFooter` import to fix undefined component error
+- **Timeslot Property Error**: Fixed incorrect `slot.time` references to use `slot.name` property
+- **Date Handling in Bulk Dates**: Fixed `getValidBulkDates()` function to return Date objects instead of strings
+- **Syntax Error**: Resolved unterminated template literal error in AvailabilityCalendar component
+
+### Technical
+- Improved TypeScript type safety for date handling
+- Enhanced error handling for bulk date operations
+- Fixed all linter errors and warnings
+
+## [1.0.10] - 2025-06-13
+
+### Fixed
+- **Syntax Error Recovery**: Restored AvailabilityCalendar.tsx from backup to fix compilation errors
+- **Template Literal Error**: Resolved unterminated template literal at line 822
+
+## [1.0.9] - 2025-06-13
+
+### Changed
+- **Calendar UI Enhancement**: Removed month/year view dropdown
+- **Interactive Month Header**: Made month header clickable to switch to year selection
+- **Year Selection Grid**: Added year selection grid with 10 years (current ± 2 years)
+- **Back to Month Button**: Added "Back to Month" button for easy navigation
+
+### Technical
+- Improved calendar navigation UX
+- Enhanced state management for view modes
+- Added smooth transitions between month and year views
+
+## [1.0.8] - 2025-06-13
+
+### Fixed
+- **Calendar View Issue**: Fixed year/month view dropdown functionality
+- **Multi-Month Display**: Added proper props to Calendar component for multi-month display
+
+## [1.0.7] - 2025-06-13
+
+### Changed
+- **Settings Button Label**: Changed "Settings" button label to "Future Dates" for better clarity
+
+## [1.0.6] - 2025-06-13
+
+### Added
+- **Future Order Limit Management**: Made future order limit setting editable
+- **Automatic Future Date Blocking**: Dates beyond today + limit are automatically blocked
+- **Calendar Legend Update**: Updated legend to show future blocked dates
+- **Settings UI Enhancement**: Improved settings dialog with immediate effect feedback
+
+### Technical
+- Enhanced date blocking logic with automatic future date handling
+- Improved calendar visual indicators for different date states
+
+## [1.0.5] - 2025-06-13
+
+### Added
+- **Blocked Date Range Editing**: Added edit dialogs and functions for blocked date ranges
+- **Range-Individual Sync**: Synchronized updates between ranges and individual dates
+- **Edit Buttons**: Added edit buttons in the management card for date ranges
+
+### Technical
+- Enhanced range management with full CRUD operations
+- Improved data consistency between ranges and individual dates
+
+## [1.0.4] - 2025-06-13
+
+### Added
+- **Blocked Dates Management Card**: Added management card below Service Calendar
+- **Reason Tracking**: Added reason tracking to BlockedDate interface
+- **BlockedDateRange Interface**: Created new interface for date range management
+- **Edit and Delete Capabilities**: Added edit and delete functionality for individual dates and ranges
+
+### Technical
+- Enhanced blocked date management with comprehensive UI
+- Improved data structure for better range handling
+
+## [1.0.3] - 2025-06-13
+
+### Added
+- **Availability Calendar**: Comprehensive calendar with date range blocking
+- **Three Tab Interface**: Single date blocking, range blocking, and bulk blocking tabs
+- **Timeslot Selection**: Timeslot selection for partial blocking
+- **Reason Tracking**: Reason tracking for all blocked dates and ranges
+
+### Technical
+- Complete calendar implementation with advanced blocking features
+- Enhanced user interface with intuitive tab navigation
+
+## [1.0.2] - 2025-06-13
+
+### Added
+- **Bulk Postal Code Blocking**: Added comma-separated input for bulk postal code blocking
+- **Area Code Support**: Extended bulk blocking to support both postal and area codes
+- **Validation and UI Feedback**: Added comprehensive validation and user feedback
+
+### Technical
+- Enhanced postal code management with bulk operations
+- Improved user experience with real-time validation
+
+## [1.0.1] - 2025-06-13
+
+### Added
+- **Postal Code Reference Card**: Added comprehensive postal code reference for Singapore and Malaysia
+- **Filtering UI**: Added filtering capabilities for postal codes
+- **React Warning Fixes**: Fixed React warnings and improved component stability
+- **Singapore Coverage**: Improved Singapore postal code coverage
+
+### Technical
+- Enhanced delivery area management with comprehensive postal code data
+- Improved UI/UX with filtering and search capabilities
+
+## [1.0.0] - 2025-06-13
+
+### Added
+- **Initial Release**: Complete delivery scheduling system with Shopify integration
+- **Version Management**: Implemented semantic versioning starting from v1.0.0
+- **Shopify API Integration**: Added comprehensive Shopify API utilities and components
+- **Backend Infrastructure**: Complete backend setup with deployment configuration
+- **Core Features**: Basic delivery scheduling functionality
+
+### Technical
+- Full-stack application with modern React frontend
+- Comprehensive API integration with Shopify
+- Production-ready deployment configuration 
