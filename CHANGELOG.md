@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2025-06-13
+
+### Minor
+- **Sync live widget preview calendar with AvailabilityCalendar blocked dates and timeslots**: Sync live widget preview calendar with AvailabilityCalendar blocked dates and timeslots
+
+### Technical
+- Version bump for minor release
+
+
+
 ## [1.0.16] - 2025-06-13
 
 ### Patch

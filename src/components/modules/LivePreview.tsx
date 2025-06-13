@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle } from "lucide-react";
-import { mockSettings, mockTimeslots, isPostalCodeBlocked, formatTimeRange } from "@/lib/mockData";
+import { mockSettings, mockTimeslots, mockBlockedDates, mockBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange } from "@/lib/mockData";
 
 type DeliveryType = 'delivery' | 'collection' | 'express';
 type WidgetStep = 'type-selection' | 'postal-validation' | 'location-selection' | 'date-selection' | 'timeslot-selection' | 'confirmation';
@@ -72,20 +72,121 @@ export function LivePreview() {
   };
 
   const getAvailableTimeslots = () => {
-    if (!selectedType) return [];
-    return timeslots.filter(slot => slot.type === selectedType);
+    if (!selectedType || !selectedDate) return [];
+    
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const baseTimeslots = timeslots.filter(slot => slot.type === selectedType);
+    
+    // Check for blocked timeslots on this specific date
+    const blockedTimeslots = new Set<string>();
+    
+    // Check individual date blocks
+    const blockedDate = mockBlockedDates.find(b => b.date === dateStr);
+    if (blockedDate && blockedDate.type === 'partial' && blockedDate.blockedTimeslots) {
+      blockedDate.blockedTimeslots.forEach(timeslotId => blockedTimeslots.add(timeslotId));
+    }
+    
+    // Check date range blocks
+    const blockedRange = mockBlockedDateRanges.find(range => 
+      range.dates.includes(dateStr)
+    );
+    if (blockedRange && blockedRange.type === 'partial' && blockedRange.blockedTimeslots) {
+      blockedRange.blockedTimeslots.forEach(timeslotId => blockedTimeslots.add(timeslotId));
+    }
+    
+    // Filter out blocked timeslots
+    return baseTimeslots.filter(slot => !blockedTimeslots.has(slot.id));
+  };
+
+  const getDateStatus = (date: Date): 'available' | 'blocked' | 'partial' | 'future-blocked' => {
+    const dateStr = date.toISOString().split('T')[0];
+    
+    // Check if date is beyond future order limit
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureOrderLimit = mockSettings.futureOrderLimit;
+    const futureLimitDate = new Date(today);
+    futureLimitDate.setDate(today.getDate() + futureOrderLimit);
+    
+    if (date > futureLimitDate) {
+      return 'future-blocked';
+    }
+    
+    // Check individual date blocks
+    const blockedDate = mockBlockedDates.find(b => b.date === dateStr);
+    if (blockedDate) {
+      return blockedDate.type === 'full' ? 'blocked' : 'partial';
+    }
+    
+    // Check date range blocks
+    const blockedRange = mockBlockedDateRanges.find(range => 
+      range.dates.includes(dateStr)
+    );
+    if (blockedRange) {
+      return blockedRange.type === 'full' ? 'blocked' : 'partial';
+    }
+    
+    return 'available';
+  };
+
+  const calendarModifiers = {
+    blocked: (date: Date) => getDateStatus(date) === 'blocked',
+    partial: (date: Date) => getDateStatus(date) === 'partial',
+    'future-blocked': (date: Date) => getDateStatus(date) === 'future-blocked',
+  };
+
+  const calendarModifiersStyles = {
+    blocked: { 
+      backgroundColor: '#fecaca', 
+      color: '#dc2626',
+      fontWeight: 'bold'
+    },
+    partial: { 
+      backgroundColor: '#fed7aa', 
+      color: '#ea580c',
+      fontWeight: 'bold'
+    },
+    'future-blocked': {
+      backgroundColor: '#e5e7eb',
+      color: '#6b7280',
+      textDecoration: 'line-through'
+    }
   };
 
   const isDateAvailable = (date: Date) => {
-    // Simple logic - block past dates and weekends for demo
+    const dateStr = date.toISOString().split('T')[0];
+    
+    // Check if date is in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     if (date < today) return false;
     
-    // Block some random dates for demo
-    const dayOfMonth = date.getDate();
-    return dayOfMonth !== 25 && dayOfMonth !== 1; // Block 25th and 1st of any month
+    // Check if date is beyond future order limit (30 days by default)
+    const futureOrderLimit = mockSettings.futureOrderLimit;
+    const futureLimitDate = new Date(today);
+    futureLimitDate.setDate(today.getDate() + futureOrderLimit);
+    if (date > futureLimitDate) return false;
+    
+    // Check if date is blocked individually
+    const blockedDate = mockBlockedDates.find(b => b.date === dateStr);
+    if (blockedDate) {
+      // If it's a full block, the date is not available
+      if (blockedDate.type === 'full') return false;
+      // If it's a partial block, the date is available but some timeslots might be blocked
+      // We'll handle this in the timeslot selection
+    }
+    
+    // Check if date is part of a blocked date range
+    const blockedRange = mockBlockedDateRanges.find(range => 
+      range.dates.includes(dateStr)
+    );
+    if (blockedRange) {
+      // If it's a full block range, the date is not available
+      if (blockedRange.type === 'full') return false;
+      // If it's a partial block range, the date is available but some timeslots might be blocked
+    }
+    
+    return true;
   };
 
   return (
@@ -249,6 +350,8 @@ export function LivePreview() {
                         selected={selectedDate}
                         onSelect={setSelectedDate}
                         disabled={(date) => !isDateAvailable(date)}
+                        modifiers={calendarModifiers}
+                        modifiersStyles={calendarModifiersStyles}
                         className="rounded-md border mt-2"
                       />
                       {selectedDate && (
@@ -367,6 +470,39 @@ export function LivePreview() {
                 <Label className="text-sm font-medium">Blocked Areas</Label>
                 <div className="text-sm text-muted-foreground">
                   Postal codes starting with 01, 02 and specific codes are blocked
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Calendar Legend</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
+                    <span className="text-sm">Available</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-200 border border-orange-400 rounded" />
+                    <span className="text-sm">Partially Blocked</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-200 border border-red-400 rounded" />
+                    <span className="text-sm">Fully Blocked</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-200 border border-gray-400 rounded" style={{ textDecoration: 'line-through' }} />
+                    <span className="text-sm">Future Blocked (Beyond {mockSettings.futureOrderLimit} days)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Current Blocked Dates</Label>
+                <div className="text-sm text-muted-foreground">
+                  <div className="space-y-1">
+                    <div><strong>Individual Blocks:</strong> {mockBlockedDates.length} dates</div>
+                    <div><strong>Date Ranges:</strong> {mockBlockedDateRanges.length} ranges</div>
+                    <div><strong>Future Order Limit:</strong> {mockSettings.futureOrderLimit} days</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
