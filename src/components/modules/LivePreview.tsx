@@ -387,6 +387,24 @@ export function LivePreview() {
                           ))}
                         </SelectContent>
                       </Select>
+                      
+                      {/* Show selected location details */}
+                      {selectedLocation && (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="font-medium text-green-800">
+                                {collectionLocations.find(l => l.id === selectedLocation)?.name}
+                              </div>
+                              <div className="text-sm text-green-700">
+                                {collectionLocations.find(l => l.id === selectedLocation)?.address}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       {selectedLocation && (
                         <Button 
                           onClick={handleLocationSelection}
@@ -479,7 +497,10 @@ export function LivePreview() {
                         <div><strong>Type:</strong> {selectedType === 'delivery' ? '🚚 Delivery' : selectedType === 'collection' ? '🏢 Collection' : '⚡ Express'}</div>
                         {selectedType !== 'collection' && <div><strong>Postal Code:</strong> {postalCode}</div>}
                         {selectedType === 'collection' && (
-                          <div><strong>Location:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.name}</div>
+                          <div>
+                            <div><strong>Location:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.name}</div>
+                            <div><strong>Address:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.address}</div>
+                          </div>
                         )}
                         <div><strong>Date:</strong> {selectedDate?.toLocaleDateString()}</div>
                         <div><strong>Time:</strong> {timeslots.find(t => t.id === selectedTimeslot)?.name}</div>

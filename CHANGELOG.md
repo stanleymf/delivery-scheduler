@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.4] - 2025-06-13
+
+### Fixed
+- **Collection Location Address Display**: Fixed issue where collection location addresses were not showing after selection in the live widget preview
+- **Enhanced Location Selection UX**: Added visual confirmation of selected location with name and address display
+- **Improved Confirmation Step**: Updated confirmation step to show both location name and address for collection orders
+
+### Technical
+- Enhanced LivePreview component with better location selection feedback
+- Improved user experience for collection location selection workflow
+
+### Patch
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.1.3] - 2025-06-13
 
 ### Changed
