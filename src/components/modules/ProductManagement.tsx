@@ -5,8 +5,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Package, Calendar, Edit, X, Plus } from "lucide-react";
+import { Package, Calendar, Edit, X, Plus, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { mockProducts, type Product } from "@/lib/mockData";
+
+// Extended mock products to simulate Shopify sync
+const extendedMockProducts: Product[] = [
+  ...mockProducts,
+  {
+    id: '6',
+    title: 'Birthday Celebration Bouquet',
+    handle: 'birthday-celebration-bouquet',
+    image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?w=300&h=300&fit=crop',
+  },
+  {
+    id: '7',
+    title: 'Wedding Anniversary Roses',
+    handle: 'wedding-anniversary-roses',
+    image: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=300&h=300&fit=crop',
+  },
+  {
+    id: '8',
+    title: 'Get Well Soon Flowers',
+    handle: 'get-well-soon-flowers',
+    image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=300&h=300&fit=crop',
+  },
+  {
+    id: '9',
+    title: 'Corporate Gift Basket',
+    handle: 'corporate-gift-basket',
+    image: 'https://images.unsplash.com/photo-1597848212624-e6ec2d17d05a?w=300&h=300&fit=crop',
+  },
+  {
+    id: '10',
+    title: 'Holiday Season Special',
+    handle: 'holiday-season-special',
+    image: 'https://images.unsplash.com/photo-1487070183336-b863922373d4?w=300&h=300&fit=crop',
+    dateRangeStart: '2024-12-01',
+    dateRangeEnd: '2024-12-31',
+  },
+];
 
 export function ProductManagement() {
   const [products, setProducts] = useState<Product[]>(mockProducts);
@@ -14,6 +51,9 @@ export function ProductManagement() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [dateRangeStart, setDateRangeStart] = useState("");
   const [dateRangeEnd, setDateRangeEnd] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   const openRuleDialog = (product: Product) => {
     setSelectedProduct(product);
@@ -56,12 +96,68 @@ export function ProductManagement() {
     setProducts(updatedProducts);
   };
 
+  const handleSyncProducts = async () => {
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+    
+    try {
+      // Simulate API call to Shopify
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate successful sync with extended products
+      setProducts(extendedMockProducts);
+      setLastSyncTime(new Date().toLocaleString());
+      setSyncStatus('success');
+      
+      // Reset success status after 3 seconds
+      setTimeout(() => setSyncStatus('idle'), 3000);
+    } catch (error) {
+      setSyncStatus('error');
+      console.error('Failed to sync products:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const productsWithRules = products.filter(p => p.dateRangeStart && p.dateRangeEnd);
   const productsWithoutRules = products.filter(p => !p.dateRangeStart || !p.dateRangeEnd);
 
   const formatDateRange = (start?: string, end?: string) => {
     if (!start || !end) return null;
     return `${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}`;
+  };
+
+  const getSyncButtonContent = () => {
+    switch (syncStatus) {
+      case 'syncing':
+        return (
+          <>
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            Syncing...
+          </>
+        );
+      case 'success':
+        return (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+            Synced Successfully
+          </>
+        );
+      case 'error':
+        return (
+          <>
+            <AlertCircle className="w-4 h-4 mr-2 text-red-600" />
+            Sync Failed
+          </>
+        );
+      default:
+        return (
+          <>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Sync Products
+          </>
+        );
+    }
   };
 
   return (
@@ -76,13 +172,53 @@ export function ProductManagement() {
 
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🛍️ Shopify Integration
-          </CardTitle>
-          <CardDescription>
-            Products are automatically synced from your Shopify store. Apply date range restrictions to limit when customers can order specific products.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                🛍️ Shopify Integration
+              </CardTitle>
+              <CardDescription>
+                Sync products from your Shopify store and apply date range restrictions to limit when customers can order specific products.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-4">
+              {lastSyncTime && (
+                <div className="text-sm text-muted-foreground">
+                  Last synced: {lastSyncTime}
+                </div>
+              )}
+              <Button 
+                onClick={handleSyncProducts}
+                disabled={isSyncing}
+                className={`${
+                  syncStatus === 'success' 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : syncStatus === 'error'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-olive hover:bg-olive/90 text-olive-foreground'
+                }`}
+              >
+                {getSyncButtonContent()}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="text-center p-3 bg-white rounded-lg border">
+              <div className="font-semibold text-lg text-blue-600">{products.length}</div>
+              <div className="text-muted-foreground">Total Products</div>
+            </div>
+            <div className="text-center p-3 bg-white rounded-lg border">
+              <div className="font-semibold text-lg text-amber-600">{productsWithRules.length}</div>
+              <div className="text-muted-foreground">With Date Rules</div>
+            </div>
+            <div className="text-center p-3 bg-white rounded-lg border">
+              <div className="font-semibold text-lg text-green-600">{productsWithoutRules.length}</div>
+              <div className="text-muted-foreground">Always Available</div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       <div className="grid gap-6">

@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.1.5] - 2025-06-13
+
+### Added
+- **Product Management Sync Feature**: Added sync products button to synchronize products from Shopify
+- **Enhanced Product Display**: Added comprehensive product statistics and sync status indicators
+- **Extended Mock Products**: Added 5 additional mock products to simulate real Shopify sync
+- **Sync Status Feedback**: Added visual feedback for sync states (syncing, success, error)
+- **Last Sync Tracking**: Added timestamp display for last successful sync operation
+
+### Technical
+- Enhanced ProductManagement component with async sync functionality
+- Added loading states and error handling for sync operations
+- Improved UI with product statistics dashboard
+- Added sync status management with automatic state reset
+
+### Patch
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.1.4] - 2025-06-13
 
 ### Fixed
