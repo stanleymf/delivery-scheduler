@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.14] - 2025-06-13
+
+### Patch
+- **Added comprehensive version management documentation**: Added comprehensive version management documentation
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.0.13] - 2025-06-13
 
 ### Patch
