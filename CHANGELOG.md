@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.13] - 2025-06-13
+
+### Patch
+- **Fixed unterminated template literal error in AvailabilityCalendar component**: Fixed unterminated template literal error in AvailabilityCalendar component
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.0.12] - 2025-06-13
 
 ### Patch
