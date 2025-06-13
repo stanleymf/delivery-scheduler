@@ -1,85 +1,157 @@
-# Delivery Scheduler v1.0.0
+# 🚚 Delivery Scheduler
 
-A comprehensive delivery scheduling system for Shopify stores, featuring an admin dashboard and customer-facing widget for managing delivery preferences.
+Advanced delivery scheduling system with Shopify integration. Features a comprehensive admin dashboard for managing delivery settings and a lightweight customer widget for Shopify stores.
 
-## 🚀 Features
+## 🏗️ Architecture
 
-- **Admin Dashboard**: Complete delivery management interface
-- **Customer Widget**: Embedded delivery scheduling for Shopify stores
-- **Shopify Integration**: Full API integration for products, orders, and customers
-- **Version Management**: Semantic versioning with proper update rules
-- **Real-time Preview**: Live preview of customer experience
-- **Multi-location Support**: Manage multiple collection points
-- **Express Delivery**: Configure express delivery options
-- **Availability Calendar**: Visual calendar for managing availability
+The system consists of two main components:
 
-## 📋 Version Management
+- **Admin Dashboard** - Full React application for managing delivery settings (deployed on Railway)
+- **Customer Widget** - Lightweight embeddable component for Shopify stores (deployed on Cloudflare Workers)
 
-### Current Version: v1.0.11
-
-This project follows [Semantic Versioning](https://semver.org/) (SemVer) rules:
-
-- **MAJOR (X.0.0)**: Breaking changes, incompatible API changes
-- **MINOR (0.X.0)**: New features, backward compatible
-- **PATCH (0.0.X)**: Bug fixes, backward compatible
-- **PRE-RELEASE**: Alpha, beta, or release candidate versions
-
-### Version Update Rules
-
-1. **Major Version (X.0.0)**:
-   - Breaking changes to API endpoints
-   - Incompatible changes to data structures
-   - Major UI/UX redesigns
-   - Database schema changes
-
-2. **Minor Version (0.X.0)**:
-   - New features added
-   - New API endpoints
-   - Enhanced functionality
-   - Backward compatible changes
-
-3. **Patch Version (0.0.X)**:
-   - Bug fixes
-   - Performance improvements
-   - Documentation updates
-   - Minor UI adjustments
-
-### Version Management Scripts
-
-We provide automated scripts for version management:
-
-```bash
-# Update patch version (0.0.X)
-npm run version:patch
-
-# Update minor version (0.X.0)
-npm run version:minor
-
-# Update major version (X.0.0)
-npm run version:major
-
-# Manual version update with description
-node scripts/version-update.js patch "Fixed dialog import error"
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Admin Dashboard│    │  Cloudflare Worker│    │  Shopify Store  │
+│   (Railway)     │◄──►│  (Widget + API)  │◄──►│  (Customer Site)│
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-### Changelog
+## 🚀 Quick Start
 
-All changes are documented in [CHANGELOG.md](./CHANGELOG.md) following the [Keep a Changelog](https://keepachangelog.com/) format.
+### Option 1: Automated Deployment
 
-### Version History
+```bash
+# Deploy both admin dashboard and customer widget
+./scripts/deploy.sh
 
-- **v1.0.11** (Current): Fixed DialogFooter import and TypeScript errors
-- **v1.0.10**: Syntax error recovery and template literal fixes
-- **v1.0.9**: Interactive month header with year selection
-- **v1.0.8**: Fixed calendar view dropdown functionality
-- **v1.0.7**: Changed Settings button to "Future Dates"
-- **v1.0.6**: Added future order limit management
-- **v1.0.5**: Added blocked date range editing
-- **v1.0.4**: Added blocked dates management card
-- **v1.0.3**: Added comprehensive availability calendar
-- **v1.0.2**: Added bulk postal code blocking
-- **v1.0.1**: Added postal code reference card
-- **v1.0.0**: Initial release with core functionality
+# Deploy only admin dashboard
+./scripts/deploy.sh --admin-only
+
+# Deploy only customer widget
+./scripts/deploy.sh --widget-only
+```
+
+### Option 2: Manual Deployment
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build both components
+pnpm build:all
+
+# Deploy admin dashboard to Railway
+pnpm deploy:admin
+
+# Deploy customer widget to Cloudflare Workers
+pnpm deploy
+```
+
+## 📋 Features
+
+### Admin Dashboard
+- ✅ **Delivery Areas**: Manage delivery zones and postal code restrictions
+- ✅ **Time Slots**: Configure delivery time windows and pricing
+- ✅ **Express Delivery**: Set up express delivery options
+- ✅ **Availability Calendar**: Visual calendar with date range and bulk blocking
+- ✅ **Product Management**: Sync and manage Shopify products
+- ✅ **Live Preview**: Preview customer experience
+- ✅ **Shopify Integration**: API connection management
+- ✅ **Settings**: System configuration and tag mapping
+
+### Customer Widget
+- ✅ **Date Selection**: Interactive calendar with availability
+- ✅ **Time Slots**: Multiple delivery options (morning, afternoon, evening, express)
+- ✅ **Delivery Types**: Delivery vs collection options
+- ✅ **Postal Code Validation**: Real-time area checking
+- ✅ **Shopify Integration**: Automatic order tag generation
+- ✅ **Responsive Design**: Works on all devices
+
+## 🛠️ Development
+
+### Prerequisites
+
+- Node.js 18+ and pnpm
+- Railway account (for admin dashboard)
+- Cloudflare account (for customer widget)
+- Shopify store (for integration)
+
+### Local Development
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd delivery-scheduler
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build:all
+
+# Run type checking
+pnpm check
+
+# Run linting
+pnpm lint
+```
+
+### Environment Variables
+
+Create a `.env` file for local development:
+
+```env
+SHOPIFY_SHOP_DOMAIN=your-store.myshopify.com
+SHOPIFY_ACCESS_TOKEN=shpat_your_access_token
+SHOPIFY_API_VERSION=2024-01
+```
+
+## 🔗 Shopify Integration
+
+### Widget Installation
+
+Add this code to your Shopify theme's product page:
+
+```html
+<!-- Delivery Scheduler Widget -->
+<div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://your-worker-url.com/widget.js"></script>
+```
+
+### JavaScript API
+
+```javascript
+// Initialize widget programmatically
+window.DeliverySchedulerWidget.init({
+    shopDomain: 'your-store.myshopify.com',
+    productId: '123456789',
+    variantId: '987654321',
+    containerId: 'my-widget-container',
+    theme: 'light',
+    locale: 'en'
+});
+
+// Destroy widget
+window.DeliverySchedulerWidget.destroy('my-widget-container');
+```
+
+### Order Tags
+
+The system automatically generates Shopify order tags based on customer selections:
+
+- `Delivery`, `Collection`, or `Express` (delivery type)
+- `14:00-16:00` (time slot format)
+- `25/12/2024` (selected date)
 
 ## 🛠️ Technology Stack
 
@@ -238,9 +310,15 @@ delivery-scheduler/
 │   │   ├── shopify.ts       # Shopify API integration
 │   │   ├── version.ts       # Version management
 │   │   └── mockData.ts      # Mock data for development
+│   ├── widget.tsx           # Widget entry point
 │   └── App.tsx              # Main application
 ├── worker/
 │   └── index.ts             # Cloudflare Worker backend
+├── scripts/
+│   ├── deploy.sh            # Deployment automation
+│   └── version-update.js    # Version management
+├── docs/
+│   └── DEPLOYMENT.md        # Detailed deployment guide
 ├── public/                  # Static assets
 └── package.json
 ```
@@ -249,22 +327,24 @@ delivery-scheduler/
 
 ### Admin Dashboard Modules
 
-1. **Delivery Areas**: Manage delivery zones and restrictions
-2. **Time Slots**: Configure delivery time windows
-3. **Express**: Set up express delivery options
-4. **Availability Calendar**: Visual calendar management
-5. **Product Management**: Sync and manage products
-6. **Live Preview**: Preview customer experience
-7. **Shopify Integration**: API connection management
-8. **Settings**: System configuration
+1. **Delivery Areas**: Manage delivery zones and blocked postal codes
+2. **Time Slots**: Set up delivery time windows and pricing
+3. **Express**: Configure express delivery options
+4. **Availability Calendar**: Manage blocked dates and availability
+5. **Product Management**: Sync and manage Shopify products
+6. **Live Preview**: Preview customer widget experience
+7. **Shopify Integration**: Manage API connections
+8. **Settings**: Configure tag mapping and system settings
 
-### Environment Variables
+### Widget Configuration
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `SHOPIFY_SHOP_DOMAIN` | Your Shopify store domain | Yes |
-| `SHOPIFY_ACCESS_TOKEN` | Shopify Admin API access token | Yes |
-| `SHOPIFY_API_VERSION` | Shopify API version | Yes |
+The customer widget supports various configuration options:
+
+- `data-shop-domain`: Your Shopify store domain
+- `data-product-id`: Product ID for context
+- `data-variant-id`: Product variant ID
+- `data-theme`: Widget theme (light/dark)
+- `data-locale`: Language/locale setting
 
 ## 🧪 Testing
 
@@ -277,7 +357,45 @@ pnpm lint
 
 # Format code
 pnpm format
+
+# Test deployment
+./scripts/deploy.sh --help
 ```
+
+## 📝 Version Management
+
+```bash
+# Update version
+pnpm version:patch  # or minor/major
+
+# Deploy updates
+pnpm deploy:all
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For deployment and integration support:
+
+1. Check the [deployment guide](docs/DEPLOYMENT.md)
+2. Review the [API documentation](#api-endpoints)
+3. Test endpoints individually
+4. Check logs: `railway logs` or `wrangler tail`
+
+## 🔄 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a complete list of changes and updates.
 
 ## 📝 API Documentation
 
@@ -294,24 +412,11 @@ pnpm format
 - `GET /api/shopify/customers` - Get customers
 - `PUT /api/shopify/products/{id}` - Update product tags
 
-## 🤝 Contributing
+### Widget Endpoints
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Update version if necessary
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the repository
-- Check the documentation
-- Review the Shopify API documentation
+- `GET /widget.js` - Customer widget bundle
+- `GET /widget.css` - Widget styles
+- `GET /widget-docs` - Integration documentation
 
 ## 🔄 Version Updates
 

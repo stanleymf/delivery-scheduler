@@ -5,7 +5,7 @@ export interface Env {
 }
 
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
 		const url = new URL(request.url);
 		const path = url.pathname;
 
@@ -22,6 +22,16 @@ export default {
 		}
 
 		try {
+			// Serve customer widget bundle
+			if (path === '/widget.js') {
+				return await serveWidgetBundle();
+			}
+
+			// Serve widget CSS
+			if (path === '/widget.css') {
+				return await serveWidgetCSS();
+			}
+
 			// Shopify API proxy
 			if (path.startsWith('/api/shopify/')) {
 				return await handleShopifyRequest(request, env, path.replace('/api/shopify/', ''));
@@ -34,8 +44,70 @@ export default {
 
 			// Health check
 			if (path === '/health') {
-				return new Response(JSON.stringify({ status: 'ok', version: '1.0.0' }), {
+				return new Response(JSON.stringify({ status: 'ok', version: '1.1.5' }), {
 					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+				});
+			}
+
+			// Widget documentation
+			if (path === '/widget-docs') {
+				return new Response(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delivery Scheduler Widget - Integration Guide</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        code { background: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚚 Delivery Scheduler Widget Integration</h1>
+    
+    <h2>Quick Start</h2>
+    <p>Add this code to your Shopify theme:</p>
+    <pre><code>&lt;div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="your-store.myshopify.com"&gt;&lt;/div&gt;
+&lt;script src="https://your-worker-url.com/widget.js"&gt;&lt;/script&gt;</code></pre>
+
+    <h2>Advanced Configuration</h2>
+    <pre><code>&lt;div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="your-store.myshopify.com"
+     data-product-id="123456789"
+     data-variant-id="987654321"
+     data-theme="light"
+     data-locale="en"&gt;&lt;/div&gt;</code></pre>
+
+    <h2>JavaScript API</h2>
+    <pre><code>// Initialize widget programmatically
+window.DeliverySchedulerWidget.init({
+    shopDomain: 'your-store.myshopify.com',
+    productId: '123456789',
+    variantId: '987654321',
+    containerId: 'my-widget-container',
+    theme: 'light',
+    locale: 'en'
+});
+
+// Destroy widget
+window.DeliverySchedulerWidget.destroy('my-widget-container');</code></pre>
+
+    <h2>Features</h2>
+    <ul>
+        <li>✅ Date and time selection</li>
+        <li>✅ Delivery vs collection options</li>
+        <li>✅ Postal code validation</li>
+        <li>✅ Real-time availability</li>
+        <li>✅ Shopify order tag integration</li>
+        <li>✅ Responsive design</li>
+    </ul>
+</body>
+</html>
+				`, {
+					headers: { 'Content-Type': 'text/html' }
 				});
 			}
 
@@ -53,6 +125,60 @@ export default {
 		}
 	},
 };
+
+async function serveWidgetBundle(): Promise<Response> {
+	// In production, this would serve the built widget.js file
+	// For now, return a placeholder that loads from the admin dashboard
+	return new Response(`
+// Delivery Scheduler Widget v1.1.5
+// This is a placeholder - the actual widget bundle should be built and served
+console.log('Delivery Scheduler Widget loaded');
+document.addEventListener('DOMContentLoaded', function() {
+    const containers = document.querySelectorAll('[data-delivery-scheduler]');
+    containers.forEach(container => {
+        container.innerHTML = '<div style="padding: 20px; border: 2px dashed #ccc; text-align: center;">🚚 Delivery Scheduler Widget<br><small>Configure in admin dashboard</small></div>';
+    });
+});
+	`, {
+		headers: {
+			'Content-Type': 'application/javascript',
+			'Cache-Control': 'public, max-age=3600'
+		}
+	});
+}
+
+async function serveWidgetCSS(): Promise<Response> {
+	return new Response(`
+/* Delivery Scheduler Widget Styles */
+.delivery-scheduler-widget {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+}
+
+.delivery-scheduler-widget h3 {
+    margin: 0 0 10px 0;
+    color: #374151;
+}
+
+.delivery-scheduler-widget .placeholder {
+    padding: 40px 20px;
+    text-align: center;
+    color: #6b7280;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+}
+	`, {
+		headers: {
+			'Content-Type': 'text/css',
+			'Cache-Control': 'public, max-age=3600'
+		}
+	});
+}
 
 async function handleShopifyRequest(request: Request, env: Env, endpoint: string): Promise<Response> {
 	const corsHeaders = {

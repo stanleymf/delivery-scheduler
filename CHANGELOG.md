@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2025-06-13
+
+### Minor
+- **General improvements and bug fixes**: General improvements and bug fixes
+
+### Technical
+- Version bump for minor release
+
+
+
 ## [1.1.5] - 2025-06-13
 
 ### Added
