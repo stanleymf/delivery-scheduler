@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Settings, Ban, Clock, AlertCircle, CalendarRange, Upload, Trash2, CalendarDays, Edit } from "lucide-react";
+import { CalendarIcon, Settings, Ban, Clock, AlertCircle, CalendarRange, Upload, Trash2, CalendarDays, Edit, List } from "lucide-react";
 import { mockBlockedDates, mockTimeslots, mockSettings, mockBlockedDateRanges, type BlockedDate, type Timeslot, type BlockedDateRange, formatTimeRange } from "@/lib/mockData";
 
 export function AvailabilityCalendar() {
@@ -819,4 +819,305 @@ export function AvailabilityCalendar() {
                         {timeslots.map((slot) => (
                           <div key={slot.id} className="flex items-center space-x-2">
                             <Switch
-                              id={`
+                              id={`range-timeslot-${slot.id}`}
+                              checked={rangeSelectedTimeslots.includes(slot.id)}
+                              onCheckedChange={() => handleRangeTimeslotToggle(slot.id)}
+                            />
+                            <Label htmlFor={`range-timeslot-${slot.id}`} className="text-sm">
+                              {slot.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleBlockDateRange}
+                    disabled={!dateRange.from || !dateRange.to}
+                    className="w-full"
+                  >
+                    🚫 Block Date Range ({getRangeDays()} days)
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bulk" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List className="w-5 h-5" />
+                Bulk Block Dates
+              </CardTitle>
+              <CardDescription>
+                Block multiple specific dates by entering them as comma-separated values. Perfect for blocking specific holidays or events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Enter Dates</Label>
+                    <Textarea
+                      placeholder="Enter dates as DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD format, separated by commas&#10;Example: 25/12/2024, 26/12/2024, 01/01/2025"
+                      value={bulkDates}
+                      onChange={(e) => setBulkDates(e.target.value)}
+                      className="min-h-[120px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supported formats: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Block Type</Label>
+                    <Select value={rangeBlockType} onValueChange={(value: 'full' | 'partial') => setRangeBlockType(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">🚫 Full Block (All services unavailable)</SelectItem>
+                        <SelectItem value="partial">⚠️ Partial Block (Block specific timeslots)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium">Reason for Blocking</Label>
+                    <Input
+                      placeholder="e.g., Holiday Season, Special Events, etc."
+                      value={rangeReason}
+                      onChange={(e) => setRangeReason(e.target.value)}
+                    />
+                  </div>
+
+                  {rangeBlockType === 'partial' && (
+                    <div>
+                      <Label className="text-sm font-medium">Select Timeslots to Block</Label>
+                      <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
+                        {timeslots.map((slot) => (
+                          <div key={slot.id} className="flex items-center space-x-2">
+                            <Switch
+                              id={`bulk-timeslot-${slot.id}`}
+                              checked={rangeSelectedTimeslots.includes(slot.id)}
+                              onCheckedChange={() => handleRangeTimeslotToggle(slot.id)}
+                            />
+                            <Label htmlFor={`bulk-timeslot-${slot.id}`} className="text-sm">
+                              {slot.name}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleBulkBlockDates}
+                    disabled={!bulkDates.trim()}
+                    className="w-full"
+                  >
+                    🚫 Block {getValidBulkDates().length} Dates
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Valid Dates Found</Label>
+                    <div className="mt-2 p-4 border rounded-lg bg-muted/50 max-h-48 overflow-y-auto">
+                      {getValidBulkDates().length > 0 ? (
+                        <div className="space-y-1">
+                          {getValidBulkDates().map((date, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span>{date.toLocaleDateString()}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {getDateStatus(date) === 'available' ? 'Available' : 
+                                 getDateStatus(date) === 'blocked' ? 'Blocked' : 
+                                 getDateStatus(date) === 'partial' ? 'Partial' : 'Future Blocked'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">No valid dates found</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    <p><strong>Note:</strong> Invalid dates will be ignored. Dates beyond the future order limit ({futureOrderLimit} days) will be automatically blocked.</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Block Date Dialog */}
+      <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDateInfo ? 'Edit Blocked Date' : 'Block Date'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedDateInfo ? 'Modify the blocking settings for this date.' : 'Configure blocking settings for the selected date.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="date" className="text-right">
+                Date
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="date"
+                  value={selectedDate ? selectedDate.toLocaleDateString() : ''}
+                  disabled
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="blockType" className="text-right">
+                Type
+              </Label>
+              <div className="col-span-3">
+                <Select value={blockType} onValueChange={(value: 'full' | 'partial') => setBlockType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">🚫 Full Block</SelectItem>
+                    <SelectItem value="partial">⚠️ Partial Block</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reason" className="text-right">
+                Reason
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="reason"
+                  placeholder="e.g., Holiday, Maintenance, etc."
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                />
+              </div>
+            </div>
+            {blockType === 'partial' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Timeslots</Label>
+                <div className="col-span-3 space-y-2 max-h-32 overflow-y-auto">
+                  {timeslots.map((slot) => (
+                    <div key={slot.id} className="flex items-center space-x-2">
+                      <Switch
+                        id={`timeslot-${slot.id}`}
+                        checked={selectedTimeslots.includes(slot.id)}
+                        onCheckedChange={() => handleTimeslotToggle(slot.id)}
+                      />
+                      <Label htmlFor={`timeslot-${slot.id}`} className="text-sm">
+                        {slot.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBlockDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              {selectedDateInfo ? 'Update' : 'Block Date'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Range Dialog */}
+      <Dialog open={isEditRangeDialogOpen} onOpenChange={setIsEditRangeDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Blocked Date Range</DialogTitle>
+            <DialogDescription>
+              Modify the blocking settings for this date range.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Range</Label>
+              <div className="col-span-3">
+                <Input
+                  value={editingRange ? `${editingRange.from} to ${editingRange.to}` : ''}
+                  disabled
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editRangeType" className="text-right">
+                Type
+              </Label>
+              <div className="col-span-3">
+                <Select value={rangeBlockType} onValueChange={(value: 'full' | 'partial') => setRangeBlockType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">🚫 Full Block</SelectItem>
+                    <SelectItem value="partial">⚠️ Partial Block</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="editRangeReason" className="text-right">
+                Reason
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="editRangeReason"
+                  placeholder="e.g., Holiday, Maintenance, etc."
+                  value={rangeReason}
+                  onChange={(e) => setRangeReason(e.target.value)}
+                />
+              </div>
+            </div>
+            {rangeBlockType === 'partial' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Timeslots</Label>
+                <div className="col-span-3 space-y-2 max-h-32 overflow-y-auto">
+                  {timeslots.map((slot) => (
+                    <div key={slot.id} className="flex items-center space-x-2">
+                      <Switch
+                        id={`edit-range-timeslot-${slot.id}`}
+                        checked={rangeSelectedTimeslots.includes(slot.id)}
+                        onCheckedChange={() => handleRangeTimeslotToggle(slot.id)}
+                      />
+                      <Label htmlFor={`edit-range-timeslot-${slot.id}`} className="text-sm">
+                        {slot.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditRangeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRangeEdit}>
+              Update Range
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

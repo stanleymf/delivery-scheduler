@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.15] - 2025-06-13
+
+### Patch
+- **Fixed incomplete AvailabilityCalendar component file**: Fixed incomplete AvailabilityCalendar component file
+
+### Technical
+- Version bump for patch release
+
+
+
 ## [1.0.14] - 2025-06-13
 
 ### Patch
