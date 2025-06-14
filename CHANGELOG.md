@@ -1,30 +1,41 @@
 # Changelog
 
-## [1.5.3] - 2025-06-14
+All notable changes to the Delivery Scheduler project will be documented in this file.
 
-### Fixed 🐛
-- **Data Persistence Issue**: Fixed mock data regenerating on every page refresh
-- **Rule Deletion Persistence**: Deleted rules, blocked dates, and timeslots now stay deleted after refresh
-- **Settings Persistence**: Future order limit and other settings now persist across sessions
-- **LocalStorage Integration**: All app data now automatically saves to localStorage
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Added ✨
-- **Comprehensive Persistence Layer**: Added save/load functions for all data types
-- **Automatic Data Backup**: All changes are automatically saved to localStorage
-- **Fallback System**: Graceful fallback to mock data if localStorage is unavailable
-- **Error Handling**: Robust error handling for localStorage operations
+## [1.5.4] - 2024-12-19
 
-### Changed 🔄
-- **Data Loading**: All components now load from localStorage with mock data fallback
-- **State Management**: Enhanced state management with automatic persistence
-- **User Experience**: Changes now persist across browser sessions and page refreshes
+### Fixed
+- **Timeslot Persistence**: Fixed issue where deleted express timeslots would reappear after page refresh
+- **Component State Sync**: Updated TimeSlots and Express components to properly load from and save to localStorage
+- **Cross-Component Updates**: Added reactive state management so Express component updates when delivery timeslots are modified in TimeSlots component
 
-### Technical
-- Added persistence functions in `src/lib/mockData.ts`
-- Updated AvailabilityCalendar component with persistence helpers
-- Updated LivePreview component to use persistent data
-- Enhanced error handling for localStorage operations
-- Maintained backward compatibility with existing mock data structure
+### Technical Details
+- Updated TimeSlots component to use localStorage persistence for all timeslot operations
+- Updated Express component to use localStorage persistence and react to storage changes
+- Fixed state initialization to load from saved data instead of static mock data
+- Added proper state synchronization between components that share timeslot data
+
+## [1.5.3] - 2024-12-19
+
+### Fixed
+- **Data Persistence**: Comprehensive fix for data persistence across all components
+- **Mock Data Override**: All components now properly load from localStorage with fallback to mock data
+- **State Management**: Added robust save/load functions for timeslots, blocked dates, settings, and products
+- **Component Synchronization**: LivePreview and AvailabilityCalendar now maintain data consistency
+
+### Technical Details
+- Added loadTimeslots(), saveTimeslots(), loadBlockedDates(), saveBlockedDates() functions to mockData.ts
+- Updated AvailabilityCalendar with comprehensive persistence for all data modification operations
+- Updated LivePreview to load all data from localStorage with graceful fallback
+- Implemented automatic saving on all data changes with error handling
+- Enhanced storage strategy with robust error recovery
+
+### Deployment
+- Version bump for patch release
+- Automated changelog update
 
 ## [1.5.2] - 2025-06-14
 
@@ -44,8 +55,6 @@
 - Improved error handling and debugging for webhook operations
 - Version bump for patch release
 - Automated changelog update
-
-
 
 ## [1.5.1] - 2025-06-14
 
@@ -78,8 +87,6 @@
 - **Railway Configuration**: Added WEBHOOK_BASE_URL=https://delivery-schedule2-production.up.railway.app
 - **Environment Variables**: Enhanced Railway environment variable management
 - **Container Restart Compatibility**: Credentials now survive Railway container restarts when properly configured
-
-
 
 ## [1.5.0] - 2025-06-14
 
@@ -120,8 +127,6 @@
 - Server-side storage with no client-side credential exposure
 - Graceful error handling for file corruption and recovery scenarios
 
-
-
 ## [1.4.0] - 2025-06-14
 
 ### Added ✨
@@ -130,8 +135,6 @@
 ### Technical
 - Version bump for minor release
 - Automated changelog update
-
-
 
 ## [1.3.0] - 2025-06-14
 
@@ -142,8 +145,6 @@
 - Version bump for minor release
 - Automated changelog update
 
-
-
 ## [1.2.2] - 2025-06-14
 
 ### Documentation 📚
@@ -153,8 +154,6 @@
 - Version bump for patch release
 - Automated changelog update
 
-
-
 ## [1.2.1] - 2025-06-14
 
 ### Patch
@@ -163,8 +162,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.2.0] - 2025-06-13
 
 ### Minor
@@ -172,8 +169,6 @@
 
 ### Technical
 - Version bump for minor release
-
-
 
 ## [1.1.5] - 2025-06-13
 
@@ -196,8 +191,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.1.4] - 2025-06-13
 
 ### Fixed
@@ -214,8 +207,6 @@
 
 ### Technical
 - Version bump for patch release
-
-
 
 ## [1.1.3] - 2025-06-13
 
@@ -236,8 +227,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.1.2] - 2025-06-13
 
 ### Changed
@@ -257,8 +246,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.1.1] - 2025-06-13
 
 ### Patch
@@ -266,8 +253,6 @@
 
 ### Technical
 - Version bump for patch release
-
-
 
 ## [1.1.0] - 2025-06-13
 
@@ -277,8 +262,6 @@
 ### Technical
 - Version bump for minor release
 
-
-
 ## [1.0.16] - 2025-06-13
 
 ### Patch
@@ -286,8 +269,6 @@
 
 ### Technical
 - Version bump for patch release
-
-
 
 ## [1.0.15] - 2025-06-13
 
@@ -297,8 +278,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.0.14] - 2025-06-13
 
 ### Patch
@@ -306,8 +285,6 @@
 
 ### Technical
 - Version bump for patch release
-
-
 
 ## [1.0.13] - 2025-06-13
 
@@ -317,8 +294,6 @@
 ### Technical
 - Version bump for patch release
 
-
-
 ## [1.0.12] - 2025-06-13
 
 ### Patch
@@ -326,13 +301,6 @@
 
 ### Technical
 - Version bump for patch release
-
-
-
-All notable changes to the Delivery Scheduler project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.0.11] - 2025-06-13
 
@@ -459,4 +427,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical
 - Full-stack application with modern React frontend
 - Comprehensive API integration with Shopify
-- Production-ready deployment configuration 
+- Production-ready deployment configuration
+
+## [1.5.4] - 2024-12-19
+
+### Fixed
+- **Timeslot Persistence**: Fixed issue where deleted express timeslots would reappear after page refresh
+- **Component State Sync**: Updated TimeSlots and Express components to properly load from and save to localStorage
+- **Cross-Component Updates**: Added reactive state management so Express component updates when delivery timeslots are modified in TimeSlots component
+
+### Technical Details
+- Updated TimeSlots component to use localStorage persistence for all timeslot operations
+- Updated Express component to use localStorage persistence and react to storage changes
+- Fixed state initialization to load from saved data instead of static mock data
+- Added proper state synchronization between components that share timeslot data
+
+All notable changes to the Delivery Scheduler project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). 

@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Clock, Plus, Edit, Trash2, Truck, Building } from "lucide-react";
-import { mockTimeslots, type Timeslot, formatTimeRange, getDayName } from "@/lib/mockData";
+import { mockTimeslots, type Timeslot, formatTimeRange, getDayName, loadTimeslots, saveTimeslots } from "@/lib/mockData";
 
 export function TimeSlots() {
-  const [timeslots, setTimeslots] = useState<Timeslot[]>(mockTimeslots.filter(slot => slot.type !== 'express'));
+  const [timeslots, setTimeslots] = useState<Timeslot[]>(() => {
+    const savedTimeslots = loadTimeslots();
+    return savedTimeslots.filter(slot => slot.type !== 'express');
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<Timeslot | null>(null);
   const [formData, setFormData] = useState({
@@ -74,11 +77,19 @@ export function TimeSlots() {
       assignedDays: formData.assignedDays
     };
 
+    let updatedTimeslots: Timeslot[];
     if (editingSlot) {
-      setTimeslots(timeslots.map(slot => slot.id === editingSlot.id ? newSlot : slot));
+      updatedTimeslots = timeslots.map(slot => slot.id === editingSlot.id ? newSlot : slot);
     } else {
-      setTimeslots([...timeslots, newSlot]);
+      updatedTimeslots = [...timeslots, newSlot];
     }
+    
+    setTimeslots(updatedTimeslots);
+    
+    // Save to localStorage - need to merge with express slots
+    const allTimeslots = loadTimeslots();
+    const expressSlots = allTimeslots.filter(slot => slot.type === 'express');
+    saveTimeslots([...updatedTimeslots, ...expressSlots]);
 
     setIsCreateDialogOpen(false);
     resetForm();
@@ -86,7 +97,13 @@ export function TimeSlots() {
   };
 
   const handleDelete = (id: string) => {
-    setTimeslots(timeslots.filter(slot => slot.id !== id));
+    const updatedTimeslots = timeslots.filter(slot => slot.id !== id);
+    setTimeslots(updatedTimeslots);
+    
+    // Save to localStorage - need to merge with express slots
+    const allTimeslots = loadTimeslots();
+    const expressSlots = allTimeslots.filter(slot => slot.type === 'express');
+    saveTimeslots([...updatedTimeslots, ...expressSlots]);
   };
 
   const handleDayToggle = (day: string, checked: boolean) => {

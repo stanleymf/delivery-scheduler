@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Zap, Plus, Edit, Trash2, AlertCircle } from "lucide-react";
-import { mockTimeslots, type Timeslot, formatTimeRange, getDayName } from "@/lib/mockData";
+import { mockTimeslots, type Timeslot, formatTimeRange, getDayName, loadTimeslots, saveTimeslots } from "@/lib/mockData";
 
 export function Express() {
-  const [expressSlots, setExpressSlots] = useState<Timeslot[]>(mockTimeslots.filter(slot => slot.type === 'express'));
-  const [globalSlots] = useState<Timeslot[]>(mockTimeslots.filter(slot => slot.type === 'delivery'));
+  const [expressSlots, setExpressSlots] = useState<Timeslot[]>(() => {
+    const savedTimeslots = loadTimeslots();
+    return savedTimeslots.filter(slot => slot.type === 'express');
+  });
+  const [globalSlots, setGlobalSlots] = useState<Timeslot[]>(() => {
+    const savedTimeslots = loadTimeslots();
+    return savedTimeslots.filter(slot => slot.type === 'delivery');
+  });
+
+  // Update globalSlots when localStorage changes (e.g., from TimeSlots component)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedTimeslots = loadTimeslots();
+      setGlobalSlots(savedTimeslots.filter(slot => slot.type === 'delivery'));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<Timeslot | null>(null);
   const [formData, setFormData] = useState({
@@ -86,11 +103,19 @@ export function Express() {
       parentTimeslotId: formData.parentTimeslotId
     };
 
+    let updatedExpressSlots: Timeslot[];
     if (editingSlot) {
-      setExpressSlots(expressSlots.map(slot => slot.id === editingSlot.id ? newSlot : slot));
+      updatedExpressSlots = expressSlots.map(slot => slot.id === editingSlot.id ? newSlot : slot);
     } else {
-      setExpressSlots([...expressSlots, newSlot]);
+      updatedExpressSlots = [...expressSlots, newSlot];
     }
+    
+    setExpressSlots(updatedExpressSlots);
+    
+    // Save to localStorage - need to merge with non-express slots
+    const allTimeslots = loadTimeslots();
+    const nonExpressSlots = allTimeslots.filter(slot => slot.type !== 'express');
+    saveTimeslots([...nonExpressSlots, ...updatedExpressSlots]);
 
     setIsCreateDialogOpen(false);
     resetForm();
@@ -98,7 +123,13 @@ export function Express() {
   };
 
   const handleDelete = (id: string) => {
-    setExpressSlots(expressSlots.filter(slot => slot.id !== id));
+    const updatedExpressSlots = expressSlots.filter(slot => slot.id !== id);
+    setExpressSlots(updatedExpressSlots);
+    
+    // Save to localStorage - need to merge with non-express slots
+    const allTimeslots = loadTimeslots();
+    const nonExpressSlots = allTimeslots.filter(slot => slot.type !== 'express');
+    saveTimeslots([...nonExpressSlots, ...updatedExpressSlots]);
   };
 
   const handleDayToggle = (day: string, checked: boolean) => {
