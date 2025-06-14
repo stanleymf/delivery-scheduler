@@ -460,16 +460,16 @@ export function AvailabilityCalendar() {
         </TabsList>
 
         <TabsContent value="calendar" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>📅 Service Calendar</CardTitle>
-                  <CardDescription>
-                    Click on any date to block or unblock services. Red dates are fully blocked, orange dates have partial blocks.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>📅 Service Calendar</CardTitle>
+              <CardDescription>
+                Click on any date to block or unblock services. Red dates are fully blocked, orange dates have partial blocks.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
                   {viewMode === 'month' ? (
                     <div>
                       <div className="mb-4 p-2 border rounded-md bg-muted/30">
@@ -502,13 +502,13 @@ export function AvailabilityCalendar() {
                           </button>
                         </div>
                       </div>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={handleDateSelect}
-                        modifiers={modifiers}
-                        modifiersStyles={modifiersStyles}
-                        className="rounded-md border"
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                modifiers={modifiers}
+                modifiersStyles={modifiersStyles}
+                className="rounded-md border"
                         month={currentMonth}
                         onMonthChange={setCurrentMonth}
                         captionLayout="dropdown"
@@ -653,47 +653,47 @@ export function AvailabilityCalendar() {
                       <p className="text-sm">Click on calendar dates or use range/bulk blocking to add blocked dates</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    Calendar Legend
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
-                    <span className="text-sm">Available</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-orange-200 border border-orange-400 rounded" />
-                    <span className="text-sm">Partially Blocked</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-200 border border-red-400 rounded" />
-                    <span className="text-sm">Fully Blocked</span>
-                  </div>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Calendar Legend
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
+                <span className="text-sm">Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-orange-200 border border-orange-400 rounded" />
+                <span className="text-sm">Partially Blocked</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 bg-red-200 border border-red-400 rounded" />
+                <span className="text-sm">Fully Blocked</span>
+              </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 border border-gray-400 rounded" style={{ textDecoration: 'line-through' }} />
                     <span className="text-sm">Future Blocked (Beyond {futureOrderLimit} days)</span>
                   </div>
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>⚙️ Current Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Future Order Limit:</span>
-                    <Badge variant="outline">{futureOrderLimit} days</Badge>
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>⚙️ Current Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Future Order Limit:</span>
+                <Badge variant="outline">{futureOrderLimit} days</Badge>
+              </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Available Until:</span>
                     <Badge variant="outline">
@@ -705,39 +705,39 @@ export function AvailabilityCalendar() {
                       })()}
                     </Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Blocked Dates:</span>
-                    <Badge variant="outline">{blockedDates.length}</Badge>
-                  </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Blocked Dates:</span>
+                <Badge variant="outline">{blockedDates.length}</Badge>
+              </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Date Ranges:</span>
                     <Badge variant="outline">{blockedDateRanges.length}</Badge>
                   </div>
-                </CardContent>
-              </Card>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>🚫 Recent Blocks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {blockedDates.slice(0, 5).map((block) => (
-                      <div key={block.id} className="flex items-center justify-between text-sm">
-                        <span>{new Date(block.date).toLocaleDateString()}</span>
-                        <Badge variant={block.type === 'full' ? 'destructive' : 'secondary'}>
-                          {block.type === 'full' ? 'Full' : 'Partial'}
-                        </Badge>
-                      </div>
-                    ))}
-                    {blockedDates.length === 0 && (
-                      <p className="text-muted-foreground text-sm">No blocked dates</p>
-                    )}
+          <Card>
+            <CardHeader>
+              <CardTitle>🚫 Recent Blocks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {blockedDates.slice(0, 5).map((block) => (
+                  <div key={block.id} className="flex items-center justify-between text-sm">
+                    <span>{new Date(block.date).toLocaleDateString()}</span>
+                    <Badge variant={block.type === 'full' ? 'destructive' : 'secondary'}>
+                      {block.type === 'full' ? 'Full' : 'Partial'}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                ))}
+                {blockedDates.length === 0 && (
+                  <p className="text-muted-foreground text-sm">No blocked dates</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
         </TabsContent>
 
         <TabsContent value="range" className="space-y-6">
@@ -858,8 +858,8 @@ export function AvailabilityCalendar() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
+          <div className="space-y-4">
+            <div>
                     <Label className="text-sm font-medium">Enter Dates</Label>
                     <Textarea
                       placeholder="Enter dates as DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD format, separated by commas\nExample: 25/12/2024, 26/12/2024, 01/01/2025"
@@ -875,15 +875,15 @@ export function AvailabilityCalendar() {
                   <div>
                     <Label className="text-sm font-medium">Block Type</Label>
                     <Select value={rangeBlockType} onValueChange={(value: 'full' | 'partial') => setRangeBlockType(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full">🚫 Full Block (All services unavailable)</SelectItem>
-                        <SelectItem value="partial">⚠️ Partial Block (Block specific timeslots)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">🚫 Full Block (All services unavailable)</SelectItem>
+                  <SelectItem value="partial">⚠️ Partial Block (Block specific timeslots)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
                   <div>
                     <Label className="text-sm font-medium">Reason for Blocking</Label>
@@ -1030,12 +1030,12 @@ export function AvailabilityCalendar() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBlockDialogOpen(false)}>
-              Cancel
-            </Button>
+              <Button variant="outline" onClick={() => setIsBlockDialogOpen(false)}>
+                Cancel
+              </Button>
             <Button onClick={handleSaveEdit}>
               {selectedDateInfo ? 'Update' : 'Block Date'}
-            </Button>
+                </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

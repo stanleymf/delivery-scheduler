@@ -1,6 +1,6 @@
 {
   "name": "delivery-scheduler",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Advanced delivery scheduling system with Shopify integration",
   "type": "module",
   "private": true,
@@ -22,7 +22,14 @@
     "lint:rest": "biome lint --write",
     "version:patch": "node scripts/version-update.js patch",
     "version:minor": "node scripts/version-update.js minor",
-    "version:major": "node scripts/version-update.js major"
+    "version:major": "node scripts/version-update.js major",
+    "version:feature": "node scripts/version-update.js minor --type=feature",
+    "version:fix": "node scripts/version-update.js patch --type=fix",
+    "version:breaking": "node scripts/version-update.js major --type=breaking",
+    "version:docs": "node scripts/version-update.js patch --type=docs",
+    "release:patch": "pnpm version:patch && git add . && git commit -m \"chore: bump version\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:minor": "pnpm version:minor && git add . && git commit -m \"chore: bump version\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:major": "pnpm version:major && git add . && git commit -m \"chore: bump version\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -498,7 +498,7 @@ export function LivePreview() {
                         {selectedType !== 'collection' && <div><strong>Postal Code:</strong> {postalCode}</div>}
                         {selectedType === 'collection' && (
                           <div>
-                            <div><strong>Location:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.name}</div>
+                          <div><strong>Location:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.name}</div>
                             <div><strong>Address:</strong> {collectionLocations.find(l => l.id === selectedLocation)?.address}</div>
                           </div>
                         )}

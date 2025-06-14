@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.2] - 2025-06-14
+
+### Documentation 📚
+- **Enhanced version management workflow**
+
+### Technical
+- Version bump for patch release
+- Automated changelog update
+
+
+
 ## [1.2.1] - 2025-06-14
 
 ### Patch
