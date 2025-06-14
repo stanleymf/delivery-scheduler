@@ -76,4 +76,60 @@ export function compareVersions(v1: string, v2: string): number {
   }
   
   return 0;
-} 
+}
+
+export const APP_VERSION = '1.8.0';
+
+export const CHANGELOG = [
+  {
+    version: '1.8.0',
+    date: '2024-06-14',
+    type: 'feature' as const,
+    title: 'Account Management System',
+    description: 'Complete account management functionality with security features',
+    changes: [
+      '🔐 **Account Management Dashboard** - Comprehensive account settings interface',
+      '🔑 **Password Management** - Change password with current password verification',
+      '📧 **Email Management** - Update email address with validation',
+      '👤 **Username Management** - Change username with data migration',
+      '🗑️ **Account Deletion** - Secure account deletion with confirmation',
+      '👁️ **Password Visibility** - Toggle password visibility in forms',
+      '✅ **Form Validation** - Client and server-side validation for all forms',
+      '🔒 **Security Features** - Password requirements and confirmation dialogs',
+      '📱 **Responsive Design** - Mobile-friendly account management interface',
+      '🔄 **Session Management** - Proper session handling for username changes'
+    ],
+    technical: [
+      'Added 5 new account management API endpoints',
+      'Created comprehensive AccountManagement React component',
+      'Implemented proper form validation and error handling',
+      'Added account management to navigation and routing',
+      'Enhanced security with password verification for sensitive operations',
+      'Added data migration for username changes',
+      'Implemented proper session invalidation and renewal'
+    ]
+  },
+  {
+    version: '1.7.1',
+    date: '2024-06-14',
+    type: 'fix' as const,
+    title: 'Server Data Persistence & LivePreview Fixes',
+    description: 'Fixed server data persistence and LivePreview white screen issues',
+    changes: [
+      '💾 **Server Data Persistence** - All configurations now properly saved to server',
+      '🔄 **Data Migration Tools** - One-click migration from localStorage to server',
+      '📊 **Sync Status Monitoring** - Real-time sync status with manual controls',
+      '🖥️ **LivePreview Fix** - Resolved white screen error with tagMapping validation',
+      '⚡ **Enhanced Settings Validation** - Comprehensive settings structure validation',
+      '🔧 **Improved Error Handling** - Better error handling for incomplete data'
+    ],
+    technical: [
+      'Added /api/user/migrate endpoint for localStorage migration',
+      'Added /api/user/sync endpoint for manual sync triggers',
+      'Enhanced loadSettings() with comprehensive validation',
+      'Fixed tagMapping undefined errors in LivePreview',
+      'Added SyncStatus component to Settings page',
+      'Implemented optional chaining for all tagMapping access'
+    ]
+  },
+]; 
