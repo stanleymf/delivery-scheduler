@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Save, TestTube, CheckCircle, XCircle, Eye, EyeOff, Store, Key, Globe } from 'lucide-react';
+import { Loader2, Save, TestTube, CheckCircle, XCircle, Eye, EyeOff, Store, Key, Globe, Database, RefreshCw } from 'lucide-react';
 import { authenticatedFetch } from '@/utils/api';
 
 interface ShopifyCredentials {
@@ -24,6 +24,13 @@ interface ConnectionStatus {
   lastTested?: string;
 }
 
+interface PersistenceStatus {
+  fileExists: boolean;
+  fileSize: number | null;
+  fileModified: string | null;
+  totalUsersInMemory: number;
+}
+
 export function ShopifySettings() {
   const [credentials, setCredentials] = useState<ShopifyCredentials>({
     shopDomain: '',
@@ -34,9 +41,11 @@ export function ShopifySettings() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     isConnected: false
   });
+  const [persistenceStatus, setPersistenceStatus] = useState<PersistenceStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCheckingPersistence, setIsCheckingPersistence] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showSecrets, setShowSecrets] = useState(false);
@@ -45,6 +54,7 @@ export function ShopifySettings() {
   useEffect(() => {
     loadCredentials();
     testConnection();
+    checkPersistenceStatus();
   }, []);
 
   const loadCredentials = async () => {
@@ -58,6 +68,23 @@ export function ShopifySettings() {
       }
     } catch (error) {
       console.log('No saved credentials found');
+    }
+  };
+
+  const checkPersistenceStatus = async () => {
+    setIsCheckingPersistence(true);
+    try {
+      const response = await authenticatedFetch('/api/shopify/debug');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.debug.persistence) {
+          setPersistenceStatus(data.debug.persistence);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking persistence status:', error);
+    } finally {
+      setIsCheckingPersistence(false);
     }
   };
 
@@ -78,9 +105,11 @@ export function ShopifySettings() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess('Shopify credentials saved successfully!');
+        setSuccess('Shopify credentials saved successfully and persisted to storage!');
         // Test connection after saving
         await testConnection();
+        // Check persistence status
+        await checkPersistenceStatus();
       } else {
         setError(data.error || 'Failed to save credentials');
       }
@@ -303,6 +332,71 @@ export function ShopifySettings() {
                     )}
                   </div>
                 )}
+
+                {/* Persistence Status */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      Storage Status
+                    </h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={checkPersistenceStatus}
+                      disabled={isCheckingPersistence}
+                    >
+                      {isCheckingPersistence ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {persistenceStatus && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span>Credentials File:</span>
+                        <Badge variant={persistenceStatus.fileExists ? "default" : "destructive"}>
+                          {persistenceStatus.fileExists ? "Exists" : "Missing"}
+                        </Badge>
+                      </div>
+                      {persistenceStatus.fileExists && (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span>File Size:</span>
+                            <span className="text-muted-foreground">
+                              {persistenceStatus.fileSize ? `${persistenceStatus.fileSize} bytes` : 'Unknown'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Last Modified:</span>
+                            <span className="text-muted-foreground">
+                              {persistenceStatus.fileModified 
+                                ? new Date(persistenceStatus.fileModified).toLocaleString()
+                                : 'Unknown'
+                              }
+                            </span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span>Users in Memory:</span>
+                        <span className="text-muted-foreground">
+                          {persistenceStatus.totalUsersInMemory}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="mt-3 p-3 bg-muted/30 rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      💾 Your credentials are automatically saved to persistent storage and will survive server restarts.
+                      The system backs up every 5 minutes and on shutdown.
+                    </p>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 

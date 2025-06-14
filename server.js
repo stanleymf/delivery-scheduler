@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import fs from 'fs/promises';
 
 dotenv.config();
 
@@ -26,8 +27,59 @@ const AUTH_CONFIG = {
 // In-memory session store (in production, use Redis or database)
 const sessions = new Map();
 
-// In-memory credential store (in production, use a database)
-const shopifyCredentials = new Map();
+// Persistent storage for Shopify credentials
+const CREDENTIALS_FILE = join(__dirname, 'shopify-credentials.json');
+
+// Load credentials from file on startup
+async function loadCredentialsFromFile() {
+  try {
+    const data = await fs.readFile(CREDENTIALS_FILE, 'utf8');
+    const credentials = JSON.parse(data);
+    console.log('📁 Loaded credentials from file for', Object.keys(credentials).length, 'users');
+    return new Map(Object.entries(credentials));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('📁 No existing credentials file found, starting fresh');
+      return new Map();
+    }
+    console.error('❌ Error loading credentials from file:', error);
+    return new Map();
+  }
+}
+
+// Save credentials to file
+async function saveCredentialsToFile(credentialsMap) {
+  try {
+    const credentialsObj = Object.fromEntries(credentialsMap);
+    await fs.writeFile(CREDENTIALS_FILE, JSON.stringify(credentialsObj, null, 2));
+    console.log('💾 Saved credentials to file for', credentialsMap.size, 'users');
+  } catch (error) {
+    console.error('❌ Error saving credentials to file:', error);
+  }
+}
+
+// Initialize credentials from file
+const shopifyCredentials = await loadCredentialsFromFile();
+
+// Periodic backup every 5 minutes (in case of unexpected shutdowns)
+setInterval(async () => {
+  if (shopifyCredentials.size > 0) {
+    await saveCredentialsToFile(shopifyCredentials);
+  }
+}, 5 * 60 * 1000);
+
+// Graceful shutdown handler to save credentials
+process.on('SIGTERM', async () => {
+  console.log('🔄 Graceful shutdown initiated, saving credentials...');
+  await saveCredentialsToFile(shopifyCredentials);
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🔄 Graceful shutdown initiated, saving credentials...');
+  await saveCredentialsToFile(shopifyCredentials);
+  process.exit(0);
+});
 
 app.use(express.json());
 
@@ -140,7 +192,7 @@ app.get('/api/shopify/settings', authenticateToken, (req, res) => {
   }
 });
 
-app.post('/api/shopify/settings', authenticateToken, (req, res) => {
+app.post('/api/shopify/settings', authenticateToken, async (req, res) => {
   const userId = req.user;
   const { shopDomain, accessToken, apiVersion, appSecret } = req.body;
 
@@ -153,16 +205,22 @@ app.post('/api/shopify/settings', authenticateToken, (req, res) => {
   }
 
   // Store credentials (in production, encrypt these)
-  shopifyCredentials.set(userId, {
+  const credentials = {
     shopDomain: shopDomain.replace(/^https?:\/\//, '').replace(/\/$/, ''),
     accessToken,
     apiVersion: apiVersion || '2024-01',
-    appSecret: appSecret || ''
-  });
+    appSecret: appSecret || '',
+    savedAt: new Date().toISOString()
+  };
+
+  shopifyCredentials.set(userId, credentials);
+  
+  // Persist to file
+  await saveCredentialsToFile(shopifyCredentials);
 
   res.json({
     success: true,
-    message: 'Credentials saved successfully'
+    message: 'Credentials saved successfully and persisted to storage'
   });
 });
 
@@ -420,11 +478,21 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
 });
 
 // Debug endpoint for webhook troubleshooting
-app.get('/api/shopify/debug', authenticateToken, (req, res) => {
+app.get('/api/shopify/debug', authenticateToken, async (req, res) => {
   const userId = req.user;
   const credentials = shopifyCredentials.get(userId);
   
   const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || 'https://delivery-schedule2-production.up.railway.app';
+  
+  // Check if credentials file exists
+  let fileExists = false;
+  let fileStats = null;
+  try {
+    fileStats = await fs.stat(CREDENTIALS_FILE);
+    fileExists = true;
+  } catch (error) {
+    fileExists = false;
+  }
   
   res.json({
     success: true,
@@ -436,8 +504,16 @@ app.get('/api/shopify/debug', authenticateToken, (req, res) => {
         hasAccessToken: !!credentials.accessToken,
         accessTokenLength: credentials.accessToken ? credentials.accessToken.length : 0,
         apiVersion: credentials.apiVersion,
-        hasAppSecret: !!credentials.appSecret
+        hasAppSecret: !!credentials.appSecret,
+        savedAt: credentials.savedAt
       } : null,
+      persistence: {
+        credentialsFile: CREDENTIALS_FILE,
+        fileExists,
+        fileSize: fileStats ? fileStats.size : null,
+        fileModified: fileStats ? fileStats.mtime.toISOString() : null,
+        totalUsersInMemory: shopifyCredentials.size
+      },
       webhookBaseUrl,
       environment: {
         NODE_ENV: process.env.NODE_ENV,
@@ -448,6 +524,50 @@ app.get('/api/shopify/debug', authenticateToken, (req, res) => {
       timestamp: new Date().toISOString()
     }
   });
+});
+
+// Manual backup endpoint
+app.post('/api/shopify/backup', authenticateToken, async (req, res) => {
+  try {
+    await saveCredentialsToFile(shopifyCredentials);
+    res.json({
+      success: true,
+      message: 'Credentials backed up successfully',
+      timestamp: new Date().toISOString(),
+      userCount: shopifyCredentials.size
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to backup credentials',
+      details: error.message
+    });
+  }
+});
+
+// Manual restore endpoint
+app.post('/api/shopify/restore', authenticateToken, async (req, res) => {
+  try {
+    const restoredCredentials = await loadCredentialsFromFile();
+    
+    // Merge with current credentials (don't overwrite current session)
+    for (const [userId, creds] of restoredCredentials) {
+      shopifyCredentials.set(userId, creds);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Credentials restored successfully',
+      timestamp: new Date().toISOString(),
+      userCount: shopifyCredentials.size
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore credentials',
+      details: error.message
+    });
+  }
 });
 
 // Enhanced webhook registration with comprehensive delivery scheduling topics
