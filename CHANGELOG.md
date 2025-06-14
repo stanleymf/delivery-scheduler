@@ -5,6 +5,61 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 14/06/2025
+
+### Added ✨
+- **Real-Time Widget Synchronization**: Implemented complete sync between admin dashboard and customer widget
+- **Public API Endpoints**: Added 4 new public endpoints for widget data access without authentication
+  - `/api/public/widget/timeslots` - Returns timeslots configuration
+  - `/api/public/widget/settings` - Returns settings including collection locations
+  - `/api/public/widget/blocked-dates` - Returns blocked dates
+  - `/api/public/widget/blocked-date-ranges` - Returns blocked date ranges
+- **Enhanced Customer Widget (v1.3.0)**: Complete overhaul of Cloudflare Workers widget with sync capabilities
+- **Widget Sync Status Indicator**: Added live sync status display in admin dashboard
+- **Advanced Widget Integration**: Enhanced integration instructions with sync indicators and troubleshooting
+- **Comprehensive Widget Testing**: Added testing checklist and debugging tools
+- **Widget Health Monitoring**: Added widget endpoint health checks and status monitoring
+
+### Enhanced 🔄
+- **Live Preview Module**: Updated with sync status indicators and enhanced integration instructions
+- **Widget Architecture**: Transformed from static widget to dynamic, real-time synced system
+- **Customer Experience**: Widget now automatically reflects admin dashboard changes without manual updates
+- **Integration Documentation**: Comprehensive update with sync capabilities, testing, and troubleshooting
+- **Error Handling**: Enhanced widget error handling with graceful fallbacks and user feedback
+- **CORS Configuration**: Proper cross-origin resource sharing for widget API access
+
+### Fixed 🐛
+- **Widget Data Mismatch**: Resolved complete disconnect between admin preview and customer widget
+- **API Authentication Issues**: Fixed API endpoints returning HTML instead of JSON for widget access
+- **Route Conflicts**: Resolved API route mismatches between widget expectations and server endpoints
+- **Deployment Sync**: Eliminated manual deployment requirements for widget updates
+
+### Technical Details
+- **Server Architecture**: Added public API layer with proper CORS headers and JSON responses
+- **Cloudflare Workers**: Updated to v1.3.0 with real-time data fetching and enhanced UI
+- **Environment Configuration**: Added `ADMIN_DASHBOARD_URL` environment variable for widget sync
+- **Data Flow**: Established seamless data flow from admin dashboard → public API → customer widget
+- **Fallback Strategy**: Comprehensive fallback data system if API calls fail
+- **Version Management**: Proper versioning system for widget deployments
+
+### Deployment 🚀
+- **Railway Server**: Deployed with new public API endpoints (✅ LIVE)
+- **Cloudflare Workers**: Deployed v1.3.0 with sync capabilities (✅ SYNCED)
+- **Environment Variables**: Configured cross-platform environment variables
+- **Health Checks**: All 4 public API endpoints responding correctly
+- **Widget Proxy**: Cloudflare Worker proxy functioning for API access
+
+### Breaking Changes ⚠️
+- **Widget Integration**: Existing widget integrations should update to v1.3.0 for sync capabilities
+- **API Structure**: New public API endpoints replace previous widget data access methods
+- **Environment Setup**: Requires `ADMIN_DASHBOARD_URL` environment variable in Cloudflare Workers
+
+### Migration Guide 📋
+- Update widget script tag to reference v1.3.0
+- Configure `ADMIN_DASHBOARD_URL` environment variable
+- Test widget sync functionality with admin dashboard changes
+- Update integration documentation for customers
+
 ## [1.6.1] - 14/06/2025
 
 ### Added ✨
