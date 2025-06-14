@@ -139,6 +139,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Widget: Stable and operational (basic functionality)
 - 🔄 Integration: Fee display in widget pending future update
 
+## [1.9.2] - 2024-06-15
+
+### Fixed - Enhanced Data Persistence for Railway
+- 🔒 **Enhanced Environment Variable Support** - Improved loading from Railway environment variables
+- 📊 **Enhanced Deployment Logging** - Better visibility into data loading and persistence status
+- 💾 **Automatic Backup Improvements** - Enhanced periodic data backup every 5 minutes
+- 📋 **Persistence Command Logging** - Clear instructions for setting up environment variables
+- 🔄 **Session Persistence** - Added environment variable support for login sessions
+- 📖 **Setup Documentation** - Comprehensive Railway persistence setup guide
+- ⚡ **Graceful Shutdown** - Improved data saving on application shutdown
+- 🛡️ **Data Recovery** - Clear recovery steps for lost data scenarios
+
+### Technical Changes
+- Added `loadSessionsFromEnv()` function for session persistence
+- Enhanced logging for all persistence operations
+- Created `RAILWAY_PERSISTENCE_SETUP.md` documentation
+- Improved error handling for environment variable loading
+- Added comprehensive environment status logging on startup
+- Enhanced graceful shutdown handlers for data preservation
+
 ---
 
 ## Version History
@@ -149,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v1.6.1** - Initial Release
 - **v1.9.0** - Express Delivery Fees
 - **v1.9.1** - Widget Stability Fix
+- **v1.9.2** - Enhanced Data Persistence for Railway
 
 ## Deployment Status
 

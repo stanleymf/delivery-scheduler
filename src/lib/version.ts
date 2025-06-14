@@ -80,7 +80,56 @@ export function compareVersions(v1: string, v2: string): number {
 
 export const APP_VERSION = '1.8.0';
 
+export const VERSION = '1.9.2';
+
 export const CHANGELOG = [
+  {
+    version: '1.9.2',
+    date: '2024-06-15',
+    type: 'fix' as const,
+    title: 'Enhanced Data Persistence for Railway',
+    description: 'Comprehensive data persistence improvements to prevent data loss on Railway deployments',
+    changes: [
+      '🔒 **Enhanced Environment Variable Support** - Improved loading from Railway environment variables',
+      '📊 **Enhanced Deployment Logging** - Better visibility into data loading and persistence status',
+      '💾 **Automatic Backup Improvements** - Enhanced periodic data backup every 5 minutes',
+      '📋 **Persistence Command Logging** - Clear instructions for setting up environment variables',
+      '🔄 **Session Persistence** - Added environment variable support for login sessions',
+      '📖 **Setup Documentation** - Comprehensive Railway persistence setup guide',
+      '⚡ **Graceful Shutdown** - Improved data saving on application shutdown',
+      '🛡️ **Data Recovery** - Clear recovery steps for lost data scenarios'
+    ],
+    technical: [
+      'Added loadSessionsFromEnv() function for session persistence',
+      'Enhanced logging for all persistence operations',
+      'Created RAILWAY_PERSISTENCE_SETUP.md documentation',
+      'Improved error handling for environment variable loading',
+      'Added comprehensive environment status logging on startup',
+      'Enhanced graceful shutdown handlers for data preservation'
+    ]
+  },
+  {
+    version: '1.9.1',
+    date: '2024-06-15',
+    type: 'fix' as const,
+    title: 'Widget Stability & Express Fee Cleanup',
+    description: 'Reverted problematic express fee display code to restore widget stability',
+    changes: [
+      '🔧 **Widget Error Resolution** - Fixed "ReferenceError: slot is not defined" in Cloudflare Worker',
+      '🧹 **Code Cleanup** - Removed problematic express fee display code from widget',
+      '✅ **Stable Operation** - Restored reliable widget functionality',
+      '🔄 **Template Literal Fix** - Resolved nested template literal syntax issues',
+      '📱 **Widget Deployment** - Successful Cloudflare Worker deployment',
+      '🎯 **Core Functionality** - Maintained essential delivery scheduling features'
+    ],
+    technical: [
+      'Removed complex fee display logic from widget JavaScript',
+      'Simplified timeslot option rendering',
+      'Cleaned up delivery summary generation',
+      'Removed fee calculation from cart integration',
+      'Restored basic widget operation without fee complications'
+    ]
+  },
   {
     version: '1.8.0',
     date: '2024-06-14',
