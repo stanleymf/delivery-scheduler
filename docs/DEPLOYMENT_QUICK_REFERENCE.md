@@ -14,6 +14,24 @@ pnpm build:all
 pnpm check
 ```
 
+## 🔐 Authentication Setup
+
+### Set Admin Credentials (Railway)
+```bash
+# Set custom admin username and password
+railway variables set VITE_ADMIN_USERNAME=your_username
+railway variables set VITE_ADMIN_PASSWORD=your_secure_password
+
+# Default credentials: admin / admin123
+```
+
+### Local Development Authentication
+```bash
+# Create .env file for local development
+cp env.example .env
+# Edit .env with your credentials
+```
+
 ### Cloudflare Widget Deployment
 ```bash
 # Install Wrangler
@@ -166,6 +184,4 @@ pnpm deploy
 
 ## 📞 Support
 
-- **Logs**: `railway logs` or `wrangler tail`
-- **Docs**: See `docs/COMPLETE_DEPLOYMENT_GUIDE.md`
-- **Issues**: Check troubleshooting section above 
+- **Logs**: `railway logs`

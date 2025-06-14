@@ -862,7 +862,7 @@ export function AvailabilityCalendar() {
                   <div>
                     <Label className="text-sm font-medium">Enter Dates</Label>
                     <Textarea
-                      placeholder="Enter dates as DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD format, separated by commas&#10;Example: 25/12/2024, 26/12/2024, 01/01/2025"
+                      placeholder="Enter dates as DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD format, separated by commas\nExample: 25/12/2024, 26/12/2024, 01/01/2025"
                       value={bulkDates}
                       onChange={(e) => setBulkDates(e.target.value)}
                       className="min-h-[120px]"

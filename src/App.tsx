@@ -9,8 +9,11 @@ import { ProductManagement } from "@/components/modules/ProductManagement";
 import { LivePreview } from "@/components/modules/LivePreview";
 import { Settings } from "@/components/modules/Settings";
 import { ShopifyIntegration } from "@/components/modules/ShopifyIntegration";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { Header } from "@/components/layout/Header";
 
-function App() {
+function AppContent() {
   const [activeModule, setActiveModule] = useState("delivery-areas");
 
   const renderModule = () => {
@@ -41,16 +44,23 @@ function App() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
         <SidebarInset className="flex-1">
-          <div className="flex items-center gap-2 p-4 border-b">
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="text-lg font-semibold">Delivery Scheduler</h1>
-          </div>
+          <Header />
           <main className="flex-1 p-6 overflow-auto">
             {renderModule()}
           </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <AppContent />
+      </ProtectedRoute>
+    </AuthProvider>
   );
 }
 

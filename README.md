@@ -466,4 +466,34 @@ git tag v1.0.1
 
 # Push changes
 git push origin main --tags
-``` 
+```
+
+## 🔐 Authentication
+
+The admin dashboard includes secure authentication to protect your delivery scheduler settings.
+
+### Default Credentials
+- **Username**: `admin`
+- **Password**: `admin123`
+
+### Customizing Credentials
+
+#### Local Development
+Create a `.env` file in your project root:
+```bash
+VITE_ADMIN_USERNAME=your_username
+VITE_ADMIN_PASSWORD=your_secure_password
+```
+
+#### Production (Railway)
+Set environment variables:
+```bash
+railway variables set VITE_ADMIN_USERNAME=your_username
+railway variables set VITE_ADMIN_PASSWORD=your_secure_password
+```
+
+### Security Features
+- **Session Management**: 24-hour session timeout
+- **Secure Storage**: Encrypted local storage
+- **Auto Logout**: Automatic session expiration
+- **Protected Routes**: All admin features require authentication 

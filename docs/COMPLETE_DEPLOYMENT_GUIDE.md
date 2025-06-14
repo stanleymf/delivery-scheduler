@@ -151,11 +151,41 @@ railway variables set SHOPIFY_SHOP_DOMAIN=your-store.myshopify.com
 railway variables set SHOPIFY_ACCESS_TOKEN=shpat_your_access_token
 railway variables set SHOPIFY_API_VERSION=2024-01
 
+# Set admin authentication credentials (IMPORTANT!)
+railway variables set VITE_ADMIN_USERNAME=your_admin_username
+railway variables set VITE_ADMIN_PASSWORD=your_secure_password
+
 # Set app configuration
 railway variables set NODE_ENV=production
 railway variables set VITE_APP_VERSION=1.2.0
 railway variables set VITE_APP_TITLE="Delivery Scheduler"
 railway variables set VITE_APP_DESCRIPTION="Advanced delivery scheduling system"
+```
+
+#### 🔐 Admin Authentication Setup
+
+The admin dashboard includes basic authentication to protect your delivery scheduler settings. You can configure the admin credentials using environment variables:
+
+**Default Credentials:**
+- Username: `admin`
+- Password: `admin123`
+
+**To Change Default Credentials:**
+1. Set `VITE_ADMIN_USERNAME` to your desired username
+2. Set `VITE_ADMIN_PASSWORD` to your secure password
+3. Deploy the changes
+
+**Security Recommendations:**
+- Use strong, unique passwords
+- Change default credentials immediately after deployment
+- Consider implementing additional security measures for production use
+- Session timeout is set to 24 hours by default
+
+**Local Development:**
+Create a `.env` file in your project root:
+```bash
+VITE_ADMIN_USERNAME=your_username
+VITE_ADMIN_PASSWORD=your_password
 ```
 
 ### Step 5: Build and Deploy

@@ -6,24 +6,6 @@
   "assets": {
     "not_found_handling": "single-page-application"
   },
-  "routes": [
-    {
-      "pattern": "/widget.js",
-      "script": "worker/index.ts"
-    },
-    {
-      "pattern": "/widget.css", 
-      "script": "worker/index.ts"
-    },
-    {
-      "pattern": "/api/*",
-      "script": "worker/index.ts"
-    },
-    {
-      "pattern": "/health",
-      "script": "worker/index.ts"
-    }
-  ],
   "observability": {
     "enabled": true
   }
