@@ -1555,6 +1555,99 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔐 Authentication enabled - Default: ${AUTH_CONFIG.ADMIN_USERNAME} / ${AUTH_CONFIG.ADMIN_PASSWORD}`);
   console.log(`📊 Health check available at http://localhost:${PORT}/health`);
   console.log(`🌐 App available at http://localhost:${PORT}`);
+  
+  // Auto-populate test data on startup for testing
+  if (userData.size === 0) {
+    console.log('🧪 Auto-populating test data for widget testing...');
+    const testUserId = 'admin';
+    const testData = {
+      timeslots: [
+        {
+          id: '1',
+          name: 'Morning Delivery',
+          startTime: '10:00',
+          endTime: '14:00',
+          type: 'delivery',
+          maxOrders: 50,
+          cutoffTime: '08:00',
+          cutoffDay: 'same',
+          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        },
+        {
+          id: '2',
+          name: 'Afternoon Delivery',
+          startTime: '14:00',
+          endTime: '18:00',
+          type: 'delivery',
+          maxOrders: 40,
+          cutoffTime: '22:00',
+          cutoffDay: 'previous',
+          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        },
+        {
+          id: '5',
+          name: 'Express Morning',
+          startTime: '11:00',
+          endTime: '13:00',
+          type: 'express',
+          maxOrders: 10,
+          cutoffTime: '09:00',
+          cutoffDay: 'same',
+          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+          parentTimeslotId: '1',
+        },
+        {
+          id: '4',
+          name: 'Store Collection',
+          startTime: '09:00',
+          endTime: '21:00',
+          type: 'collection',
+          maxOrders: 100,
+          cutoffTime: '08:00',
+          cutoffDay: 'same',
+          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        }
+      ],
+      blockedDates: [
+        { id: '1', date: '2024-12-25', type: 'full', reason: 'Christmas Day - Store Closed' },
+        { id: '2', date: '2024-01-01', type: 'full', reason: 'New Year Day - Store Closed' }
+      ],
+      blockedDateRanges: [
+        {
+          id: 'range-1',
+          name: 'Christmas Holiday Period',
+          startDate: '2024-12-24',
+          endDate: '2024-12-26',
+          type: 'full',
+          reason: 'Christmas Holiday - Store Closed for 3 Days',
+          createdAt: '2024-01-15T10:30:00Z',
+          dates: ['2024-12-24', '2024-12-25', '2024-12-26']
+        }
+      ],
+      settings: {
+        futureOrderLimit: 30,
+        collectionLocations: [
+          {
+            id: '1',
+            name: 'Main Store',
+            address: '123 Main Street, Singapore 123456'
+          },
+          {
+            id: '2',
+            name: 'Branch Store',
+            address: '456 Branch Road, Singapore 654321'
+          }
+        ],
+        theme: 'light'
+      },
+      products: [],
+      blockedCodes: [],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    userData.set(testUserId, testData);
+    console.log('✅ Test data populated successfully');
+  }
 });
 
 // Webhook Handler Functions for Delivery Scheduling
