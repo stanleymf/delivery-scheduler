@@ -119,6 +119,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Visual indicators distinguish express delivery options with fees
 - Cart integration includes detailed fee breakdown for transparency
 
+## [1.9.1] - 2024-12-19
+
+### 🔧 Fixes
+- **Widget Stability Fix**: Fixed widget deployment issues and ensured stable operation
+  - Fixed template literal syntax errors in widget JavaScript
+  - Restored widget functionality and deployment stability
+  - Express fees functionality available in admin dashboard
+  - Widget infrastructure ready for fee display implementation
+
+### 🔧 Technical Changes
+- Resolved template literal scope issues in Cloudflare Worker
+- Reverted to stable widget codebase
+- Maintained admin dashboard express fee functionality
+- Prepared foundation for future widget fee integration
+
+### 📋 Current Status
+- ✅ Admin Dashboard: Express delivery fees fully functional
+- ✅ Widget: Stable and operational (basic functionality)
+- 🔄 Integration: Fee display in widget pending future update
+
 ---
 
 ## Version History
@@ -128,6 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v1.7.0** - Real-time Widget Synchronization
 - **v1.6.1** - Initial Release
 - **v1.9.0** - Express Delivery Fees
+- **v1.9.1** - Widget Stability Fix
 
 ## Deployment Status
 

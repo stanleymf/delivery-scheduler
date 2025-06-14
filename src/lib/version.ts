@@ -156,4 +156,23 @@ export const CHANGELOG = [
       'Added fee validation and formatting throughout the system'
     ]
   },
+  {
+    version: '1.9.1',
+    date: '2024-12-19',
+    type: 'fix' as const,
+    title: 'Widget Stability Fix',
+    description: 'Fixed widget deployment issues and ensured stable operation',
+    changes: [
+      'Fixed template literal syntax errors in widget JavaScript',
+      'Restored widget functionality and deployment stability',
+      'Express fees functionality available in admin dashboard',
+      'Widget infrastructure ready for fee display implementation'
+    ],
+    technical: [
+      'Resolved template literal scope issues in Cloudflare Worker',
+      'Reverted to stable widget codebase',
+      'Maintained admin dashboard express fee functionality',
+      'Prepared foundation for future widget fee integration'
+    ]
+  },
 ]; 

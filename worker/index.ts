@@ -466,18 +466,11 @@ async function serveWidgetBundle(): Promise<Response> {
                 padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer;
                 margin-bottom: 8px; transition: all 0.2s;
             ">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: between; align-items: center;">
                     <div>
                         <div style="font-weight: 500; color: #374151;">\${slot.name}</div>
                         <div style="font-size: 14px; color: #6b7280;">\${slot.startTime} - \${slot.endTime}</div>
-                        \${slot.type === 'express' ? '<div style="font-size: 12px; color: #f59e0b; font-weight: 500;">⚡ Express Delivery</div>' : ''}
                     </div>
-                    \${slot.fee && slot.fee > 0 ? \`
-                        <div style="text-align: right;">
-                            <div style="font-weight: 600; color: #059669;">+$${slot.fee.toFixed(2)}</div>
-                            <div style="font-size: 12px; color: #6b7280;">express fee</div>
-                        </div>
-                    \` : ''}
                 </div>
             </div>
         \`).join('');
@@ -515,13 +508,6 @@ async function serveWidgetBundle(): Promise<Response> {
             const location = selectedType === 'collection' ? 
                 widgetData.collectionLocations.find(l => l.id === selectedLocation) : null;
             
-            if (!slot) {
-                alert('Selected timeslot not found');
-                return;
-            }
-            
-            const expressFee = slot.fee && slot.fee > 0 ? slot.fee : 0;
-            
             summaryContent.innerHTML = \`
                 <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                     <span style="color: #6b7280;">Date:</span>
@@ -536,27 +522,16 @@ async function serveWidgetBundle(): Promise<Response> {
                     <span style="font-weight: 500; text-transform: capitalize;">\${selectedType}</span>
                 </div>
                 \${selectedType === 'delivery' ? \`
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
                         <span style="color: #6b7280;">Postal Code:</span>
                         <span style="font-weight: 500;">\${postalCode}</span>
                     </div>
                 \` : \`
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
                         <span style="color: #6b7280;">Location:</span>
                         <span style="font-weight: 500;">\${location ? location.name : ''}</span>
                     </div>
                 \`}
-                \${expressFee > 0 ? \`
-                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #6b7280;">Express Fee:</span>
-                        <span style="font-weight: 600; color: #059669;">+$\${expressFee.toFixed(2)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="color: #374151; font-weight: 600;">Total Additional:</span>
-                        <span style="font-weight: 700; color: #059669;">$\${expressFee.toFixed(2)}</span>
-                    </div>
-                \` : ''}
             \`;
             
             summarySection.style.display = 'block';
@@ -589,37 +564,19 @@ async function serveWidgetBundle(): Promise<Response> {
         const location = selectedType === 'collection' ? 
             widgetData.collectionLocations.find(l => l.id === selectedLocation) : null;
         
-        if (!slot) {
-            alert('Selected timeslot not found');
-            return;
-        }
-        
-        const expressFee = slot.fee && slot.fee > 0 ? slot.fee : 0;
-        
         const deliveryData = {
             date: selectedDate.toISOString().split('T')[0],
             timeslot: slot.name,
-            timeslotId: slot.id,
             type: selectedType,
             postalCode: selectedType === 'delivery' ? postalCode : null,
-            location: selectedType === 'collection' ? location : null,
-            expressFee: expressFee,
-            isExpress: slot.type === 'express',
-            totalAdditionalCost: expressFee
+            location: selectedType === 'collection' ? location : null
         };
         
         console.log('Delivery preferences:', deliveryData);
         
         // Here you would integrate with Shopify cart
-        // Add express fee to cart if applicable
-        if (expressFee > 0) {
-            // This would be where you add the express fee as a line item or cart attribute
-            console.log(\`Adding express fee of $${expressFee.toFixed(2)} to cart\`);
-        }
-        
-        // For now, show success message with fee information
-        const feeMessage = expressFee > 0 ? \` (Express fee: +$${expressFee.toFixed(2)})\` : '';
-        alert(\`Delivery scheduled for \${formatDate(selectedDate)} - \${slot.name}\${feeMessage}\`);
+        // For now, show success message
+        alert(\`Delivery scheduled for \${formatDate(selectedDate)} - \${slot.name}\`);
     };
     
     // Auto-initialize widgets
