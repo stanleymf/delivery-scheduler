@@ -49,6 +49,8 @@ export function ShopifySettings() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showSecrets, setShowSecrets] = useState(false);
+  const [isGettingRailwayCommand, setIsGettingRailwayCommand] = useState(false);
+  const [railwayCommand, setRailwayCommand] = useState<string | null>(null);
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -162,6 +164,30 @@ export function ShopifySettings() {
     if (!domain) return domain;
     // Remove protocol and trailing slash
     return domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  };
+
+  const getRailwayCommand = async () => {
+    setIsGettingRailwayCommand(true);
+    setError(null);
+
+    try {
+      const response = await authenticatedFetch('/api/shopify/railway-env');
+      const data = await response.json();
+
+      if (data.success) {
+        setRailwayCommand(data.command);
+        if (!data.command) {
+          setError('No credentials to persist. Save your credentials first.');
+        }
+      } else {
+        setError(data.error || 'Failed to generate Railway command');
+      }
+    } catch (error) {
+      setError('Error generating Railway command');
+      console.error('Error generating Railway command:', error);
+    } finally {
+      setIsGettingRailwayCommand(false);
+    }
   };
 
   return (
@@ -390,11 +416,43 @@ export function ShopifySettings() {
                     </div>
                   )}
                   
-                  <div className="mt-3 p-3 bg-muted/30 rounded-lg">
-                    <p className="text-xs text-muted-foreground">
-                      💾 Your credentials are automatically saved to persistent storage and will survive server restarts.
-                      The system backs up every 5 minutes and on shutdown.
-                    </p>
+                  <div className="mt-3 space-y-3">
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <p className="text-xs text-muted-foreground">
+                        💾 Your credentials are automatically saved to persistent storage and will survive server restarts.
+                        The system backs up every 5 minutes and on shutdown.
+                      </p>
+                    </div>
+                    
+                    {/* Railway Persistence Helper */}
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                          Railway Persistence
+                        </h5>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={getRailwayCommand}
+                          disabled={isGettingRailwayCommand}
+                          className="text-xs"
+                        >
+                          {isGettingRailwayCommand ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Get Command"
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                        To persist credentials across Railway container restarts, run this command in your terminal:
+                      </p>
+                      {railwayCommand && (
+                        <div className="bg-black/10 dark:bg-white/10 p-2 rounded text-xs font-mono break-all">
+                          {railwayCommand}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
