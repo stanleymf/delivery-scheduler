@@ -7,12 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle, Tag } from "lucide-react";
-import { mockSettings, mockTimeslots, mockBlockedDates, mockBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange, type TagMapping } from "@/lib/mockData";
+import { loadSettings, loadTimeslots, loadBlockedDates, loadBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange, type TagMapping } from "@/lib/mockData";
 
 type DeliveryType = 'delivery' | 'collection' | 'express';
 type WidgetStep = 'type-selection' | 'postal-validation' | 'location-selection' | 'date-selection' | 'timeslot-selection' | 'confirmation';
 
 export function LivePreview() {
+  // Load data from localStorage with fallback to mock data
+  const mockSettings = loadSettings();
+  const mockTimeslots = loadTimeslots();
+  const mockBlockedDates = loadBlockedDates();
+  const mockBlockedDateRanges = loadBlockedDateRanges();
+
   const [currentStep, setCurrentStep] = useState<WidgetStep>('type-selection');
   const [selectedType, setSelectedType] = useState<DeliveryType | null>(null);
   const [postalCode, setPostalCode] = useState("");

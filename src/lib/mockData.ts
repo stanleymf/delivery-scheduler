@@ -344,3 +344,136 @@ export const getDayName = (day: string): string => {
   };
   return days[day] || day;
 };
+
+// Persistence functions for localStorage
+const STORAGE_KEYS = {
+  TIMESLOTS: 'delivery-scheduler-timeslots',
+  BLOCKED_DATES: 'delivery-scheduler-blocked-dates',
+  BLOCKED_DATE_RANGES: 'delivery-scheduler-blocked-date-ranges',
+  SETTINGS: 'delivery-scheduler-settings',
+  PRODUCTS: 'delivery-scheduler-products',
+  BLOCKED_CODES: 'delivery-scheduler-blocked-codes'
+};
+
+// Load data from localStorage with fallback to mock data
+export const loadTimeslots = (): Timeslot[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.TIMESLOTS);
+    return stored ? JSON.parse(stored) : mockTimeslots;
+  } catch (error) {
+    console.error('Error loading timeslots from localStorage:', error);
+    return mockTimeslots;
+  }
+};
+
+export const saveTimeslots = (timeslots: Timeslot[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.TIMESLOTS, JSON.stringify(timeslots));
+  } catch (error) {
+    console.error('Error saving timeslots to localStorage:', error);
+  }
+};
+
+export const loadBlockedDates = (): BlockedDate[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_DATES);
+    return stored ? JSON.parse(stored) : mockBlockedDates;
+  } catch (error) {
+    console.error('Error loading blocked dates from localStorage:', error);
+    return mockBlockedDates;
+  }
+};
+
+export const saveBlockedDates = (blockedDates: BlockedDate[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.BLOCKED_DATES, JSON.stringify(blockedDates));
+  } catch (error) {
+    console.error('Error saving blocked dates to localStorage:', error);
+  }
+};
+
+export const loadBlockedDateRanges = (): BlockedDateRange[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_DATE_RANGES);
+    return stored ? JSON.parse(stored) : mockBlockedDateRanges;
+  } catch (error) {
+    console.error('Error loading blocked date ranges from localStorage:', error);
+    return mockBlockedDateRanges;
+  }
+};
+
+export const saveBlockedDateRanges = (blockedDateRanges: BlockedDateRange[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.BLOCKED_DATE_RANGES, JSON.stringify(blockedDateRanges));
+  } catch (error) {
+    console.error('Error saving blocked date ranges to localStorage:', error);
+  }
+};
+
+export const loadSettings = (): Settings => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    return stored ? JSON.parse(stored) : mockSettings;
+  } catch (error) {
+    console.error('Error loading settings from localStorage:', error);
+    return mockSettings;
+  }
+};
+
+export const saveSettings = (settings: Settings): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  } catch (error) {
+    console.error('Error saving settings to localStorage:', error);
+  }
+};
+
+export const loadProducts = (): Product[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+    return stored ? JSON.parse(stored) : mockProducts;
+  } catch (error) {
+    console.error('Error loading products from localStorage:', error);
+    return mockProducts;
+  }
+};
+
+export const saveProducts = (products: Product[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+  } catch (error) {
+    console.error('Error saving products to localStorage:', error);
+  }
+};
+
+export const loadBlockedCodes = (): BlockedPostalCode[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_CODES);
+    return stored ? JSON.parse(stored) : mockBlockedCodes;
+  } catch (error) {
+    console.error('Error loading blocked codes from localStorage:', error);
+    return mockBlockedCodes;
+  }
+};
+
+export const saveBlockedCodes = (blockedCodes: BlockedPostalCode[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.BLOCKED_CODES, JSON.stringify(blockedCodes));
+  } catch (error) {
+    console.error('Error saving blocked codes to localStorage:', error);
+  }
+};
+
+// Clear all stored data (useful for reset functionality)
+export const clearAllStoredData = (): void => {
+  try {
+    Object.values(STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key);
+    });
+  } catch (error) {
+    console.error('Error clearing stored data:', error);
+  }
+};
+
+// Export storage keys for direct access if needed
+export { STORAGE_KEYS };

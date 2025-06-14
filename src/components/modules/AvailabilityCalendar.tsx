@@ -11,12 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, Settings, Ban, Clock, AlertCircle, CalendarRange, Upload, Trash2, CalendarDays, Edit, List } from "lucide-react";
-import { mockBlockedDates, mockTimeslots, mockSettings, mockBlockedDateRanges, type BlockedDate, type Timeslot, type BlockedDateRange, formatTimeRange } from "@/lib/mockData";
+import { mockTimeslots, loadBlockedDates, saveBlockedDates, loadBlockedDateRanges, saveBlockedDateRanges, loadSettings, saveSettings, type BlockedDate, type Timeslot, type BlockedDateRange, formatTimeRange } from "@/lib/mockData";
 
 export function AvailabilityCalendar() {
-  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>(mockBlockedDates);
-  const [blockedDateRanges, setBlockedDateRanges] = useState<BlockedDateRange[]>(mockBlockedDateRanges);
-  const [futureOrderLimit, setFutureOrderLimit] = useState(mockSettings.futureOrderLimit);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>(loadBlockedDates());
+  const [blockedDateRanges, setBlockedDateRanges] = useState<BlockedDateRange[]>(loadBlockedDateRanges());
+  const [futureOrderLimit, setFutureOrderLimit] = useState(loadSettings().futureOrderLimit);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
@@ -41,6 +41,25 @@ export function AvailabilityCalendar() {
   const [rangeReason, setRangeReason] = useState("");
 
   const timeslots = mockTimeslots;
+
+  // Helper function to update blocked dates with persistence
+  const updateBlockedDates = (newBlockedDates: BlockedDate[]) => {
+    setBlockedDates(newBlockedDates);
+    saveBlockedDates(newBlockedDates);
+  };
+
+  // Helper function to update blocked date ranges with persistence
+  const updateBlockedDateRanges = (newBlockedDateRanges: BlockedDateRange[]) => {
+    setBlockedDateRanges(newBlockedDateRanges);
+    saveBlockedDateRanges(newBlockedDateRanges);
+  };
+
+  // Helper function to update future order limit with persistence
+  const updateFutureOrderLimit = (newLimit: number) => {
+    setFutureOrderLimit(newLimit);
+    const currentSettings = loadSettings();
+    saveSettings({ ...currentSettings, futureOrderLimit: newLimit });
+  };
 
   const isDateBlocked = (date: Date): boolean => {
     const dateStr = date.toISOString().split('T')[0];
@@ -105,7 +124,7 @@ export function AvailabilityCalendar() {
 
     if (existingBlock) {
       // Update existing block
-      setBlockedDates(blockedDates.map(b => 
+      updateBlockedDates(blockedDates.map(b => 
         b.date === dateStr 
           ? { ...b, type: blockType, blockedTimeslots: blockType === 'partial' ? selectedTimeslots : undefined, reason: blockReason }
           : b
@@ -119,7 +138,7 @@ export function AvailabilityCalendar() {
         blockedTimeslots: blockType === 'partial' ? selectedTimeslots : undefined,
         reason: blockReason
       };
-      setBlockedDates([...blockedDates, newBlock]);
+      updateBlockedDates([...blockedDates, newBlock]);
     }
 
     setIsBlockDialogOpen(false);
@@ -132,7 +151,7 @@ export function AvailabilityCalendar() {
     if (!selectedDate) return;
 
     const dateStr = selectedDate.toISOString().split('T')[0];
-    setBlockedDates(blockedDates.filter(b => b.date !== dateStr));
+    updateBlockedDates(blockedDates.filter(b => b.date !== dateStr));
     setIsBlockDialogOpen(false);
     setSelectedDate(undefined);
   };
@@ -233,7 +252,7 @@ export function AvailabilityCalendar() {
     }
 
     if (newBlocks.length > 0) {
-      setBlockedDates([...blockedDates, ...newBlocks]);
+      updateBlockedDates([...blockedDates, ...newBlocks]);
       
       // Create range record
       const newRange: BlockedDateRange = {
@@ -248,7 +267,7 @@ export function AvailabilityCalendar() {
         dates: rangeDates
       };
       
-      setBlockedDateRanges([...blockedDateRanges, newRange]);
+      updateBlockedDateRanges([...blockedDateRanges, newRange]);
     }
 
     // Reset range
@@ -289,7 +308,7 @@ export function AvailabilityCalendar() {
       .filter(block => block !== null) as BlockedDate[];
 
     if (newBlocks.length > 0) {
-      setBlockedDates([...blockedDates, ...newBlocks]);
+      updateBlockedDates([...blockedDates, ...newBlocks]);
     }
 
     setBulkDates("");
@@ -334,7 +353,7 @@ export function AvailabilityCalendar() {
   const handleSaveEdit = () => {
     if (!editingBlock) return;
 
-    setBlockedDates(blockedDates.map(b => 
+    updateBlockedDates(blockedDates.map(b => 
       b.id === editingBlock.id 
         ? { ...b, type: blockType, blockedTimeslots: blockType === 'partial' ? selectedTimeslots : undefined, reason: blockReason }
         : b
@@ -347,12 +366,12 @@ export function AvailabilityCalendar() {
   };
 
   const handleDeleteBlock = (blockId: string) => {
-    setBlockedDates(blockedDates.filter(b => b.id !== blockId));
+    updateBlockedDates(blockedDates.filter(b => b.id !== blockId));
   };
 
   const handleDeleteRange = (rangeId: string) => {
-    setBlockedDates(blockedDates.filter(b => b.rangeId !== rangeId));
-    setBlockedDateRanges(blockedDateRanges.filter(r => r.id !== rangeId));
+    updateBlockedDates(blockedDates.filter(b => b.rangeId !== rangeId));
+    updateBlockedDateRanges(blockedDateRanges.filter(r => r.id !== rangeId));
   };
 
   // Edit blocked date range
@@ -375,12 +394,12 @@ export function AvailabilityCalendar() {
       reason: rangeReason
     };
 
-    setBlockedDateRanges(blockedDateRanges.map(r => 
+    updateBlockedDateRanges(blockedDateRanges.map(r => 
       r.id === editingRange.id ? updatedRange : r
     ));
 
     // Update all individual dates in this range
-    setBlockedDates(blockedDates.map(b => 
+    updateBlockedDates(blockedDates.map(b => 
       b.rangeId === editingRange.id 
         ? { ...b, type: rangeBlockType, blockedTimeslots: rangeBlockType === 'partial' ? rangeSelectedTimeslots : undefined, reason: rangeReason }
         : b
@@ -424,7 +443,7 @@ export function AvailabilityCalendar() {
                     id="futureLimit"
                     type="number"
                     value={futureOrderLimit}
-                    onChange={(e) => setFutureOrderLimit(Number.parseInt(e.target.value) || 10)}
+                    onChange={(e) => updateFutureOrderLimit(Number.parseInt(e.target.value) || 10)}
                     min="1"
                     max="365"
                   />

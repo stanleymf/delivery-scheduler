@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.5.3] - 2025-06-14
+
+### Fixed 🐛
+- **Data Persistence Issue**: Fixed mock data regenerating on every page refresh
+- **Rule Deletion Persistence**: Deleted rules, blocked dates, and timeslots now stay deleted after refresh
+- **Settings Persistence**: Future order limit and other settings now persist across sessions
+- **LocalStorage Integration**: All app data now automatically saves to localStorage
+
+### Added ✨
+- **Comprehensive Persistence Layer**: Added save/load functions for all data types
+- **Automatic Data Backup**: All changes are automatically saved to localStorage
+- **Fallback System**: Graceful fallback to mock data if localStorage is unavailable
+- **Error Handling**: Robust error handling for localStorage operations
+
+### Changed 🔄
+- **Data Loading**: All components now load from localStorage with mock data fallback
+- **State Management**: Enhanced state management with automatic persistence
+- **User Experience**: Changes now persist across browser sessions and page refreshes
+
+### Technical
+- Added persistence functions in `src/lib/mockData.ts`
+- Updated AvailabilityCalendar component with persistence helpers
+- Updated LivePreview component to use persistent data
+- Enhanced error handling for localStorage operations
+- Maintained backward compatibility with existing mock data structure
+
 ## [1.5.2] - 2025-06-14
 
 ### Fixed 🐛
