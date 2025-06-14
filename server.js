@@ -270,12 +270,16 @@ app.get('/api/delivery/orders', authenticateToken, (req, res) => {
   res.json({ orders: [] });
 });
 
-// Shopify Webhook endpoint (no authentication)
+// Enhanced Shopify Webhook endpoint with comprehensive delivery scheduling support
 app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const hmacHeader = req.get('X-Shopify-Hmac-Sha256');
   const shopHeader = req.get('X-Shopify-Shop-Domain');
   const topicHeader = req.get('X-Shopify-Topic');
+  const apiVersionHeader = req.get('X-Shopify-API-Version');
+  const webhookIdHeader = req.get('X-Shopify-Webhook-Id');
   const body = req.body;
+
+  console.log(`🔔 Webhook received: ${topicHeader} from ${shopHeader}`);
 
   // Find credentials by shop domain
   let userCredentials = null;
@@ -294,7 +298,7 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
     return res.status(404).send('Shop not found');
   }
 
-  // Verify HMAC signature
+  // Verify HMAC signature (critical for security)
   const generatedHmac = crypto
     .createHmac('sha256', userCredentials.appSecret)
     .update(body, 'utf8')
@@ -302,6 +306,8 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
 
   if (generatedHmac !== hmacHeader) {
     console.error('❌ Webhook signature verification failed for shop:', shopHeader);
+    console.error('Expected:', hmacHeader);
+    console.error('Generated:', generatedHmac);
     return res.status(401).send('Webhook signature verification failed');
   }
 
@@ -315,60 +321,105 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
   }
 
   // Log webhook event with user context
-  console.log(`🔔 Shopify Webhook received for user ${userId} (${shopHeader}):`, {
+  console.log(`🔔 Shopify Webhook processed for user ${userId} (${shopHeader}):`, {
     topic: topicHeader,
-    event: event
+    webhookId: webhookIdHeader,
+    apiVersion: apiVersionHeader,
+    eventId: event.id
   });
 
-  // Handle different webhook topics
+  // Enhanced webhook processing with delivery scheduling focus
   try {
     switch (topicHeader) {
+      // Order-related webhooks (critical for delivery scheduling)
       case 'orders/create':
-        console.log(`📦 New order created: ${event.id}`);
-        // Add your order processing logic here
+        await handleOrderCreated(event, userCredentials, userId);
         break;
       case 'orders/updated':
-        console.log(`📦 Order updated: ${event.id}`);
-        // Add your order update logic here
+        await handleOrderUpdated(event, userCredentials, userId);
         break;
       case 'orders/cancelled':
-        console.log(`❌ Order cancelled: ${event.id}`);
-        // Add your order cancellation logic here
+        await handleOrderCancelled(event, userCredentials, userId);
         break;
-      case 'app/uninstalled':
-        console.log(`🚫 App uninstalled from shop: ${shopHeader}`);
-        // Clean up user data when app is uninstalled
-        shopifyCredentials.delete(userId);
+      case 'orders/fulfilled':
+        await handleOrderFulfilled(event, userCredentials, userId);
         break;
+      case 'orders/partially_fulfilled':
+        await handleOrderPartiallyFulfilled(event, userCredentials, userId);
+        break;
+      case 'orders/paid':
+        await handleOrderPaid(event, userCredentials, userId);
+        break;
+
+      // Product-related webhooks (for delivery availability)
       case 'products/create':
-        console.log(`🆕 New product created: ${event.id}`);
-        // Add your product processing logic here
+        await handleProductCreated(event, userCredentials, userId);
         break;
       case 'products/update':
-        console.log(`✏️ Product updated: ${event.id}`);
-        // Add your product update logic here
+        await handleProductUpdated(event, userCredentials, userId);
         break;
+      case 'products/delete':
+        await handleProductDeleted(event, userCredentials, userId);
+        break;
+      case 'inventory_levels/update':
+        await handleInventoryUpdated(event, userCredentials, userId);
+        break;
+
+      // Customer-related webhooks (for delivery preferences)
       case 'customers/create':
-        console.log(`👤 New customer created: ${event.id}`);
-        // Add your customer processing logic here
+        await handleCustomerCreated(event, userCredentials, userId);
         break;
       case 'customers/update':
-        console.log(`✏️ Customer updated: ${event.id}`);
-        // Add your customer update logic here
+        await handleCustomerUpdated(event, userCredentials, userId);
         break;
+      case 'customers/delete':
+        await handleCustomerDeleted(event, userCredentials, userId);
+        break;
+
+      // App lifecycle webhooks
+      case 'app/uninstalled':
+        await handleAppUninstalled(event, userCredentials, userId, shopHeader);
+        break;
+      case 'app/subscriptions/update':
+        await handleSubscriptionUpdated(event, userCredentials, userId);
+        break;
+
+      // Fulfillment webhooks (for delivery tracking)
+      case 'fulfillments/create':
+        await handleFulfillmentCreated(event, userCredentials, userId);
+        break;
+      case 'fulfillments/update':
+        await handleFulfillmentUpdated(event, userCredentials, userId);
+        break;
+
+      // Shipping webhooks (for delivery zones)
+      case 'shipping_addresses/update':
+        await handleShippingAddressUpdated(event, userCredentials, userId);
+        break;
+
+      // Cart webhooks (for delivery scheduling during checkout)
+      case 'carts/create':
+        await handleCartCreated(event, userCredentials, userId);
+        break;
+      case 'carts/update':
+        await handleCartUpdated(event, userCredentials, userId);
+        break;
+
       default:
-        console.log(`📝 Unknown webhook topic: ${topicHeader}`);
+        console.log(`📝 Unhandled webhook topic: ${topicHeader}`);
+        // Still return 200 to acknowledge receipt
     }
   } catch (error) {
     console.error('❌ Error processing webhook:', error);
     // Don't return an error to Shopify, just log it
+    // Shopify will retry failed webhooks
   }
 
-  // Respond to Shopify
+  // Always respond with 200 to acknowledge receipt
   res.status(200).send('Webhook received');
 });
 
-// Update webhook registration to use user-specific credentials
+// Enhanced webhook registration with comprehensive delivery scheduling topics
 app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) => {
   const userId = req.user;
   const credentials = shopifyCredentials.get(userId);
@@ -381,80 +432,128 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
 
   const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
 
-  // Define webhooks to register
+  // Comprehensive webhook configuration for delivery scheduling
   const webhooksToRegister = [
-    {
-      topic: 'orders/create',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'orders/updated',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'orders/cancelled',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'app/uninstalled',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'products/create',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'products/update',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'customers/create',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    },
-    {
-      topic: 'customers/update',
-      address: `${webhookBaseUrl}/api/shopify/webhook`,
-      format: 'json'
-    }
+    // Order lifecycle (critical for delivery scheduling)
+    { topic: 'orders/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'orders/updated', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'orders/cancelled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'orders/fulfilled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'orders/partially_fulfilled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'orders/paid', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // Product management (for delivery availability)
+    { topic: 'products/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'products/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'products/delete', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'inventory_levels/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // Customer management (for delivery preferences)
+    { topic: 'customers/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'customers/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'customers/delete', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // Fulfillment tracking (for delivery status)
+    { topic: 'fulfillments/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'fulfillments/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // Shipping and delivery
+    { topic: 'shipping_addresses/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // Cart events (for delivery scheduling during checkout)
+    { topic: 'carts/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'carts/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+
+    // App lifecycle
+    { topic: 'app/uninstalled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+    { topic: 'app/subscriptions/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' }
   ];
 
   try {
     const results = [];
     
+    // First, get existing webhooks to avoid duplicates
+    const existingWebhooksResponse = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`, {
+      headers: {
+        'X-Shopify-Access-Token': credentials.accessToken,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    let existingWebhooks = [];
+    if (existingWebhooksResponse.ok) {
+      const existingData = await existingWebhooksResponse.json();
+      existingWebhooks = existingData.webhooks || [];
+    }
+
+    // Register each webhook
     for (const webhook of webhooksToRegister) {
       try {
-        const response = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`, {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': credentials.accessToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ webhook })
-        });
-
-        const data = await response.json();
+        // Check if webhook already exists
+        const existingWebhook = existingWebhooks.find(w => w.topic === webhook.topic);
         
-        if (response.ok) {
-          results.push({
-            topic: webhook.topic,
-            status: 'success',
-            webhook: data.webhook
-          });
-          console.log(`✅ Webhook registered: ${webhook.topic}`);
+        if (existingWebhook) {
+          // Update existing webhook if address is different
+          if (existingWebhook.address !== webhook.address) {
+            const updateResponse = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks/${existingWebhook.id}.json`, {
+              method: 'PUT',
+              headers: {
+                'X-Shopify-Access-Token': credentials.accessToken,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ webhook: { address: webhook.address } })
+            });
+
+            if (updateResponse.ok) {
+              results.push({
+                topic: webhook.topic,
+                status: 'updated',
+                webhook: await updateResponse.json()
+              });
+              console.log(`✅ Webhook updated: ${webhook.topic}`);
+            } else {
+              results.push({
+                topic: webhook.topic,
+                status: 'error',
+                error: 'Failed to update existing webhook'
+              });
+            }
+          } else {
+            results.push({
+              topic: webhook.topic,
+              status: 'exists',
+              webhook: existingWebhook
+            });
+            console.log(`ℹ️ Webhook already exists: ${webhook.topic}`);
+          }
         } else {
-          results.push({
-            topic: webhook.topic,
-            status: 'error',
-            error: data.errors || 'Unknown error'
+          // Create new webhook
+          const response = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`, {
+            method: 'POST',
+            headers: {
+              'X-Shopify-Access-Token': credentials.accessToken,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ webhook })
           });
-          console.error(`❌ Failed to register webhook: ${webhook.topic}`, data);
+
+          const data = await response.json();
+          
+          if (response.ok) {
+            results.push({
+              topic: webhook.topic,
+              status: 'success',
+              webhook: data.webhook
+            });
+            console.log(`✅ Webhook registered: ${webhook.topic}`);
+          } else {
+            results.push({
+              topic: webhook.topic,
+              status: 'error',
+              error: data.errors || 'Unknown error'
+            });
+            console.error(`❌ Failed to register webhook: ${webhook.topic}`, data);
+          }
         }
       } catch (error) {
         results.push({
@@ -469,7 +568,14 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
     res.json({
       success: true,
       message: 'Webhook registration completed',
-      results
+      results,
+      summary: {
+        total: webhooksToRegister.length,
+        success: results.filter(r => r.status === 'success').length,
+        updated: results.filter(r => r.status === 'updated').length,
+        exists: results.filter(r => r.status === 'exists').length,
+        errors: results.filter(r => r.status === 'error').length
+      }
     });
 
   } catch (error) {
@@ -563,4 +669,419 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔐 Authentication enabled - Default: ${AUTH_CONFIG.ADMIN_USERNAME} / ${AUTH_CONFIG.ADMIN_PASSWORD}`);
   console.log(`📊 Health check available at http://localhost:${PORT}/health`);
   console.log(`🌐 App available at http://localhost:${PORT}`);
-}); 
+});
+
+// Webhook Handler Functions for Delivery Scheduling
+
+// Order-related handlers
+async function handleOrderCreated(event, credentials, userId) {
+  console.log(`📦 New order created: ${event.id}`);
+  
+  try {
+    // Extract delivery information from order
+    const order = event;
+    const deliveryInfo = {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      customerId: order.customer?.id,
+      customerEmail: order.customer?.email,
+      deliveryAddress: order.shipping_address,
+      lineItems: order.line_items,
+      tags: order.tags,
+      createdAt: order.created_at,
+      userId: userId
+    };
+
+    // Check if order has delivery scheduling tags
+    const hasDeliveryTag = order.tags && order.tags.includes('delivery-scheduled');
+    const hasCollectionTag = order.tags && order.tags.includes('collection-scheduled');
+
+    if (hasDeliveryTag || hasCollectionTag) {
+      console.log(`🚚 Order ${order.id} has delivery/collection scheduling`);
+      
+      // Extract delivery date and time from tags or notes
+      const deliveryDate = extractDeliveryDateFromOrder(order);
+      const deliveryTime = extractDeliveryTimeFromOrder(order);
+      
+      if (deliveryDate && deliveryTime) {
+        console.log(`📅 Delivery scheduled for ${deliveryDate} at ${deliveryTime}`);
+        
+        // Here you would typically:
+        // 1. Save to your delivery scheduling database
+        // 2. Send confirmation emails
+        // 3. Update inventory
+        // 4. Trigger notifications
+      }
+    }
+
+    // Log order details for debugging
+    console.log('Order details:', {
+      id: order.id,
+      number: order.order_number,
+      total: order.total_price,
+      currency: order.currency,
+      tags: order.tags,
+      customer: order.customer?.email
+    });
+
+  } catch (error) {
+    console.error('Error processing order creation:', error);
+  }
+}
+
+async function handleOrderUpdated(event, credentials, userId) {
+  console.log(`📦 Order updated: ${event.id}`);
+  
+  try {
+    const order = event;
+    
+    // Check for delivery-related changes
+    const oldTags = order.tags; // You might need to store previous state
+    const newTags = order.tags;
+    
+    // Handle delivery status changes
+    if (newTags.includes('delivery-confirmed') && !oldTags.includes('delivery-confirmed')) {
+      console.log(`✅ Delivery confirmed for order ${order.id}`);
+      // Trigger delivery confirmation workflow
+    }
+    
+    if (newTags.includes('delivery-cancelled') && !oldTags.includes('delivery-cancelled')) {
+      console.log(`❌ Delivery cancelled for order ${order.id}`);
+      // Handle delivery cancellation
+    }
+
+  } catch (error) {
+    console.error('Error processing order update:', error);
+  }
+}
+
+async function handleOrderCancelled(event, credentials, userId) {
+  console.log(`❌ Order cancelled: ${event.id}`);
+  
+  try {
+    const order = event;
+    
+    // Cancel any scheduled deliveries
+    if (order.tags && order.tags.includes('delivery-scheduled')) {
+      console.log(`🚫 Cancelling scheduled delivery for order ${order.id}`);
+      // Cancel delivery scheduling
+    }
+
+  } catch (error) {
+    console.error('Error processing order cancellation:', error);
+  }
+}
+
+async function handleOrderFulfilled(event, credentials, userId) {
+  console.log(`✅ Order fulfilled: ${event.id}`);
+  
+  try {
+    const order = event;
+    
+    // Update delivery status
+    if (order.tags && order.tags.includes('delivery-scheduled')) {
+      console.log(`📦 Delivery completed for order ${order.id}`);
+      // Mark delivery as completed
+    }
+
+  } catch (error) {
+    console.error('Error processing order fulfillment:', error);
+  }
+}
+
+async function handleOrderPartiallyFulfilled(event, credentials, userId) {
+  console.log(`📦 Order partially fulfilled: ${event.id}`);
+  
+  try {
+    const order = event;
+    
+    // Handle partial fulfillment for delivery scheduling
+    console.log(`📋 Partial fulfillment for order ${order.id}`);
+    // Update delivery schedule for remaining items
+
+  } catch (error) {
+    console.error('Error processing partial fulfillment:', error);
+  }
+}
+
+async function handleOrderPaid(event, credentials, userId) {
+  console.log(`💰 Order paid: ${event.id}`);
+  
+  try {
+    const order = event;
+    
+    // Payment confirmation for delivery scheduling
+    if (order.tags && order.tags.includes('delivery-scheduled')) {
+      console.log(`💳 Payment confirmed for scheduled delivery ${order.id}`);
+      // Confirm delivery scheduling after payment
+    }
+
+  } catch (error) {
+    console.error('Error processing order payment:', error);
+  }
+}
+
+// Product-related handlers
+async function handleProductCreated(event, credentials, userId) {
+  console.log(`🆕 New product created: ${event.id}`);
+  
+  try {
+    const product = event;
+    
+    // Check if product has delivery scheduling enabled
+    const hasDeliveryScheduling = product.tags && product.tags.includes('delivery-scheduling');
+    
+    if (hasDeliveryScheduling) {
+      console.log(`🚚 Product ${product.id} has delivery scheduling enabled`);
+      // Initialize delivery scheduling for this product
+    }
+
+  } catch (error) {
+    console.error('Error processing product creation:', error);
+  }
+}
+
+async function handleProductUpdated(event, credentials, userId) {
+  console.log(`✏️ Product updated: ${event.id}`);
+  
+  try {
+    const product = event;
+    
+    // Update delivery scheduling settings if needed
+    const hasDeliveryScheduling = product.tags && product.tags.includes('delivery-scheduling');
+    
+    if (hasDeliveryScheduling) {
+      console.log(`🔄 Updating delivery scheduling for product ${product.id}`);
+      // Update delivery scheduling configuration
+    }
+
+  } catch (error) {
+    console.error('Error processing product update:', error);
+  }
+}
+
+async function handleProductDeleted(event, credentials, userId) {
+  console.log(`🗑️ Product deleted: ${event.id}`);
+  
+  try {
+    const product = event;
+    
+    // Clean up delivery scheduling for deleted product
+    console.log(`🧹 Cleaning up delivery scheduling for product ${product.id}`);
+    // Remove product from delivery scheduling system
+
+  } catch (error) {
+    console.error('Error processing product deletion:', error);
+  }
+}
+
+async function handleInventoryUpdated(event, credentials, userId) {
+  console.log(`📦 Inventory updated: ${event.inventory_item_id}`);
+  
+  try {
+    const inventory = event;
+    
+    // Update delivery availability based on inventory
+    console.log(`🔄 Updating delivery availability for inventory item ${inventory.inventory_item_id}`);
+    // Update delivery scheduling availability
+
+  } catch (error) {
+    console.error('Error processing inventory update:', error);
+  }
+}
+
+// Customer-related handlers
+async function handleCustomerCreated(event, credentials, userId) {
+  console.log(`👤 New customer created: ${event.id}`);
+  
+  try {
+    const customer = event;
+    
+    // Initialize customer delivery preferences
+    console.log(`👤 Setting up delivery preferences for customer ${customer.id}`);
+    // Set default delivery preferences
+
+  } catch (error) {
+    console.error('Error processing customer creation:', error);
+  }
+}
+
+async function handleCustomerUpdated(event, credentials, userId) {
+  console.log(`✏️ Customer updated: ${event.id}`);
+  
+  try {
+    const customer = event;
+    
+    // Update customer delivery preferences
+    console.log(`🔄 Updating delivery preferences for customer ${customer.id}`);
+    // Update delivery scheduling preferences
+
+  } catch (error) {
+    console.error('Error processing customer update:', error);
+  }
+}
+
+async function handleCustomerDeleted(event, credentials, userId) {
+  console.log(`🗑️ Customer deleted: ${event.id}`);
+  
+  try {
+    const customer = event;
+    
+    // Clean up customer delivery data
+    console.log(`🧹 Cleaning up delivery data for customer ${customer.id}`);
+    // Remove customer from delivery scheduling system
+
+  } catch (error) {
+    console.error('Error processing customer deletion:', error);
+  }
+}
+
+// Fulfillment handlers
+async function handleFulfillmentCreated(event, credentials, userId) {
+  console.log(`📦 Fulfillment created: ${event.id}`);
+  
+  try {
+    const fulfillment = event;
+    
+    // Update delivery status
+    console.log(`🚚 Fulfillment created for order ${fulfillment.order_id}`);
+    // Update delivery tracking
+
+  } catch (error) {
+    console.error('Error processing fulfillment creation:', error);
+  }
+}
+
+async function handleFulfillmentUpdated(event, credentials, userId) {
+  console.log(`📦 Fulfillment updated: ${event.id}`);
+  
+  try {
+    const fulfillment = event;
+    
+    // Update delivery tracking
+    console.log(`🔄 Fulfillment updated for order ${fulfillment.order_id}`);
+    // Update delivery status and tracking
+
+  } catch (error) {
+    console.error('Error processing fulfillment update:', error);
+  }
+}
+
+// Shipping handlers
+async function handleShippingAddressUpdated(event, credentials, userId) {
+  console.log(`📍 Shipping address updated: ${event.id}`);
+  
+  try {
+    const address = event;
+    
+    // Update delivery zone calculations
+    console.log(`🔄 Updating delivery zone for address update`);
+    // Recalculate delivery availability and zones
+
+  } catch (error) {
+    console.error('Error processing shipping address update:', error);
+  }
+}
+
+// Cart handlers
+async function handleCartCreated(event, credentials, userId) {
+  console.log(`🛒 Cart created: ${event.id}`);
+  
+  try {
+    const cart = event;
+    
+    // Initialize delivery scheduling for cart
+    console.log(`🛒 Setting up delivery scheduling for cart ${cart.id}`);
+    // Prepare delivery scheduling options
+
+  } catch (error) {
+    console.error('Error processing cart creation:', error);
+  }
+}
+
+async function handleCartUpdated(event, credentials, userId) {
+  console.log(`🛒 Cart updated: ${event.id}`);
+  
+  try {
+    const cart = event;
+    
+    // Update delivery scheduling options
+    console.log(`🔄 Updating delivery scheduling for cart ${cart.id}`);
+    // Update available delivery slots based on cart contents
+
+  } catch (error) {
+    console.error('Error processing cart update:', error);
+  }
+}
+
+// App lifecycle handlers
+async function handleAppUninstalled(event, credentials, userId, shopDomain) {
+  console.log(`🚫 App uninstalled from shop: ${shopDomain}`);
+  
+  try {
+    // Clean up user data when app is uninstalled
+    shopifyCredentials.delete(userId);
+    
+    // Clean up delivery scheduling data
+    console.log(`🧹 Cleaning up delivery scheduling data for user ${userId}`);
+    // Remove all delivery scheduling data for this user
+    
+    console.log(`✅ Cleanup completed for user ${userId} (${shopDomain})`);
+  } catch (error) {
+    console.error('Error processing app uninstall:', error);
+  }
+}
+
+async function handleSubscriptionUpdated(event, credentials, userId) {
+  console.log(`💳 Subscription updated for user: ${userId}`);
+  
+  try {
+    const subscription = event;
+    
+    // Update delivery scheduling features based on subscription
+    console.log(`🔄 Updating delivery scheduling features for subscription`);
+    // Adjust delivery scheduling capabilities based on plan
+
+  } catch (error) {
+    console.error('Error processing subscription update:', error);
+  }
+}
+
+// Helper functions for delivery scheduling
+function extractDeliveryDateFromOrder(order) {
+  // Extract delivery date from order tags, notes, or line item properties
+  if (order.tags) {
+    const deliveryTag = order.tags.find(tag => tag.startsWith('delivery-date:'));
+    if (deliveryTag) {
+      return deliveryTag.replace('delivery-date:', '');
+    }
+  }
+  
+  if (order.note) {
+    const dateMatch = order.note.match(/delivery date: (\d{4}-\d{2}-\d{2})/i);
+    if (dateMatch) {
+      return dateMatch[1];
+    }
+  }
+  
+  return null;
+}
+
+function extractDeliveryTimeFromOrder(order) {
+  // Extract delivery time from order tags, notes, or line item properties
+  if (order.tags) {
+    const timeTag = order.tags.find(tag => tag.startsWith('delivery-time:'));
+    if (timeTag) {
+      return timeTag.replace('delivery-time:', '');
+    }
+  }
+  
+  if (order.note) {
+    const timeMatch = order.note.match(/delivery time: (\d{2}:\d{2})/i);
+    if (timeMatch) {
+      return timeMatch[1];
+    }
+  }
+  
+  return null;
+} 

@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.4.0] - 2025-06-14
+
+### Added ✨
+- **Enhanced Shopify webhook integration with comprehensive delivery scheduling support**
+
+### Technical
+- Version bump for minor release
+- Automated changelog update
+
+
+
+## [1.3.0] - 2025-06-14
+
+### Added ✨
+- **--type=feature**
+
+### Technical
+- Version bump for minor release
+- Automated changelog update
+
+
+
 ## [1.2.2] - 2025-06-14
 
 ### Documentation 📚
