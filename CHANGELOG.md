@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.5.1] - 2025-06-14
+
+### Added ✨
+- **Railway Environment Variable Support**: Added WEBHOOK_BASE_URL environment variable for proper webhook registration
+- **Railway Persistence UI Helper**: Added Railway persistence command generator in Shopify Settings UI
+- **Environment Variable Persistence**: Implemented Railway-compatible credential persistence using environment variables
+- **Railway Command Generator**: Users can now get exact Railway CLI commands to persist credentials across restarts
+
+### Fixed 🐛
+- **Webhook Registration on Railway**: Fixed webhook URL construction to use Railway's public domain correctly
+- **Railway Container Persistence**: Fixed credentials disappearing on Railway container restarts
+- **Environment Variable Loading**: Enhanced credential loading to check environment variables as fallback
+
+### Changed 🔄
+- **Persistence Strategy**: Updated persistence to work with Railway's ephemeral filesystem
+- **UI Enhancement**: Added Railway-specific persistence instructions and command generator
+- **Error Handling**: Enhanced error messages for Railway deployment scenarios
+
+### Technical
+- Added WEBHOOK_BASE_URL environment variable to Railway configuration
+- Enhanced server.js with environment variable credential loading
+- Added /api/shopify/railway-env endpoint for command generation
+- Updated ShopifySettings.tsx with Railway persistence UI components
+- Improved Railway deployment compatibility
+- Version bump for patch release
+- Automated changelog update
+
+### Deployment 🚀
+- **Railway Configuration**: Added WEBHOOK_BASE_URL=https://delivery-schedule2-production.up.railway.app
+- **Environment Variables**: Enhanced Railway environment variable management
+- **Container Restart Compatibility**: Credentials now survive Railway container restarts when properly configured
+
+
+
 ## [1.5.0] - 2025-06-14
 
 ### Added ✨
