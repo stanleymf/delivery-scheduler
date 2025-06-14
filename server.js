@@ -1341,116 +1341,6 @@ app.delete('/api/shopify/webhooks/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Public API endpoints for widget (no authentication required)
-// These endpoints return data for the first user (admin) for widget consumption
-app.get('/api/public/widget/timeslots', (req, res) => {
-  try {
-    // Get the first user's data (admin user)
-    const firstUserId = userData.keys().next().value;
-    if (!firstUserId) {
-      return res.json({
-        success: true,
-        data: []
-      });
-    }
-    
-    const userConfig = userData.get(firstUserId);
-    const timeslots = userConfig?.timeslots || [];
-    
-    res.json({
-      success: true,
-      data: timeslots
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch timeslots',
-      details: error.message
-    });
-  }
-});
-
-app.get('/api/public/widget/settings', (req, res) => {
-  try {
-    // Get the first user's data (admin user)
-    const firstUserId = userData.keys().next().value;
-    if (!firstUserId) {
-      return res.json({
-        success: true,
-        data: { collectionLocations: [] }
-      });
-    }
-    
-    const userConfig = userData.get(firstUserId);
-    const settings = userConfig?.settings || {};
-    
-    res.json({
-      success: true,
-      data: settings
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch settings',
-      details: error.message
-    });
-  }
-});
-
-app.get('/api/public/widget/blocked-dates', (req, res) => {
-  try {
-    // Get the first user's data (admin user)
-    const firstUserId = userData.keys().next().value;
-    if (!firstUserId) {
-      return res.json({
-        success: true,
-        data: []
-      });
-    }
-    
-    const userConfig = userData.get(firstUserId);
-    const blockedDates = userConfig?.blockedDates || [];
-    
-    res.json({
-      success: true,
-      data: blockedDates
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch blocked dates',
-      details: error.message
-    });
-  }
-});
-
-app.get('/api/public/widget/blocked-date-ranges', (req, res) => {
-  try {
-    // Get the first user's data (admin user)
-    const firstUserId = userData.keys().next().value;
-    if (!firstUserId) {
-      return res.json({
-        success: true,
-        data: []
-      });
-    }
-    
-    const userConfig = userData.get(firstUserId);
-    const blockedDateRanges = userConfig?.blockedDateRanges || [];
-    
-    res.json({
-      success: true,
-      data: blockedDateRanges
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch blocked date ranges',
-      details: error.message
-    });
-  }
-});
-
 // Debug endpoint to check stored user data (no auth required for debugging)
 app.get('/api/debug/user-data', (req, res) => {
   try {
@@ -1588,6 +1478,26 @@ app.post('/api/debug/populate-test-data', (req, res) => {
   }
 });
 
+// Clear test data endpoint (for debugging)
+app.post('/api/debug/clear-test-data', (req, res) => {
+  try {
+    // Clear all user data to start fresh
+    userData.clear();
+    
+    res.json({
+      success: true,
+      message: 'Test data cleared successfully',
+      userCount: userData.size
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear test data',
+      details: error.message
+    });
+  }
+});
+
 // Serve static files from dist/client directory
 app.use(express.static(join(__dirname, 'dist', 'client')));
 
@@ -1602,97 +1512,12 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Health check available at http://localhost:${PORT}/health`);
   console.log(`🌐 App available at http://localhost:${PORT}`);
   
-  // Auto-populate test data on startup for testing
-  if (userData.size === 0) {
-    console.log('🧪 Auto-populating test data for widget testing...');
-    const testUserId = 'admin';
-    const testData = {
-      timeslots: [
-        {
-          id: '1',
-          name: 'Morning Delivery',
-          startTime: '10:00',
-          endTime: '14:00',
-          type: 'delivery',
-          maxOrders: 50,
-          cutoffTime: '08:00',
-          cutoffDay: 'same',
-          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-        },
-        {
-          id: '2',
-          name: 'Afternoon Delivery',
-          startTime: '14:00',
-          endTime: '18:00',
-          type: 'delivery',
-          maxOrders: 40,
-          cutoffTime: '22:00',
-          cutoffDay: 'previous',
-          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-        },
-        {
-          id: '5',
-          name: 'Express Morning',
-          startTime: '11:00',
-          endTime: '13:00',
-          type: 'express',
-          maxOrders: 10,
-          cutoffTime: '09:00',
-          cutoffDay: 'same',
-          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-          parentTimeslotId: '1',
-        },
-        {
-          id: '4',
-          name: 'Store Collection',
-          startTime: '09:00',
-          endTime: '21:00',
-          type: 'collection',
-          maxOrders: 100,
-          cutoffTime: '08:00',
-          cutoffDay: 'same',
-          assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-        }
-      ],
-      blockedDates: [
-        { id: '1', date: '2024-12-25', type: 'full', reason: 'Christmas Day - Store Closed' },
-        { id: '2', date: '2024-01-01', type: 'full', reason: 'New Year Day - Store Closed' }
-      ],
-      blockedDateRanges: [
-        {
-          id: 'range-1',
-          name: 'Christmas Holiday Period',
-          startDate: '2024-12-24',
-          endDate: '2024-12-26',
-          type: 'full',
-          reason: 'Christmas Holiday - Store Closed for 3 Days',
-          createdAt: '2024-01-15T10:30:00Z',
-          dates: ['2024-12-24', '2024-12-25', '2024-12-26']
-        }
-      ],
-      settings: {
-        futureOrderLimit: 30,
-        collectionLocations: [
-          {
-            id: '1',
-            name: 'Main Store',
-            address: '123 Main Street, Singapore 123456'
-          },
-          {
-            id: '2',
-            name: 'Branch Store',
-            address: '456 Branch Road, Singapore 654321'
-          }
-        ],
-        theme: 'light'
-      },
-      products: [],
-      blockedCodes: [],
-      lastUpdated: new Date().toISOString()
-    };
-    
-    userData.set(testUserId, testData);
-    console.log('✅ Test data populated successfully');
+  // Log current user data status
+  console.log(`📊 Current user data: ${userData.size} users stored`);
+  if (userData.size > 0) {
+    for (const [userId, data] of userData.entries()) {
+      console.log(`   - User: ${userId}, Last Updated: ${data.lastUpdated || 'Never'}`);
+    }
   }
 });
 
