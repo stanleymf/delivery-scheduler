@@ -33,9 +33,27 @@ const AUTH_CONFIG = {
 const sessions = new Map();
 
 // Persistent storage for Shopify credentials
+// Note: Railway filesystem is ephemeral, so we'll use environment variables for persistence
 const CREDENTIALS_FILE = join(__dirname, 'shopify-credentials.json');
 
-// Load credentials from file on startup
+// Load credentials from environment variables (Railway-compatible persistence)
+async function loadCredentialsFromEnv() {
+  try {
+    const credentialsEnv = process.env.SHOPIFY_CREDENTIALS_JSON;
+    if (credentialsEnv) {
+      const credentials = JSON.parse(credentialsEnv);
+      console.log('📁 Loaded credentials from environment for', Object.keys(credentials).length, 'users');
+      return new Map(Object.entries(credentials));
+    }
+    console.log('📁 No credentials found in environment, starting fresh');
+    return new Map();
+  } catch (error) {
+    console.error('❌ Error loading credentials from environment:', error);
+    return new Map();
+  }
+}
+
+// Load credentials from file on startup (fallback)
 async function loadCredentialsFromFile() {
   try {
     const data = await fs.readFile(CREDENTIALS_FILE, 'utf8');
@@ -44,20 +62,28 @@ async function loadCredentialsFromFile() {
     return new Map(Object.entries(credentials));
   } catch (error) {
     if (error.code === 'ENOENT') {
-      console.log('📁 No existing credentials file found, starting fresh');
-      return new Map();
+      console.log('📁 No existing credentials file found, checking environment...');
+      return await loadCredentialsFromEnv();
     }
     console.error('❌ Error loading credentials from file:', error);
-    return new Map();
+    return await loadCredentialsFromEnv();
   }
 }
 
-// Save credentials to file
+// Save credentials to both file and environment (Railway-compatible)
 async function saveCredentialsToFile(credentialsMap) {
   try {
     const credentialsObj = Object.fromEntries(credentialsMap);
+    
+    // Save to file (temporary, will be lost on restart)
     await fs.writeFile(CREDENTIALS_FILE, JSON.stringify(credentialsObj, null, 2));
     console.log('💾 Saved credentials to file for', credentialsMap.size, 'users');
+    
+    // Also log suggestion for Railway environment variable
+    if (credentialsMap.size > 0) {
+      console.log('💡 To persist credentials across Railway restarts, set environment variable:');
+      console.log('   SHOPIFY_CREDENTIALS_JSON=' + JSON.stringify(credentialsObj));
+    }
   } catch (error) {
     console.error('❌ Error saving credentials to file:', error);
   }
@@ -581,6 +607,37 @@ app.post('/api/shopify/restore', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to restore credentials',
+      details: error.message
+    });
+  }
+});
+
+// Get Railway environment variable command for persistence
+app.get('/api/shopify/railway-env', authenticateToken, (req, res) => {
+  try {
+    if (shopifyCredentials.size === 0) {
+      return res.json({
+        success: true,
+        message: 'No credentials to persist',
+        command: null
+      });
+    }
+
+    const credentialsObj = Object.fromEntries(shopifyCredentials);
+    const envValue = JSON.stringify(credentialsObj);
+    const command = `railway variables --set "SHOPIFY_CREDENTIALS_JSON=${envValue}"`;
+    
+    res.json({
+      success: true,
+      message: 'Railway environment variable command generated',
+      command,
+      credentialsCount: shopifyCredentials.size,
+      note: 'Run this command in your terminal to persist credentials across Railway restarts'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate Railway command',
       details: error.message
     });
   }
