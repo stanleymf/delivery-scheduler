@@ -137,10 +137,15 @@ class UserDataSyncService {
       const response = await authenticatedFetch('/api/user/data');
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
+        if (result.success && result.data) {
           this.updateSyncStatus({ 
             serverAvailable: true,
             lastSync: new Date().toISOString()
+          });
+          console.log('✅ Loaded data from server:', {
+            timeslots: result.data.timeslots?.length || 0,
+            blockedDates: result.data.blockedDates?.length || 0,
+            settings: Object.keys(result.data.settings || {}).length
           });
           return result.data;
         }

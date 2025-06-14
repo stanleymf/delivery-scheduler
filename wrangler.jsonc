@@ -3,9 +3,6 @@
   "name": "delivery-scheduler-widget",
   "main": "worker/index.ts",
   "compatibility_date": "2024-12-01",
-  "assets": {
-    "not_found_handling": "single-page-application"
-  },
   "observability": {
     "enabled": true
   }

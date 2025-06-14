@@ -20,7 +20,7 @@ export default {
 		}
 
 		try {
-			// Serve customer widget bundle
+			// Serve customer widget bundle - PRIORITY ROUTE
 			if (path === '/widget.js') {
 				return await serveWidgetBundle();
 			}
@@ -99,7 +99,7 @@ export default {
 				});
 			}
 
-			// Default response
+			// Default response - don't serve static assets for widget.js
 			return new Response('Not Found', { 
 				status: 404,
 				headers: corsHeaders,
@@ -117,11 +117,11 @@ export default {
 async function serveWidgetBundle(): Promise<Response> {
 	// Serve a synced widget that fetches data from Railway admin dashboard
 	return new Response(`
-// Delivery Scheduler Widget v1.3.0 - Synced with Admin Dashboard
+// Delivery Scheduler Widget v1.7.0 - Synced with Admin Dashboard
 (function() {
     'use strict';
     
-    console.log('Delivery Scheduler Widget v1.3.0 loaded - Synced with Admin Dashboard');
+    console.log('Delivery Scheduler Widget v1.7.0 loaded - Synced with Admin Dashboard');
     
     // Widget state management
     let widgetData = {
@@ -143,7 +143,7 @@ async function serveWidgetBundle(): Promise<Response> {
         try {
             console.log('Fetching widget data for shop:', shopDomain);
             
-            const baseUrl = window.location.origin;
+            const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
             const [timeslotsRes, settingsRes, blockedDatesRes, blockedRangesRes] = await Promise.all([
                 fetch(baseUrl + '/api/public/widget/timeslots'),
                 fetch(baseUrl + '/api/public/widget/settings'), 
@@ -232,207 +232,326 @@ async function serveWidgetBundle(): Promise<Response> {
         const blockedTimeslots = new Set();
         
         const blockedDate = widgetData.blockedDates.find(b => b.date === dateStr);
-        if (blockedDate && blockedDate.type === 'partial' && blockedDate.blockedTimeslots) {
-            blockedDate.blockedTimeslots.forEach(id => blockedTimeslots.add(id));
+        if (blockedDate && blockedDate.timeslots) {
+            blockedDate.timeslots.forEach(ts => blockedTimeslots.add(ts));
         }
         
         const blockedRange = widgetData.blockedDateRanges.find(range => 
             range.dates && range.dates.includes(dateStr)
         );
-        if (blockedRange && blockedRange.type === 'partial' && blockedRange.blockedTimeslots) {
-            blockedRange.blockedTimeslots.forEach(id => blockedTimeslots.add(id));
+        if (blockedRange && blockedRange.timeslots) {
+            blockedRange.timeslots.forEach(ts => blockedTimeslots.add(ts));
         }
         
         return baseTimeslots.filter(slot => !blockedTimeslots.has(slot.id));
     }
     
-    function formatTime(time) {
-        const [hours, minutes] = time.split(':');
-        const hour = parseInt(hours);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 || 12;
-        return \`\${displayHour}:\${minutes} \${ampm}\`;
+    function formatDate(date) {
+        return date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
     }
     
-    function renderWidget(container, config) {
-        const availableTimeslots = getAvailableTimeslots();
-        const collectionLocations = widgetData.collectionLocations;
+    function createWidget(container, options) {
+        const { shopDomain, cartMode, cartItems, theme = 'light' } = options;
         
+        // Create widget HTML
         container.innerHTML = \`
-            <div style="
-                max-width: 400px;
+            <div class="delivery-scheduler-widget" style="
+                max-width: 500px;
                 margin: 0 auto;
-                padding: 20px;
+                padding: 24px;
                 border: 1px solid #e5e7eb;
-                border-radius: 8px;
+                border-radius: 12px;
                 background: white;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             ">
-                <h3 style="margin: 0 0 15px 0; color: #374151; display: flex; align-items: center; gap: 8px;">
-                    🚚 Delivery Options
-                </h3>
-                
-                <!-- Delivery Type Selection -->
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Delivery Type</label>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="delivery-btn" onclick="selectDeliveryType('delivery')" style="
-                            flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; 
-                            background: \${selectedType === 'delivery' ? '#616B53' : 'white'}; 
-                            color: \${selectedType === 'delivery' ? 'white' : 'black'};
-                            cursor: pointer; font-size: 14px; transition: all 0.2s;
-                        ">🚚 Delivery</button>
-                        <button id="collection-btn" onclick="selectDeliveryType('collection')" style="
-                            flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; 
-                            background: \${selectedType === 'collection' ? '#616B53' : 'white'};
-                            color: \${selectedType === 'collection' ? 'white' : 'black'};
-                            cursor: pointer; font-size: 14px; transition: all 0.2s;
-                        ">🏢 Collection</button>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 8px 0; color: #374151; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        🚚 Delivery Options
+                    </h3>
+                    <p style="margin: 0; color: #6b7280; font-size: 14px;">Choose your preferred delivery date and time</p>
                 </div>
                 
-                <!-- Postal Code (for delivery only) -->
-                \${selectedType === 'delivery' ? \`
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Postal Code</label>
-                    <input type="text" id="postal-code" placeholder="Enter 6-digit postal code" value="\${postalCode}" 
-                           onchange="updatePostalCode(this.value)" maxlength="6" style="
-                        width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
-                        font-size: 14px; box-sizing: border-box;
-                    ">
-                </div>
-                \` : ''}
-                
-                <!-- Collection Location (for collection only) -->
-                \${selectedType === 'collection' ? \`
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Collection Location</label>
-                    <select id="collection-location" onchange="updateLocation(this.value)" style="
-                        width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
-                        font-size: 14px; box-sizing: border-box;
-                    ">
-                        <option value="">Choose a location</option>
-                        \${collectionLocations.map(loc => \`
-                            <option value="\${loc.id}" \${selectedLocation === loc.id ? 'selected' : ''}>
-                                \${loc.name}
-                            </option>
-                        \`).join('')}
-                    </select>
-                    \${selectedLocation ? \`
-                        <div style="margin-top: 8px; padding: 8px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; font-size: 12px;">
-                            📍 \${collectionLocations.find(l => l.id === selectedLocation)?.address}
-                        </div>
-                    \` : ''}
-                </div>
-                \` : ''}
-                
-                <!-- Date Selection -->
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Select Date</label>
-                    <input type="date" id="delivery-date" onchange="updateDate(this.value)" style="
-                        width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
-                        font-size: 14px; box-sizing: border-box;
-                    " min="\${new Date().toISOString().split('T')[0]}" value="\${selectedDate ? selectedDate.toISOString().split('T')[0] : ''}">
+                <div id="widget-loading" style="text-align: center; padding: 20px; color: #6b7280;">
+                    Loading delivery options...
                 </div>
                 
-                <!-- Time Selection -->
-                \${selectedDate ? \`
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Select Time Slot</label>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        \${availableTimeslots.map(slot => \`
-                            <div onclick="selectTimeslot('\${slot.id}')" style="
-                                padding: 12px; border: 1px solid \${selectedTimeslot === slot.id ? '#616B53' : '#d1d5db'}; 
-                                border-radius: 6px; cursor: pointer; 
-                                background: \${selectedTimeslot === slot.id ? '#616B53' : 'white'};
-                                color: \${selectedTimeslot === slot.id ? 'white' : 'black'};
-                                display: flex; justify-content: space-between; align-items: center;
+                <div id="widget-content" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Delivery Type</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="delivery-btn" onclick="selectDeliveryType('delivery')" style="
+                                flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px;
+                                background: white; cursor: pointer; font-size: 14px; font-weight: 500;
                                 transition: all 0.2s;
-                            " onmouseover="this.style.borderColor='#616B53'" onmouseout="this.style.borderColor='\${selectedTimeslot === slot.id ? '#616B53' : '#d1d5db'}'">
-                                <div>
-                                    <div style="font-weight: 500;">\${slot.name}</div>
-                                    <div style="font-size: 12px; opacity: 0.8;">\${formatTime(slot.startTime)} - \${formatTime(slot.endTime)}</div>
-                                </div>
-                                <div style="font-size: 12px; opacity: 0.9;">
-                                    \${slot.maxOrders} slots
-                                </div>
-                            </div>
-                        \`).join('')}
-                        \${availableTimeslots.length === 0 ? '<div style="text-align: center; color: #666; padding: 20px; border: 1px dashed #ccc; border-radius: 6px;">No time slots available for this date</div>' : ''}
+                            ">
+                                🚚 Delivery
+                            </button>
+                            <button id="collection-btn" onclick="selectDeliveryType('collection')" style="
+                                flex: 1; padding: 10px 16px; border: 1px solid #d1d5db; border-radius: 8px;
+                                background: white; cursor: pointer; font-size: 14px; font-weight: 500;
+                                transition: all 0.2s;
+                            ">
+                                🏢 Collection
+                            </button>
+                        </div>
                     </div>
-                </div>
-                \` : ''}
-                
-                <!-- Summary -->
-                \${selectedDate && selectedTimeslot ? \`
-                <div style="margin-bottom: 15px; padding: 12px; background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px;">
-                    <div style="font-weight: 500; margin-bottom: 8px; color: #15803d;">✅ Delivery Summary</div>
-                    <div style="font-size: 14px; color: #166534; line-height: 1.4;">
-                        <div><strong>Date:</strong> \${selectedDate.toLocaleDateString()}</div>
-                        <div><strong>Time:</strong> \${widgetData.timeslots.find(s => s.id === selectedTimeslot)?.name}</div>
-                        <div><strong>Type:</strong> \${selectedType === 'delivery' ? 'Delivery' : 'Collection'}</div>
-                        \${selectedType === 'delivery' && postalCode ? \`<div><strong>Postal Code:</strong> \${postalCode}</div>\` : ''}
-                        \${selectedType === 'collection' && selectedLocation ? \`<div><strong>Location:</strong> \${collectionLocations.find(l => l.id === selectedLocation)?.name}</div>\` : ''}
+                    
+                    <div id="postal-code-section" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Postal Code</label>
+                        <input type="text" id="postal-code" placeholder="Enter postal code" style="
+                            width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+                            font-size: 14px; box-sizing: border-box;
+                        ">
+                        <div id="postal-code-error" style="color: #ef4444; font-size: 12px; margin-top: 4px; display: none;"></div>
                     </div>
+                    
+                    <div id="collection-location-section" style="margin-bottom: 20px; display: none;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Collection Location</label>
+                        <select id="collection-location" style="
+                            width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+                            font-size: 14px; box-sizing: border-box;
+                        ">
+                            <option value="">Choose a location</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Select Date</label>
+                        <input type="date" id="delivery-date" style="
+                            width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+                            font-size: 14px; box-sizing: border-box;
+                        ">
+                    </div>
+                    
+                    <div id="timeslot-section" style="margin-bottom: 20px; display: none;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151;">Select Time</label>
+                        <div id="timeslot-options"></div>
+                    </div>
+                    
+                    <div id="summary-section" style="margin-bottom: 20px; display: none; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #374151;">Delivery Summary</h4>
+                        <div id="summary-content"></div>
+                    </div>
+                    
+                    <button id="add-to-cart-btn" onclick="addToCartWithDelivery()" style="
+                        width: 100%; padding: 14px; background: #616B53; color: white; border: none;
+                        border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
+                        transition: background-color 0.2s; opacity: 0.5;
+                    " disabled>
+                        \${cartMode ? 'Update Cart with Delivery' : 'Add to Cart with Delivery'}
+                    </button>
                 </div>
-                \` : ''}
                 
-                <button onclick="addToCartWithDelivery()" 
-                        disabled="\${!selectedDate || !selectedTimeslot || (selectedType === 'collection' && !selectedLocation)}"
-                        style="
-                    width: 100%; padding: 12px; 
-                    background: \${selectedDate && selectedTimeslot && (selectedType !== 'collection' || selectedLocation) ? '#616B53' : '#ccc'}; 
-                    color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; 
-                    cursor: \${selectedDate && selectedTimeslot && (selectedType !== 'collection' || selectedLocation) ? 'pointer' : 'not-allowed'};
-                    transition: all 0.2s;
-                " onmouseover="if(!this.disabled) this.style.background='#4a5240'" onmouseout="if(!this.disabled) this.style.background='#616B53'">
-                    \${selectedDate && selectedTimeslot && (selectedType !== 'collection' || selectedLocation) ? 'Add to Cart with Delivery' : 'Select Date & Time'}
-                </button>
-                
-                <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #6b7280;">
-                    Powered by Delivery Scheduler v1.3.0 • Synced with Admin Dashboard
+                <div style="text-align: center; margin-top: 16px; font-size: 12px; color: #6b7280;">
+                    Powered by Delivery Scheduler v1.7.0 - <span style="color: #16a34a; font-weight: 600;">●</span> LIVE
                 </div>
             </div>
         \`;
+        
+        // Initialize widget
+        initializeWidget(shopDomain, cartMode, cartItems);
     }
     
-    // Global functions for widget interaction
+    async function initializeWidget(shopDomain, cartMode, cartItems) {
+        // Fetch data
+        await fetchWidgetData(shopDomain);
+        
+        // Hide loading, show content
+        document.getElementById('widget-loading').style.display = 'none';
+        document.getElementById('widget-content').style.display = 'block';
+        
+        // Set up date picker
+        const dateInput = document.getElementById('delivery-date');
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        dateInput.min = tomorrow.toISOString().split('T')[0];
+        
+        // Set up collection locations
+        const locationSelect = document.getElementById('collection-location');
+        widgetData.collectionLocations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            option.textContent = \`\${location.name} - \${location.address}\`;
+            locationSelect.appendChild(option);
+        });
+        
+        // Set up event listeners
+        dateInput.addEventListener('change', handleDateChange);
+        document.getElementById('postal-code').addEventListener('input', handlePostalCodeChange);
+        document.getElementById('collection-location').addEventListener('change', handleLocationChange);
+        
+        // Initialize with delivery type
+        selectDeliveryType('delivery');
+    }
+    
     window.selectDeliveryType = function(type) {
         selectedType = type;
         selectedTimeslot = null;
-        selectedLocation = null;
-        const container = document.querySelector('[data-delivery-scheduler]');
-        if (container) renderWidget(container, {});
+        
+        // Update button styles
+        const deliveryBtn = document.getElementById('delivery-btn');
+        const collectionBtn = document.getElementById('collection-btn');
+        
+        if (type === 'delivery') {
+            deliveryBtn.style.background = '#616B53';
+            deliveryBtn.style.color = 'white';
+            deliveryBtn.style.borderColor = '#616B53';
+            collectionBtn.style.background = 'white';
+            collectionBtn.style.color = 'black';
+            collectionBtn.style.borderColor = '#d1d5db';
+            
+            document.getElementById('postal-code-section').style.display = 'block';
+            document.getElementById('collection-location-section').style.display = 'none';
+        } else {
+            collectionBtn.style.background = '#616B53';
+            collectionBtn.style.color = 'white';
+            collectionBtn.style.borderColor = '#616B53';
+            deliveryBtn.style.background = 'white';
+            deliveryBtn.style.color = 'black';
+            deliveryBtn.style.borderColor = '#d1d5db';
+            
+            document.getElementById('postal-code-section').style.display = 'none';
+            document.getElementById('collection-location-section').style.display = 'block';
+        }
+        
+        updateTimeslots();
+        updateSummary();
     };
     
-    window.updatePostalCode = function(value) {
-        postalCode = value.replace(/\\D/g, '').substring(0, 6); // Only digits, max 6
-        document.getElementById('postal-code').value = postalCode;
-    };
-    
-    window.updateLocation = function(value) {
-        selectedLocation = value;
-        const container = document.querySelector('[data-delivery-scheduler]');
-        if (container) renderWidget(container, {});
-    };
-    
-    window.updateDate = function(value) {
-        selectedDate = value ? new Date(value) : null;
+    function handleDateChange() {
+        const dateInput = document.getElementById('delivery-date');
+        selectedDate = dateInput.value ? new Date(dateInput.value + 'T00:00:00') : null;
         selectedTimeslot = null;
-        const container = document.querySelector('[data-delivery-scheduler]');
-        if (container) renderWidget(container, {});
+        updateTimeslots();
+        updateSummary();
+    }
+    
+    function handlePostalCodeChange() {
+        postalCode = document.getElementById('postal-code').value;
+        updateSummary();
+    }
+    
+    function handleLocationChange() {
+        const locationSelect = document.getElementById('collection-location');
+        selectedLocation = locationSelect.value;
+        updateSummary();
+    }
+    
+    function updateTimeslots() {
+        const timeslotSection = document.getElementById('timeslot-section');
+        const timeslotOptions = document.getElementById('timeslot-options');
+        
+        if (!selectedDate) {
+            timeslotSection.style.display = 'none';
+            return;
+        }
+        
+        const availableSlots = getAvailableTimeslots();
+        
+        if (availableSlots.length === 0) {
+            timeslotOptions.innerHTML = '<p style="color: #6b7280; font-style: italic;">No timeslots available for this date</p>';
+            timeslotSection.style.display = 'block';
+            return;
+        }
+        
+        timeslotOptions.innerHTML = availableSlots.map(slot => \`
+            <div class="timeslot-option" data-slot-id="\${slot.id}" onclick="selectTimeslot('\${slot.id}')" style="
+                padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; cursor: pointer;
+                margin-bottom: 8px; transition: all 0.2s;
+            ">
+                <div style="display: flex; justify-content: between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 500; color: #374151;">\${slot.name}</div>
+                        <div style="font-size: 14px; color: #6b7280;">\${slot.startTime} - \${slot.endTime}</div>
+                    </div>
+                </div>
+            </div>
+        \`).join('');
+        
+        timeslotSection.style.display = 'block';
+    }
+    
+    window.selectTimeslot = function(slotId) {
+        selectedTimeslot = slotId;
+        
+        // Update timeslot option styles
+        document.querySelectorAll('.timeslot-option').forEach(option => {
+            if (option.dataset.slotId === slotId) {
+                option.style.borderColor = '#616B53';
+                option.style.backgroundColor = '#f0f9f0';
+            } else {
+                option.style.borderColor = '#d1d5db';
+                option.style.backgroundColor = 'white';
+            }
+        });
+        
+        updateSummary();
     };
     
-    window.selectTimeslot = function(timeslotId) {
-        selectedTimeslot = timeslotId;
-        const container = document.querySelector('[data-delivery-scheduler]');
-        if (container) renderWidget(container, {});
-    };
+    function updateSummary() {
+        const summarySection = document.getElementById('summary-section');
+        const summaryContent = document.getElementById('summary-content');
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        
+        const isValid = selectedDate && selectedTimeslot && 
+            (selectedType === 'delivery' ? postalCode : selectedLocation);
+        
+        if (isValid) {
+            const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+            const location = selectedType === 'collection' ? 
+                widgetData.collectionLocations.find(l => l.id === selectedLocation) : null;
+            
+            summaryContent.innerHTML = \`
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #6b7280;">Date:</span>
+                    <span style="font-weight: 500;">\${formatDate(selectedDate)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #6b7280;">Time:</span>
+                    <span style="font-weight: 500;">\${slot ? slot.name : ''}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #6b7280;">Type:</span>
+                    <span style="font-weight: 500; text-transform: capitalize;">\${selectedType}</span>
+                </div>
+                \${selectedType === 'delivery' ? \`
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #6b7280;">Postal Code:</span>
+                        <span style="font-weight: 500;">\${postalCode}</span>
+                    </div>
+                \` : \`
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #6b7280;">Location:</span>
+                        <span style="font-weight: 500;">\${location ? location.name : ''}</span>
+                    </div>
+                \`}
+            \`;
+            
+            summarySection.style.display = 'block';
+            addToCartBtn.disabled = false;
+            addToCartBtn.style.opacity = '1';
+        } else {
+            summarySection.style.display = 'none';
+            addToCartBtn.disabled = true;
+            addToCartBtn.style.opacity = '0.5';
+        }
+    }
     
     window.addToCartWithDelivery = function() {
         if (!selectedDate || !selectedTimeslot) {
             alert('Please select both date and time for delivery');
+            return;
+        }
+        
+        if (selectedType === 'delivery' && !postalCode) {
+            alert('Please enter your postal code');
             return;
         }
         
@@ -441,98 +560,51 @@ async function serveWidgetBundle(): Promise<Response> {
             return;
         }
         
-        const selectedSlot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
-        const selectedLoc = selectedType === 'collection' ? 
+        const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+        const location = selectedType === 'collection' ? 
             widgetData.collectionLocations.find(l => l.id === selectedLocation) : null;
         
         const deliveryData = {
-            type: selectedType,
             date: selectedDate.toISOString().split('T')[0],
-            timeslot: selectedSlot,
+            timeslot: slot.name,
+            type: selectedType,
             postalCode: selectedType === 'delivery' ? postalCode : null,
-            location: selectedLoc
+            location: selectedType === 'collection' ? location : null
         };
         
         console.log('Delivery preferences:', deliveryData);
         
-        // Generate order tags (matching admin dashboard logic)
-        const tags = [];
-        tags.push(selectedType === 'delivery' ? 'Delivery' : 'Collection');
-        tags.push(selectedDate.toLocaleDateString('en-GB'));
-        tags.push(selectedSlot.name);
-        if (selectedType === 'delivery' && postalCode) tags.push(postalCode);
-        if (selectedLoc) tags.push(selectedLoc.name);
-        
-        // Here you would normally integrate with Shopify cart
+        // Here you would integrate with Shopify cart
         // For now, show success message
-        alert(\`✅ Delivery scheduled successfully!\\n\\nType: \${selectedType}\\nDate: \${selectedDate.toLocaleDateString()}\\nTime: \${selectedSlot.name}\${selectedLoc ? '\\nLocation: ' + selectedLoc.name : ''}\${postalCode ? '\\nPostal Code: ' + postalCode : ''}\\n\\nOrder tags: \${tags.join(', ')}\`);
+        alert(\`Delivery scheduled for \${formatDate(selectedDate)} - \${slot.name}\`);
     };
     
-    // Initialize widgets when DOM is ready
-    async function initializeWidgets() {
-        const containers = document.querySelectorAll('[data-delivery-scheduler]');
-        
-        for (const container of containers) {
-            const config = {
-                shopDomain: container.getAttribute('data-shop-domain') || '',
-                productId: container.getAttribute('data-product-id') || '',
-                variantId: container.getAttribute('data-variant-id') || '',
-                cartMode: container.getAttribute('data-cart-mode') === 'true',
-                theme: container.getAttribute('data-theme') || 'light',
-                locale: container.getAttribute('data-locale') || 'en'
+    // Auto-initialize widgets
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-delivery-scheduler]').forEach(function(element) {
+            const options = {
+                shopDomain: element.getAttribute('data-shop-domain') || '',
+                cartMode: element.getAttribute('data-cart-mode') === 'true',
+                cartItems: element.getAttribute('data-cart-items') || '[]',
+                theme: element.getAttribute('data-theme') || 'light'
             };
             
-            if (config.shopDomain) {
-                // Show loading state
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666; border: 1px solid #e5e7eb; border-radius: 8px; background: white;"><div style="margin-bottom: 10px;">🚚</div><div>Loading delivery options...</div><div style="font-size: 12px; margin-top: 5px; opacity: 0.7;">Syncing with admin dashboard</div></div>';
-                
-                // Fetch data and render widget
-                await fetchWidgetData(config.shopDomain);
-                renderWidget(container, config);
-            } else {
-                container.innerHTML = '<div style="padding: 20px; border: 2px dashed #ccc; text-align: center; color: #666; border-radius: 8px;">🚚 Delivery Scheduler<br><small>Missing shop domain configuration</small></div>';
+            if (options.shopDomain) {
+                createWidget(element, options);
             }
-        }
-    }
+        });
+    });
     
-    // Initialize on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeWidgets);
-    } else {
-        initializeWidgets();
-    }
-    
-    // Expose API for manual initialization
+    // Expose global API
     window.DeliverySchedulerWidget = {
-        init: async function(config) {
-            const containerId = config.containerId || 'delivery-scheduler-widget';
-            const container = document.getElementById(containerId);
-            if (container) {
-                await fetchWidgetData(config.shopDomain);
-                renderWidget(container, config);
-            } else {
-                console.error('Container not found:', containerId);
-            }
-        },
-        destroy: function(containerId) {
-            const container = document.getElementById(containerId || 'delivery-scheduler-widget');
-            if (container) {
-                container.innerHTML = '';
-            }
-        },
-        refresh: async function() {
-            await initializeWidgets();
+        init: function(element, options) {
+            createWidget(element, options);
         }
     };
+    
 })();
-	`, {
-		headers: {
-			'Content-Type': 'application/javascript',
-			'Cache-Control': 'public, max-age=0, must-revalidate',
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-		}
+`, {
+		headers: { 'Content-Type': 'application/javascript' },
 	});
 }
 

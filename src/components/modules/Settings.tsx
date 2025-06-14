@@ -10,7 +10,7 @@ import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette } from "l
 import { loadSettings, saveSettings, type CollectionLocation } from "@/lib/mockData";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
 import { TagMappingSettings } from "./TagMappingSettings";
-import { SyncStatus } from "../sync/SyncStatus";
+import { SyncStatus } from "./SyncStatus";
 
 export function Settings() {
   const [settings, setSettings] = useState(loadSettings());

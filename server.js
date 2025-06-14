@@ -925,7 +925,7 @@ app.post('/api/user/data/:type', authenticateToken, async (req, res) => {
   }
 });
 
-// Migrate data from localStorage (one-time migration endpoint)
+// Migrate localStorage data to server (one-time migration)
 app.post('/api/user/migrate', authenticateToken, async (req, res) => {
   const userId = req.user;
   const { localStorageData } = req.body;
@@ -933,17 +933,19 @@ app.post('/api/user/migrate', authenticateToken, async (req, res) => {
   try {
     // Check if user already has data on server
     const existingData = userData.get(userId);
+    
     if (existingData && existingData.lastUpdated) {
+      // Server data exists, return it instead of overwriting
       return res.json({
         success: true,
-        message: 'User data already exists on server',
-        migrated: false,
-        existingData: true
+        message: 'Server data already exists, using server version',
+        action: 'server_data_used',
+        serverData: existingData
       });
     }
     
-    // Migrate localStorage data to server
-    const userConfig = {
+    // No server data exists, migrate from localStorage
+    const migratedData = {
       timeslots: localStorageData.timeslots || [],
       blockedDates: localStorageData.blockedDates || [],
       blockedDateRanges: localStorageData.blockedDateRanges || [],
@@ -954,7 +956,7 @@ app.post('/api/user/migrate', authenticateToken, async (req, res) => {
       migratedAt: new Date().toISOString()
     };
     
-    userData.set(userId, userConfig);
+    userData.set(userId, migratedData);
     
     // Persist to file
     await saveUserDataToFile(userData);
@@ -962,13 +964,57 @@ app.post('/api/user/migrate', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: 'Data migrated successfully from localStorage to server',
-      migrated: true,
-      timestamp: userConfig.lastUpdated
+      action: 'data_migrated',
+      itemsMigrated: {
+        timeslots: migratedData.timeslots.length,
+        blockedDates: migratedData.blockedDates.length,
+        blockedDateRanges: migratedData.blockedDateRanges.length,
+        settings: Object.keys(migratedData.settings).length,
+        products: migratedData.products.length,
+        blockedCodes: migratedData.blockedCodes.length
+      }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Failed to migrate data',
+      details: error.message
+    });
+  }
+});
+
+// Manual sync trigger endpoint
+app.post('/api/user/sync', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  
+  try {
+    const userConfig = userData.get(userId);
+    
+    if (userConfig) {
+      res.json({
+        success: true,
+        message: 'Data synced successfully',
+        data: userConfig,
+        lastUpdated: userConfig.lastUpdated
+      });
+    } else {
+      res.json({
+        success: true,
+        message: 'No server data found',
+        data: {
+          timeslots: [],
+          blockedDates: [],
+          blockedDateRanges: [],
+          settings: {},
+          products: [],
+          blockedCodes: []
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to sync data',
       details: error.message
     });
   }
