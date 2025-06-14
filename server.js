@@ -1405,6 +1405,37 @@ app.get('/api/public/widget/blocked-date-ranges', (req, res) => {
   }
 });
 
+// Debug endpoint to check stored user data (no auth required for debugging)
+app.get('/api/debug/user-data', (req, res) => {
+  try {
+    const allUserData = {};
+    for (const [userId, data] of userData.entries()) {
+      allUserData[userId] = {
+        timeslots: data.timeslots?.length || 0,
+        blockedDates: data.blockedDates?.length || 0,
+        blockedDateRanges: data.blockedDateRanges?.length || 0,
+        settings: Object.keys(data.settings || {}).length,
+        products: data.products?.length || 0,
+        blockedCodes: data.blockedCodes?.length || 0,
+        lastUpdated: data.lastUpdated
+      };
+    }
+    
+    res.json({
+      success: true,
+      userCount: userData.size,
+      users: allUserData,
+      firstUserId: userData.keys().next().value || null
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch debug data',
+      details: error.message
+    });
+  }
+});
+
 // Serve static files from dist/client directory
 app.use(express.static(join(__dirname, 'dist', 'client')));
 
