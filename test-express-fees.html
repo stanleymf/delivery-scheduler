@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express Delivery Fees Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .test-info h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        .test-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .test-info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🚀 Express Delivery Fees Test - v1.9.0</h1>
+        
+        <div class="test-info">
+            <h3>🧪 Testing Express Delivery Fees Functionality</h3>
+            <p><strong>What to test:</strong></p>
+            <ul>
+                <li>Express timeslots should display fee amounts (e.g., +$15.00, +$12.50)</li>
+                <li>Express timeslots should show "⚡ Express Delivery" indicator</li>
+                <li>Fee should appear in delivery summary when express slot is selected</li>
+                <li>Total additional cost should be calculated and displayed</li>
+                <li>Cart integration should include fee information</li>
+            </ul>
+            
+            <p><strong>Expected Express Fees:</strong></p>
+            <ul>
+                <li><strong>Express Morning (11:00-13:00):</strong> $15.00 fee</li>
+                <li><strong>Express Afternoon (15:00-17:00):</strong> $12.50 fee</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📦 Delivery Scheduler Widget</h2>
+        <div data-delivery-scheduler 
+             data-shop-domain="test-store.myshopify.com"
+             data-cart-mode="true"
+             data-theme="light">
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔍 Test Results</h2>
+        <div id="test-results">
+            <p>Select an express delivery option above to test the fee functionality...</p>
+        </div>
+    </div>
+
+    <!-- Load the widget -->
+    <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>
+    
+    <script>
+        // Monitor widget interactions for testing
+        let originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            // Display delivery data in test results
+            if (args[0] === 'Delivery preferences:' && args[1]) {
+                const data = args[1];
+                const resultsDiv = document.getElementById('test-results');
+                
+                resultsDiv.innerHTML = `
+                    <h3>✅ Test Results:</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace;">
+                        <strong>Selected Delivery Data:</strong><br>
+                        Date: ${data.date}<br>
+                        Timeslot: ${data.timeslot}<br>
+                        Type: ${data.type}<br>
+                        Express Fee: $${data.expressFee ? data.expressFee.toFixed(2) : '0.00'}<br>
+                        Is Express: ${data.isExpress ? 'Yes' : 'No'}<br>
+                        Total Additional Cost: $${data.totalAdditionalCost ? data.totalAdditionalCost.toFixed(2) : '0.00'}
+                    </div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: ${data.expressFee > 0 ? '#d4edda' : '#fff3cd'}; border-radius: 6px;">
+                        <strong>Fee Test Status:</strong> 
+                        ${data.expressFee > 0 ? 
+                            `<span style="color: #155724;">✅ PASS - Express fee of $${data.expressFee.toFixed(2)} detected</span>` : 
+                            `<span style="color: #856404;">⚠️ INFO - No express fee (regular delivery selected)</span>`
+                        }
+                    </div>
+                `;
+            }
+        };
+        
+        // Test widget initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Express Delivery Fees Test Page Loaded');
+            console.log('📊 Widget should load with express delivery options showing fees');
+        });
+    </script>
+</body>
+</html> 

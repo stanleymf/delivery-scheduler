@@ -132,4 +132,28 @@ export const CHANGELOG = [
       'Implemented optional chaining for all tagMapping access'
     ]
   },
+  {
+    version: '1.9.0',
+    date: '2024-12-19',
+    type: 'feature' as const,
+    title: 'Express Delivery Fees',
+    description: 'Added comprehensive fee system for express delivery timeslots',
+    changes: [
+      'Added fee field to Timeslot interface for express delivery charges',
+      'Updated Express component with fee input field and validation',
+      'Enhanced widget to display express fees in timeslot options',
+      'Added fee calculation and display in delivery summary',
+      'Updated cart integration to include express fee information',
+      'Added fee badges and visual indicators for express timeslots',
+      'Implemented total fee calculation for cart integration',
+      'Updated mock data with sample express delivery fees'
+    ],
+    technical: [
+      'Extended Timeslot interface with optional fee property',
+      'Enhanced Express.tsx component with DollarSign icon and fee input',
+      'Updated widget JavaScript to handle fee display and calculation',
+      'Modified public API endpoints to include fee data',
+      'Added fee validation and formatting throughout the system'
+    ]
+  },
 ]; 

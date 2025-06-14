@@ -93,6 +93,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File-based data persistence
 - Comprehensive API endpoints
 
+## [1.9.0] - 2024-12-19
+
+### 🚀 Features
+- **Express Delivery Fees**: Added comprehensive fee system for express delivery timeslots
+  - Added fee field to Timeslot interface for express delivery charges
+  - Updated Express component with fee input field and validation
+  - Enhanced widget to display express fees in timeslot options
+  - Added fee calculation and display in delivery summary
+  - Updated cart integration to include express fee information
+  - Added fee badges and visual indicators for express timeslots
+  - Implemented total fee calculation for cart integration
+  - Updated mock data with sample express delivery fees
+
+### 🔧 Technical Changes
+- Extended Timeslot interface with optional fee property
+- Enhanced Express.tsx component with DollarSign icon and fee input
+- Updated widget JavaScript to handle fee display and calculation
+- Modified public API endpoints to include fee data
+- Added fee validation and formatting throughout the system
+
+### 💡 User Experience
+- Express timeslots now display fees prominently in the widget
+- Fee information is included in delivery summary before cart addition
+- Visual indicators distinguish express delivery options with fees
+- Cart integration includes detailed fee breakdown for transparency
+
 ---
 
 ## Version History
@@ -101,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v1.7.1** - Server Data Persistence & LivePreview Fixes  
 - **v1.7.0** - Real-time Widget Synchronization
 - **v1.6.1** - Initial Release
+- **v1.9.0** - Express Delivery Fees
 
 ## Deployment Status
 
