@@ -1,7 +1,5 @@
 export interface Env {
-	SHOPIFY_ACCESS_TOKEN: string;
-	SHOPIFY_SHOP_DOMAIN: string;
-	SHOPIFY_API_VERSION: string;
+	ADMIN_DASHBOARD_URL: string;
 }
 
 export default {
@@ -32,19 +30,18 @@ export default {
 				return await serveWidgetCSS();
 			}
 
-			// Shopify API proxy
-			if (path.startsWith('/api/shopify/')) {
-				return await handleShopifyRequest(request, env, path.replace('/api/shopify/', ''));
-			}
-
-			// Delivery scheduler API
-			if (path.startsWith('/api/delivery/')) {
-				return await handleDeliveryRequest(request, env, path.replace('/api/delivery/', ''));
+			// Proxy API requests to Railway admin dashboard
+			if (path.startsWith('/api/')) {
+				return await proxyToAdminDashboard(request, env, path);
 			}
 
 			// Health check
 			if (path === '/health') {
-				return new Response(JSON.stringify({ status: 'ok', version: '1.1.5' }), {
+				return new Response(JSON.stringify({ 
+					status: 'ok', 
+					version: '1.6.1',
+					adminDashboard: env.ADMIN_DASHBOARD_URL ? 'configured' : 'not configured'
+				}), {
 					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 				});
 			}
@@ -69,15 +66,17 @@ export default {
     <p>Add this code to your Shopify theme:</p>
     <pre><code>&lt;div id="delivery-scheduler-widget" 
      data-delivery-scheduler 
-     data-shop-domain="your-store.myshopify.com"&gt;&lt;/div&gt;
-&lt;script src="https://your-worker-url.com/widget.js"&gt;&lt;/script&gt;</code></pre>
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}"&gt;&lt;/div&gt;
+&lt;script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"&gt;&lt;/script&gt;</code></pre>
 
     <h2>Advanced Configuration</h2>
     <pre><code>&lt;div id="delivery-scheduler-widget" 
      data-delivery-scheduler 
-     data-shop-domain="your-store.myshopify.com"
-     data-product-id="123456789"
-     data-variant-id="987654321"
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}"
      data-theme="light"
      data-locale="en"&gt;&lt;/div&gt;</code></pre>
 
@@ -104,6 +103,9 @@ window.DeliverySchedulerWidget.destroy('my-widget-container');</code></pre>
         <li>✅ Shopify order tag integration</li>
         <li>✅ Responsive design</li>
     </ul>
+    
+    <h2>Architecture</h2>
+    <p>This widget proxies API requests to the admin dashboard at: <strong>${env.ADMIN_DASHBOARD_URL || 'Not configured'}</strong></p>
 </body>
 </html>
 				`, {
@@ -180,188 +182,75 @@ async function serveWidgetCSS(): Promise<Response> {
 	});
 }
 
-async function handleShopifyRequest(request: Request, env: Env, endpoint: string): Promise<Response> {
+async function proxyToAdminDashboard(request: Request, env: Env, path: string): Promise<Response> {
 	const corsHeaders = {
 		'Access-Control-Allow-Origin': '*',
 		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 	};
 
-	const shopifyUrl = `https://${env.SHOPIFY_SHOP_DOMAIN}/admin/api/${env.SHOPIFY_API_VERSION}/${endpoint}`;
+	if (!env.ADMIN_DASHBOARD_URL) {
+		return new Response(JSON.stringify({ 
+			error: 'Admin dashboard URL not configured',
+			message: 'Please configure ADMIN_DASHBOARD_URL in Cloudflare Worker secrets'
+		}), {
+			status: 500,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+		});
+	}
+
+	const adminDashboardUrl = env.ADMIN_DASHBOARD_URL.replace(/\/$/, ''); // Remove trailing slash
+	const fullUrl = `${adminDashboardUrl}${path}`;
 	
-	const headers = {
-		'X-Shopify-Access-Token': env.SHOPIFY_ACCESS_TOKEN,
-		'Content-Type': 'application/json',
-	};
-
-	try {
-		const response = await fetch(shopifyUrl, {
-			method: request.method,
-			headers,
-			body: request.method !== 'GET' ? await request.text() : undefined,
-		});
-
-		const data = await response.json();
-
-		return new Response(JSON.stringify(data), {
-			status: response.status,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-		});
-	} catch (error) {
-		console.error('Shopify API error:', error);
-		return new Response(JSON.stringify({ error: 'Shopify API request failed' }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-		});
-	}
-}
-
-async function handleDeliveryRequest(request: Request, env: Env, endpoint: string): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
-
-	try {
-		switch (endpoint) {
-			case 'timeslots':
-				return await handleTimeslotsRequest(request, env);
-			
-			case 'availability':
-				return await handleAvailabilityRequest(request, env);
-			
-			case 'orders':
-				return await handleOrdersRequest(request, env);
-			
-			default:
-				return new Response(JSON.stringify({ error: 'Endpoint not found' }), {
-					status: 404,
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-				});
-		}
-	} catch (error) {
-		console.error('Delivery API error:', error);
-		return new Response(JSON.stringify({ error: 'Delivery API request failed' }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-		});
-	}
-}
-
-async function handleTimeslotsRequest(request: Request, env: Env): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
-
-	// Mock timeslots data - in production, this would come from a database
-	const timeslots = [
-		{
-			id: "morning",
-			name: "Morning Delivery",
-			type: "delivery",
-			startTime: "10:00",
-			endTime: "14:00",
-			price: 0,
-			available: true,
-		},
-		{
-			id: "afternoon",
-			name: "Afternoon Delivery",
-			type: "delivery",
-			startTime: "14:00",
-			endTime: "18:00",
-			price: 0,
-			available: true,
-		},
-		{
-			id: "evening",
-			name: "Evening Delivery",
-			type: "delivery",
-			startTime: "18:00",
-			endTime: "22:00",
-			price: 5,
-			available: true,
-		},
-		{
-			id: "express",
-			name: "Express Delivery",
-			type: "delivery",
-			startTime: "11:00",
-			endTime: "13:00",
-			price: 15,
-			available: true,
-		},
-		{
-			id: "collection",
-			name: "Store Collection",
-			type: "collection",
-			startTime: "09:00",
-			endTime: "21:00",
-			price: -5,
-			available: true,
-		},
-	];
-
-	return new Response(JSON.stringify({ timeslots }), {
-		headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-	});
-}
-
-async function handleAvailabilityRequest(request: Request, env: Env): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
-
+	// Forward query parameters
 	const url = new URL(request.url);
-	const date = url.searchParams.get('date');
-	const postalCode = url.searchParams.get('postalCode');
+	if (url.search) {
+		const fullUrlWithParams = `${fullUrl}${url.search}`;
+		console.log(`Proxying request to: ${fullUrlWithParams}`);
+	}
 
-	// Mock availability data - in production, this would check against actual bookings
-	const availability = {
-		date,
-		postalCode,
-		available: true,
-		blockedDates: ['2024-12-25', '2024-01-01'],
-		maxOrders: 50,
-		currentOrders: 15,
-	};
+	try {
+		// Clone the request headers but remove host-specific headers
+		const headers = new Headers();
+		for (const [key, value] of request.headers.entries()) {
+			if (!['host', 'cf-ray', 'cf-connecting-ip'].includes(key.toLowerCase())) {
+				headers.set(key, value);
+			}
+		}
 
-	return new Response(JSON.stringify(availability), {
-		headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-	});
-}
+		// Ensure content-type is set for API requests
+		if (!headers.has('content-type') && request.method !== 'GET') {
+			headers.set('content-type', 'application/json');
+		}
 
-async function handleOrdersRequest(request: Request, env: Env): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
+		const proxyRequest = new Request(`${fullUrl}${url.search}`, {
+			method: request.method,
+			headers: headers,
+			body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.clone().arrayBuffer() : undefined,
+		});
 
-	if (request.method === 'POST') {
-		const orderData = await request.json();
+		const response = await fetch(proxyRequest);
 		
-		// In production, this would save to a database and potentially sync with Shopify
-		const order = {
-			id: Date.now().toString(),
-			...orderData,
-			createdAt: new Date().toISOString(),
-			status: 'pending',
-		};
+		// Clone the response and add CORS headers
+		const responseHeaders = new Headers(response.headers);
+		Object.entries(corsHeaders).forEach(([key, value]) => {
+			responseHeaders.set(key, value);
+		});
 
-		return new Response(JSON.stringify({ order }), {
-			status: 201,
+		return new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: responseHeaders,
+		});
+	} catch (error) {
+		console.error('Proxy error:', error);
+		return new Response(JSON.stringify({ 
+			error: 'Proxy request failed',
+			details: error.message,
+			targetUrl: fullUrl
+		}), {
+			status: 500,
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 		});
 	}
-
-	return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-		status: 405,
-		headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-	});
 }

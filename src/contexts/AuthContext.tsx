@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AUTH_CONFIG, isSessionExpired, updateSessionTimestamp } from '@/config/auth';
+import { userDataSync } from '@/lib/userDataSync';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -40,6 +41,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setIsAuthenticated(true);
             setUser(data.user);
             updateSessionTimestamp();
+            
+            // Initialize sync service after successful authentication
+            userDataSync.initialize();
           } else {
             // Token is invalid, clear it
             logout();
@@ -82,6 +86,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsAuthenticated(true);
         setUser(data.user);
         
+        // Initialize sync service after successful login
+        userDataSync.initialize();
+        
         setIsLoading(false);
         return true;
       } else {
@@ -117,6 +124,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
     localStorage.removeItem(AUTH_CONFIG.USER_KEY);
     localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
+    
+    // Stop sync service
+    userDataSync.stopAutoSync();
     
     setIsAuthenticated(false);
     setUser(null);

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle, Tag } from "lucide-react";
+import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle, Tag, Store, Copy, AlertTriangle, Globe, ChevronDown, ChevronRight, ShoppingCart, Package } from "lucide-react";
 import { loadSettings, loadTimeslots, loadBlockedDates, loadBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange, type TagMapping } from "@/lib/mockData";
 
 type DeliveryType = 'delivery' | 'collection' | 'express';
@@ -26,6 +26,10 @@ export function LivePreview() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTimeslot, setSelectedTimeslot] = useState("");
+
+  // Collapsible states for integration instructions
+  const [isProductPageOpen, setIsProductPageOpen] = useState(false);
+  const [isCartPageOpen, setIsCartPageOpen] = useState(false);
 
   const collectionLocations = mockSettings.collectionLocations;
   const timeslots = mockTimeslots;
@@ -634,6 +638,278 @@ export function LivePreview() {
                         </div>
                       </>
                     )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="w-5 h-5 text-olive" />
+                🚀 Add Widget to Your Shopify Store
+              </CardTitle>
+              <CardDescription>
+                Choose where to integrate the delivery scheduler widget in your Shopify theme
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Prerequisites */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-olive text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                  <h4 className="font-semibold">Prerequisites</h4>
+                </div>
+                <div className="ml-8 space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Shopify store with theme editing access</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Shopify credentials configured in admin dashboard</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Widget deployed and accessible</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Integration Options */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-olive text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                  <h4 className="font-semibold">Choose Integration Location</h4>
+                </div>
+                
+                {/* Product Page Integration */}
+                <div className="ml-8 border rounded-lg">
+                  <button
+                    onClick={() => setIsProductPageOpen(!isProductPageOpen)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Package className="w-5 h-5 text-olive" />
+                      <div>
+                        <h5 className="font-semibold">Product Page Integration</h5>
+                        <p className="text-sm text-muted-foreground">Add widget to individual product pages</p>
+                      </div>
+                    </div>
+                    {isProductPageOpen ? (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  
+                  {isProductPageOpen && (
+                    <div className="px-4 pb-4 space-y-4 border-t bg-gray-50/50">
+                      <div className="space-y-3 pt-4">
+                        <p className="text-sm text-muted-foreground">
+                          Add this code to your product page template (usually <code className="bg-muted px-1 rounded">sections/product-form.liquid</code> or <code className="bg-muted px-1 rounded">templates/product.liquid</code>):
+                        </p>
+                        <div className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
+                          <pre>{`<!-- Delivery Scheduler Widget -->
+<div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`}</pre>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const code = `<!-- Delivery Scheduler Widget -->
+<div id="delivery-scheduler-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-product-id="{{ product.id }}"
+     data-variant-id="{{ product.selected_or_first_available_variant.id }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`;
+                            navigator.clipboard.writeText(code);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy Product Page Code
+                        </Button>
+                        
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <h6 className="font-semibold text-blue-800 text-sm mb-2">Best for:</h6>
+                          <ul className="text-sm text-blue-700 space-y-1">
+                            <li>• Individual product customization</li>
+                            <li>• Products requiring delivery scheduling</li>
+                            <li>• When you want delivery options visible during product browsing</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cart Page Integration */}
+                <div className="ml-8 border rounded-lg">
+                  <button
+                    onClick={() => setIsCartPageOpen(!isCartPageOpen)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShoppingCart className="w-5 h-5 text-olive" />
+                      <div>
+                        <h5 className="font-semibold">Cart Page Integration</h5>
+                        <p className="text-sm text-muted-foreground">Add widget to cart/checkout page</p>
+                      </div>
+                    </div>
+                    {isCartPageOpen ? (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  
+                  {isCartPageOpen && (
+                    <div className="px-4 pb-4 space-y-4 border-t bg-gray-50/50">
+                      <div className="space-y-3 pt-4">
+                        <p className="text-sm text-muted-foreground">
+                          Add this code to your cart page template (usually <code className="bg-muted px-1 rounded">templates/cart.liquid</code> or <code className="bg-muted px-1 rounded">sections/cart-drawer.liquid</code>):
+                        </p>
+                        <div className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
+                          <pre>{`<!-- Delivery Scheduler Widget for Cart -->
+<div id="delivery-scheduler-cart-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-cart-mode="true"
+     data-cart-items="{{ cart.items | json | escape }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`}</pre>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const code = `<!-- Delivery Scheduler Widget for Cart -->
+<div id="delivery-scheduler-cart-widget" 
+     data-delivery-scheduler 
+     data-shop-domain="{{ shop.domain }}"
+     data-cart-mode="true"
+     data-cart-items="{{ cart.items | json | escape }}">
+</div>
+
+<!-- Widget Script -->
+<script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`;
+                            navigator.clipboard.writeText(code);
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy Cart Page Code
+                        </Button>
+                        
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <h6 className="font-semibold text-green-800 text-sm mb-2">Best for:</h6>
+                          <ul className="text-sm text-green-700 space-y-1">
+                            <li>• Unified delivery selection for entire cart</li>
+                            <li>• Checkout flow optimization</li>
+                            <li>• When delivery applies to multiple products</li>
+                            <li>• Reducing checkout abandonment</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Testing */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-olive text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                  <h4 className="font-semibold">Test Integration</h4>
+                </div>
+                <div className="ml-8 space-y-2 text-sm">
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                    <span>Visit your chosen page (product or cart) on your Shopify store</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                    <span>Verify the delivery scheduler widget appears</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                    <span>Test the complete delivery selection flow</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                    <span>Check that order tags are generated correctly</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advanced Configuration */}
+              <div className="bg-gray-50 border rounded-lg p-4">
+                <h5 className="font-semibold mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-olive" />
+                  Advanced Configuration (Optional)
+                </h5>
+                <div className="space-y-3 text-sm">
+                  <p className="text-muted-foreground">
+                    Add these optional attributes for additional customization:
+                  </p>
+                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs overflow-x-auto">
+                    <pre>{`data-theme="light"           <!-- "light" or "dark" -->
+data-locale="en"             <!-- Language code -->
+data-currency="{{ shop.currency }}"  <!-- Currency display -->
+data-container-class="my-widget"     <!-- Custom CSS class -->`}</pre>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div><strong>data-theme:</strong> Widget appearance</div>
+                    <div><strong>data-locale:</strong> Language localization</div>
+                    <div><strong>data-currency:</strong> Price formatting</div>
+                    <div><strong>data-container-class:</strong> Custom styling</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Troubleshooting */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-yellow-800">Troubleshooting</h5>
+                    <div className="text-sm text-yellow-700 space-y-1">
+                      <div><strong>Widget not appearing:</strong> Check browser console for errors and verify script URL</div>
+                      <div><strong>API errors:</strong> Ensure Shopify credentials are configured in admin dashboard</div>
+                      <div><strong>Styling issues:</strong> Widget inherits your theme's CSS - add custom styles if needed</div>
+                      <div><strong>Cart mode issues:</strong> Verify cart.items data is properly passed to the widget</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Widget URLs */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <Globe className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-blue-800">Widget Resources</h5>
+                    <div className="text-sm text-blue-700 space-y-1 font-mono">
+                      <div><strong>Widget:</strong> https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js</div>
+                      <div><strong>Health:</strong> https://delivery-scheduler-widget.stanleytan92.workers.dev/health</div>
+                      <div><strong>Docs:</strong> https://delivery-scheduler-widget.stanleytan92.workers.dev/widget-docs</div>
+                    </div>
                   </div>
                 </div>
               </div>

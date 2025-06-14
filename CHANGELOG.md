@@ -5,7 +5,7 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.1] - 2024-12-19
+## [1.6.1] - 14/06/2025
 
 ### Added ✨
 - **Bulk Day Selection**: Added convenient bulk selection buttons for assigning days when creating timeslots
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintained existing individual day selection functionality
 - Applied consistent styling and behavior across both TimeSlots and Express components
 
-## [1.6.0] - 2024-12-19
+## [1.6.0] - 14/06/2025
 
 ### Added ✨
 - **URL Routing**: Implemented proper URL routing with React Router DOM
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented automatic redirect from root path to delivery-areas
 - Added fallback route handling for unknown URLs
 
-## [1.5.4] - 2024-12-19
+## [1.5.4] - 14/06/2025
 
 ### Fixed
 - **Timeslot Persistence**: Fixed issue where deleted express timeslots would reappear after page refresh
@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed state initialization to load from saved data instead of static mock data
 - Added proper state synchronization between components that share timeslot data
 
-## [1.5.3] - 2024-12-19
+## [1.5.3] - 14/06/2025
 
 ### Fixed
 - **Data Persistence**: Comprehensive fix for data persistence across all components
@@ -83,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Version bump for patch release
 - Automated changelog update
 
-## [1.5.2] - 2024-12-19
+## [1.5.2] - 14/06/2025
 
 ### Fixed 🐛
 - **Webhook Fetching Issue**: Fixed middleware routing conflict that prevented webhook endpoints from working
@@ -102,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Version bump for patch release
 - Automated changelog update
 
-## [1.5.1] - 2024-12-19
+## [1.5.1] - 14/06/2025
 
 ### Added ✨
 - **Railway Environment Variable Support**: Added WEBHOOK_BASE_URL environment variable for proper webhook registration
@@ -125,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Environment Variables**: Enhanced Railway environment variable management
 - **Container Restart Compatibility**: Credentials now survive Railway container restarts when properly configured
 
-## [1.5.0] - 2024-12-19
+## [1.5.0] - 14/06/2025
 
 ### Added ✨
 - **Persistent Storage for Shopify Credentials**: Implemented file-based credential storage with JSON persistence
@@ -164,7 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server-side storage with no client-side credential exposure
 - Graceful error handling for file corruption and recovery scenarios
 
-## [1.1.5] - 2024-12-19
+## [1.1.5] - 14/06/2025
 
 ### Added ✨
 - **Product Management Sync Feature**: Added sync products button to synchronize products from Shopify
@@ -179,14 +179,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved UI with product statistics dashboard
 - Added sync status management with automatic state reset
 
-## [1.1.4] - 2024-12-19
+## [1.1.4] - 14/06/2025
 
 ### Fixed 🐛
 - **Collection Location Address Display**: Fixed issue where collection location addresses were not showing after selection in the live widget preview
 - **Enhanced Location Selection UX**: Added visual confirmation of selected location with name and address display
 - **Improved Confirmation Step**: Updated confirmation step to show both location name and address for collection orders
 
-## [1.0.11] - 2024-12-19
+## [1.0.11] - 14/06/2025
 
 ### Added ✨
 - **Initial Release**: Complete delivery scheduling system with Shopify integration

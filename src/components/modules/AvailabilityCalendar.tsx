@@ -700,7 +700,7 @@ export function AvailabilityCalendar() {
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 border border-gray-400 rounded" style={{ textDecoration: 'line-through' }} />
                     <span className="text-sm">Future Blocked (Beyond {futureOrderLimit} days)</span>
-                  </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -723,7 +723,7 @@ export function AvailabilityCalendar() {
                         return futureLimitDate.toLocaleDateString();
                       })()}
                     </Badge>
-                  </div>
+              </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Blocked Dates:</span>
                 <Badge variant="outline">{blockedDates.length}</Badge>
@@ -731,7 +731,7 @@ export function AvailabilityCalendar() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Date Ranges:</span>
                     <Badge variant="outline">{blockedDateRanges.length}</Badge>
-                  </div>
+              </div>
             </CardContent>
           </Card>
 

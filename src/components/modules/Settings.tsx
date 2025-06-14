@@ -10,6 +10,7 @@ import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette } from "l
 import { mockSettings, type CollectionLocation } from "@/lib/mockData";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
 import { TagMappingSettings } from "./TagMappingSettings";
+import { SyncStatus } from "../sync/SyncStatus";
 
 export function Settings() {
   const [settings, setSettings] = useState(mockSettings);
@@ -240,6 +241,8 @@ export function Settings() {
         </Card>
 
         <TagMappingSettings />
+
+        <SyncStatus />
 
         <Card>
           <CardHeader>

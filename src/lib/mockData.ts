@@ -345,135 +345,140 @@ export const getDayName = (day: string): string => {
   return days[day] || day;
 };
 
-// Persistence functions for localStorage
-const STORAGE_KEYS = {
-  TIMESLOTS: 'delivery-scheduler-timeslots',
-  BLOCKED_DATES: 'delivery-scheduler-blocked-dates',
-  BLOCKED_DATE_RANGES: 'delivery-scheduler-blocked-date-ranges',
-  SETTINGS: 'delivery-scheduler-settings',
-  PRODUCTS: 'delivery-scheduler-products',
-  BLOCKED_CODES: 'delivery-scheduler-blocked-codes'
-};
+// Import the new sync service
+import { 
+  loadTimeslots as syncLoadTimeslots,
+  saveTimeslots as syncSaveTimeslots,
+  loadBlockedDates as syncLoadBlockedDates,
+  saveBlockedDates as syncSaveBlockedDates,
+  loadBlockedDateRanges as syncLoadBlockedDateRanges,
+  saveBlockedDateRanges as syncSaveBlockedDateRanges,
+  loadSettings as syncLoadSettings,
+  saveSettings as syncSaveSettings,
+  loadProducts as syncLoadProducts,
+  saveProducts as syncSaveProducts,
+  loadBlockedCodes as syncLoadBlockedCodes,
+  saveBlockedCodes as syncSaveBlockedCodes,
+  userDataSync
+} from './userDataSync';
 
-// Load data from localStorage with fallback to mock data
+// Load data with fallback to mock data and server sync
 export const loadTimeslots = (): Timeslot[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.TIMESLOTS);
-    return stored ? JSON.parse(stored) : mockTimeslots;
+    const stored = syncLoadTimeslots();
+    return stored.length > 0 ? stored : mockTimeslots;
   } catch (error) {
-    console.error('Error loading timeslots from localStorage:', error);
+    console.error('Error loading timeslots:', error);
     return mockTimeslots;
   }
 };
 
 export const saveTimeslots = (timeslots: Timeslot[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.TIMESLOTS, JSON.stringify(timeslots));
+    syncSaveTimeslots(timeslots);
   } catch (error) {
-    console.error('Error saving timeslots to localStorage:', error);
+    console.error('Error saving timeslots:', error);
   }
 };
 
 export const loadBlockedDates = (): BlockedDate[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_DATES);
-    return stored ? JSON.parse(stored) : mockBlockedDates;
+    const stored = syncLoadBlockedDates();
+    return stored.length > 0 ? stored : mockBlockedDates;
   } catch (error) {
-    console.error('Error loading blocked dates from localStorage:', error);
+    console.error('Error loading blocked dates:', error);
     return mockBlockedDates;
   }
 };
 
 export const saveBlockedDates = (blockedDates: BlockedDate[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.BLOCKED_DATES, JSON.stringify(blockedDates));
+    syncSaveBlockedDates(blockedDates);
   } catch (error) {
-    console.error('Error saving blocked dates to localStorage:', error);
+    console.error('Error saving blocked dates:', error);
   }
 };
 
 export const loadBlockedDateRanges = (): BlockedDateRange[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_DATE_RANGES);
-    return stored ? JSON.parse(stored) : mockBlockedDateRanges;
+    const stored = syncLoadBlockedDateRanges();
+    return stored.length > 0 ? stored : mockBlockedDateRanges;
   } catch (error) {
-    console.error('Error loading blocked date ranges from localStorage:', error);
+    console.error('Error loading blocked date ranges:', error);
     return mockBlockedDateRanges;
   }
 };
 
 export const saveBlockedDateRanges = (blockedDateRanges: BlockedDateRange[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.BLOCKED_DATE_RANGES, JSON.stringify(blockedDateRanges));
+    syncSaveBlockedDateRanges(blockedDateRanges);
   } catch (error) {
-    console.error('Error saving blocked date ranges to localStorage:', error);
+    console.error('Error saving blocked date ranges:', error);
   }
 };
 
 export const loadSettings = (): Settings => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return stored ? JSON.parse(stored) : mockSettings;
+    const stored = syncLoadSettings();
+    return Object.keys(stored).length > 0 ? stored : mockSettings;
   } catch (error) {
-    console.error('Error loading settings from localStorage:', error);
+    console.error('Error loading settings:', error);
     return mockSettings;
   }
 };
 
 export const saveSettings = (settings: Settings): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    syncSaveSettings(settings);
   } catch (error) {
-    console.error('Error saving settings to localStorage:', error);
+    console.error('Error saving settings:', error);
   }
 };
 
 export const loadProducts = (): Product[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    return stored ? JSON.parse(stored) : mockProducts;
+    const stored = syncLoadProducts();
+    return stored.length > 0 ? stored : mockProducts;
   } catch (error) {
-    console.error('Error loading products from localStorage:', error);
+    console.error('Error loading products:', error);
     return mockProducts;
   }
 };
 
 export const saveProducts = (products: Product[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    syncSaveProducts(products);
   } catch (error) {
-    console.error('Error saving products to localStorage:', error);
+    console.error('Error saving products:', error);
   }
 };
 
 export const loadBlockedCodes = (): BlockedPostalCode[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.BLOCKED_CODES);
-    return stored ? JSON.parse(stored) : mockBlockedCodes;
+    const stored = syncLoadBlockedCodes();
+    return stored.length > 0 ? stored : mockBlockedCodes;
   } catch (error) {
-    console.error('Error loading blocked codes from localStorage:', error);
+    console.error('Error loading blocked codes:', error);
     return mockBlockedCodes;
   }
 };
 
 export const saveBlockedCodes = (blockedCodes: BlockedPostalCode[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.BLOCKED_CODES, JSON.stringify(blockedCodes));
+    syncSaveBlockedCodes(blockedCodes);
   } catch (error) {
-    console.error('Error saving blocked codes to localStorage:', error);
+    console.error('Error saving blocked codes:', error);
   }
 };
 
 // Clear all stored data (useful for reset functionality)
-export const clearAllStoredData = (): void => {
+export const clearAllStoredData = async (): Promise<void> => {
   try {
-    Object.values(STORAGE_KEYS).forEach(key => {
-      localStorage.removeItem(key);
-    });
+    await userDataSync.clearAllData();
   } catch (error) {
     console.error('Error clearing stored data:', error);
   }
 };
 
 // Export storage keys for direct access if needed
-export { STORAGE_KEYS };
+// STORAGE_KEYS moved to userDataSync.ts

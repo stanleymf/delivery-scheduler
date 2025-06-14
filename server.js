@@ -32,9 +32,16 @@ const AUTH_CONFIG = {
 // In-memory session store (in production, use Redis or database)
 const sessions = new Map();
 
+// Session storage - will be persisted to file for Railway compatibility
+const SESSIONS_FILE = join(__dirname, 'sessions.json');
+
+// User data storage - stores all user configuration data
+const userData = new Map();
+
 // Persistent storage for Shopify credentials
 // Note: Railway filesystem is ephemeral, so we'll use environment variables for persistence
 const CREDENTIALS_FILE = join(__dirname, 'shopify-credentials.json');
+const USER_DATA_FILE = join(__dirname, 'user-data.json');
 
 // Load credentials from environment variables (Railway-compatible persistence)
 async function loadCredentialsFromEnv() {
@@ -89,26 +96,96 @@ async function saveCredentialsToFile(credentialsMap) {
   }
 }
 
-// Initialize credentials from file
+// Load user data from environment variables (Railway-compatible persistence)
+async function loadUserDataFromEnv() {
+  try {
+    const userDataEnv = process.env.USER_DATA_JSON;
+    if (userDataEnv) {
+      const data = JSON.parse(userDataEnv);
+      console.log('📁 Loaded user data from environment for', Object.keys(data).length, 'users');
+      return new Map(Object.entries(data));
+    }
+    console.log('📁 No user data found in environment, starting fresh');
+    return new Map();
+  } catch (error) {
+    console.error('❌ Error loading user data from environment:', error);
+    return new Map();
+  }
+}
+
+// Load user data from file on startup (fallback)
+async function loadUserDataFromFile() {
+  try {
+    const data = await fs.readFile(USER_DATA_FILE, 'utf8');
+    const userDataObj = JSON.parse(data);
+    console.log('📁 Loaded user data from file for', Object.keys(userDataObj).length, 'users');
+    return new Map(Object.entries(userDataObj));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('📁 No existing user data file found, checking environment...');
+      return await loadUserDataFromEnv();
+    }
+    console.error('❌ Error loading user data from file:', error);
+    return await loadUserDataFromEnv();
+  }
+}
+
+// Save user data to both file and environment (Railway-compatible)
+async function saveUserDataToFile(userDataMap) {
+  try {
+    const userDataObj = Object.fromEntries(userDataMap);
+    
+    // Save to file (temporary, will be lost on restart)
+    await fs.writeFile(USER_DATA_FILE, JSON.stringify(userDataObj, null, 2));
+    console.log('💾 Saved user data to file for', userDataMap.size, 'users');
+    
+    // Also log suggestion for Railway environment variable
+    if (userDataMap.size > 0) {
+      console.log('💡 To persist user data across Railway restarts, set environment variable:');
+      console.log('   USER_DATA_JSON=' + JSON.stringify(userDataObj));
+    }
+  } catch (error) {
+    console.error('❌ Error saving user data to file:', error);
+  }
+}
+
+// Initialize credentials, user data, and sessions from file
 const shopifyCredentials = await loadCredentialsFromFile();
+const userDataStore = await loadUserDataFromFile();
+await loadSessionsFromFile();
+
+// Copy user data to the userData Map
+for (const [userId, data] of userDataStore) {
+  userData.set(userId, data);
+}
 
 // Periodic backup every 5 minutes (in case of unexpected shutdowns)
 setInterval(async () => {
   if (shopifyCredentials.size > 0) {
     await saveCredentialsToFile(shopifyCredentials);
   }
+  if (userData.size > 0) {
+    await saveUserDataToFile(userData);
+  }
+  if (sessions.size > 0) {
+    await saveSessionsToFile();
+  }
 }, 5 * 60 * 1000);
 
-// Graceful shutdown handler to save credentials
+// Graceful shutdown handler to save credentials, user data, and sessions
 process.on('SIGTERM', async () => {
-  console.log('🔄 Graceful shutdown initiated, saving credentials...');
+  console.log('🔄 Graceful shutdown initiated, saving data...');
   await saveCredentialsToFile(shopifyCredentials);
+  await saveUserDataToFile(userData);
+  await saveSessionsToFile();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('🔄 Graceful shutdown initiated, saving credentials...');
+  console.log('🔄 Graceful shutdown initiated, saving data...');
   await saveCredentialsToFile(shopifyCredentials);
+  await saveUserDataToFile(userData);
+  await saveSessionsToFile();
   process.exit(0);
 });
 
@@ -148,7 +225,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Login endpoint
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -166,6 +243,9 @@ app.post('/api/auth/login', (req, res) => {
       timestamp: Date.now()
     });
 
+    // Persist sessions to file
+    await saveSessionsToFile();
+
     res.json({
       success: true,
       token,
@@ -178,12 +258,14 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Logout endpoint
-app.post('/api/auth/logout', authenticateToken, (req, res) => {
+app.post('/api/auth/logout', authenticateToken, async (req, res) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
   if (token) {
     sessions.delete(token);
+    // Persist sessions to file
+    await saveSessionsToFile();
   }
   
   res.json({ success: true, message: 'Logout successful' });
@@ -608,6 +690,198 @@ app.post('/api/shopify/restore', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to restore credentials',
+      details: error.message
+    });
+  }
+});
+
+// User Data Management endpoints (protected)
+
+// Get user data
+app.get('/api/user/data', authenticateToken, (req, res) => {
+  const userId = req.user;
+  const userConfig = userData.get(userId) || {
+    timeslots: [],
+    blockedDates: [],
+    blockedDateRanges: [],
+    settings: {},
+    products: [],
+    blockedCodes: [],
+    lastUpdated: new Date().toISOString()
+  };
+  
+  res.json({
+    success: true,
+    data: userConfig
+  });
+});
+
+// Save user data
+app.post('/api/user/data', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const { timeslots, blockedDates, blockedDateRanges, settings, products, blockedCodes } = req.body;
+  
+  try {
+    const userConfig = {
+      timeslots: timeslots || [],
+      blockedDates: blockedDates || [],
+      blockedDateRanges: blockedDateRanges || [],
+      settings: settings || {},
+      products: products || [],
+      blockedCodes: blockedCodes || [],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    userData.set(userId, userConfig);
+    
+    // Persist to file
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: 'User data saved successfully',
+      timestamp: userConfig.lastUpdated
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save user data',
+      details: error.message
+    });
+  }
+});
+
+// Save specific data type
+app.post('/api/user/data/:type', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const dataType = req.params.type;
+  const { data } = req.body;
+  
+  try {
+    let userConfig = userData.get(userId) || {
+      timeslots: [],
+      blockedDates: [],
+      blockedDateRanges: [],
+      settings: {},
+      products: [],
+      blockedCodes: [],
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Update specific data type
+    switch (dataType) {
+      case 'timeslots':
+        userConfig.timeslots = data;
+        break;
+      case 'blockedDates':
+        userConfig.blockedDates = data;
+        break;
+      case 'blockedDateRanges':
+        userConfig.blockedDateRanges = data;
+        break;
+      case 'settings':
+        userConfig.settings = data;
+        break;
+      case 'products':
+        userConfig.products = data;
+        break;
+      case 'blockedCodes':
+        userConfig.blockedCodes = data;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid data type'
+        });
+    }
+    
+    userConfig.lastUpdated = new Date().toISOString();
+    userData.set(userId, userConfig);
+    
+    // Persist to file
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: `${dataType} saved successfully`,
+      timestamp: userConfig.lastUpdated
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: `Failed to save ${dataType}`,
+      details: error.message
+    });
+  }
+});
+
+// Migrate data from localStorage (one-time migration endpoint)
+app.post('/api/user/migrate', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const { localStorageData } = req.body;
+  
+  try {
+    // Check if user already has data on server
+    const existingData = userData.get(userId);
+    if (existingData && existingData.lastUpdated) {
+      return res.json({
+        success: true,
+        message: 'User data already exists on server',
+        migrated: false,
+        existingData: true
+      });
+    }
+    
+    // Migrate localStorage data to server
+    const userConfig = {
+      timeslots: localStorageData.timeslots || [],
+      blockedDates: localStorageData.blockedDates || [],
+      blockedDateRanges: localStorageData.blockedDateRanges || [],
+      settings: localStorageData.settings || {},
+      products: localStorageData.products || [],
+      blockedCodes: localStorageData.blockedCodes || [],
+      lastUpdated: new Date().toISOString(),
+      migratedAt: new Date().toISOString()
+    };
+    
+    userData.set(userId, userConfig);
+    
+    // Persist to file
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: 'Data migrated successfully from localStorage to server',
+      migrated: true,
+      timestamp: userConfig.lastUpdated
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to migrate data',
+      details: error.message
+    });
+  }
+});
+
+// Clear user data
+app.delete('/api/user/data', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  
+  try {
+    userData.delete(userId);
+    
+    // Persist to file
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: 'User data cleared successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear user data',
       details: error.message
     });
   }
@@ -1339,4 +1613,41 @@ function extractDeliveryTimeFromOrder(order) {
   }
   
   return null;
+}
+
+// Load sessions from file on startup
+async function loadSessionsFromFile() {
+  try {
+    const data = await fs.readFile(SESSIONS_FILE, 'utf8');
+    const sessionsObj = JSON.parse(data);
+    console.log('📁 Loaded sessions from file for', Object.keys(sessionsObj).length, 'tokens');
+    
+    // Only load non-expired sessions
+    const now = Date.now();
+    for (const [token, session] of Object.entries(sessionsObj)) {
+      if (now - session.timestamp < AUTH_CONFIG.SESSION_TIMEOUT) {
+        sessions.set(token, session);
+      }
+    }
+    console.log('✅ Restored', sessions.size, 'valid sessions');
+    return sessions;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('📁 No existing sessions file found, starting fresh');
+    } else {
+      console.error('❌ Error loading sessions from file:', error);
+    }
+    return sessions;
+  }
+}
+
+// Save sessions to file
+async function saveSessionsToFile() {
+  try {
+    const sessionsObj = Object.fromEntries(sessions);
+    await fs.writeFile(SESSIONS_FILE, JSON.stringify(sessionsObj, null, 2));
+    console.log('💾 Saved sessions to file for', sessions.size, 'tokens');
+  } catch (error) {
+    console.error('❌ Error saving sessions to file:', error);
+  }
 } 
