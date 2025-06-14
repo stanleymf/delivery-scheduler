@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.5.2] - 2025-06-14
+
+### Fixed 🐛
+- **Webhook Fetching Issue**: Fixed middleware routing conflict that prevented webhook endpoints from working
+- **API Proxy Interference**: Changed Shopify API proxy pattern from `/api/shopify/*` to `/api/shopify/proxy/*`
+- **Endpoint Accessibility**: Webhook registration, fetching, and deletion endpoints now work correctly
+- **Error Resolution**: Resolved "Shopify API request failed" error when accessing webhook management
+
+### Changed 🔄
+- **Middleware Routing**: Updated Shopify API proxy middleware to use more specific routing pattern
+- **Endpoint Isolation**: Separated direct Shopify API proxying from custom webhook management endpoints
+
+### Technical
+- Fixed middleware route pattern to prevent conflicts with specific endpoints
+- Enhanced endpoint accessibility for webhook management functionality
+- Improved error handling and debugging for webhook operations
+- Version bump for patch release
+- Automated changelog update
+
+
+
 ## [1.5.1] - 2025-06-14
 
 ### Added ✨
