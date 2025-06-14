@@ -7,7 +7,7 @@ import { Express } from "@/components/modules/Express";
 import { AvailabilityCalendar } from "@/components/modules/AvailabilityCalendar";
 import { ProductManagement } from "@/components/modules/ProductManagement";
 import { LivePreview } from "@/components/modules/LivePreview";
-import { SettingsPage } from "@/pages/SettingsPage";
+import { Settings } from "@/components/modules/Settings";
 import { ShopifyIntegration } from "@/components/modules/ShopifyIntegration";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -33,7 +33,7 @@ function AppContent() {
       case "shopify":
         return <ShopifyIntegration />;
       case "settings":
-        return <SettingsPage />;
+        return <Settings />;
       default:
         return <DeliveryAreas />;
     }
