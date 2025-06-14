@@ -311,8 +311,9 @@ app.get('/api/shopify/test-connection', authenticateToken, async (req, res) => {
   }
 });
 
-// Update Shopify API proxy to use user-specific credentials
-app.use('/api/shopify/:endpoint*', authenticateToken, async (req, res) => {
+// Shopify API proxy for direct API calls (more specific pattern to avoid conflicts)
+// This should only handle direct Shopify API proxying, not our custom endpoints
+app.use('/api/shopify/proxy/:endpoint*', authenticateToken, async (req, res) => {
   const userId = req.user;
   const credentials = shopifyCredentials.get(userId);
   
