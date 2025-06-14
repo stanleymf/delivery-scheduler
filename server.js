@@ -419,6 +419,37 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
   res.status(200).send('Webhook received');
 });
 
+// Debug endpoint for webhook troubleshooting
+app.get('/api/shopify/debug', authenticateToken, (req, res) => {
+  const userId = req.user;
+  const credentials = shopifyCredentials.get(userId);
+  
+  const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || 'https://delivery-schedule2-production.up.railway.app';
+  
+  res.json({
+    success: true,
+    debug: {
+      userId,
+      hasCredentials: !!credentials,
+      credentialsInfo: credentials ? {
+        shopDomain: credentials.shopDomain,
+        hasAccessToken: !!credentials.accessToken,
+        accessTokenLength: credentials.accessToken ? credentials.accessToken.length : 0,
+        apiVersion: credentials.apiVersion,
+        hasAppSecret: !!credentials.appSecret
+      } : null,
+      webhookBaseUrl,
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        WEBHOOK_BASE_URL: process.env.WEBHOOK_BASE_URL,
+        RAILWAY_PUBLIC_DOMAIN: process.env.RAILWAY_PUBLIC_DOMAIN
+      },
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
 // Enhanced webhook registration with comprehensive delivery scheduling topics
 app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) => {
   const userId = req.user;
@@ -430,7 +461,10 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
     });
   }
 
-  const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  // Use the correct Railway URL for webhooks
+  const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || 'https://delivery-schedule2-production.up.railway.app';
+  
+  console.log(`🔗 Using webhook base URL: ${webhookBaseUrl}`);
 
   // Comprehensive webhook configuration for delivery scheduling
   const webhooksToRegister = [
@@ -472,6 +506,8 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
   try {
     const results = [];
     
+    console.log(`🔍 Fetching existing webhooks from: https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`);
+    
     // First, get existing webhooks to avoid duplicates
     const existingWebhooksResponse = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`, {
       headers: {
@@ -484,17 +520,29 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
     if (existingWebhooksResponse.ok) {
       const existingData = await existingWebhooksResponse.json();
       existingWebhooks = existingData.webhooks || [];
+      console.log(`📋 Found ${existingWebhooks.length} existing webhooks`);
+    } else {
+      const errorData = await existingWebhooksResponse.json();
+      console.error('❌ Failed to fetch existing webhooks:', errorData);
+      return res.status(existingWebhooksResponse.status).json({
+        success: false,
+        error: 'Failed to fetch existing webhooks',
+        details: errorData
+      });
     }
 
     // Register each webhook
     for (const webhook of webhooksToRegister) {
       try {
+        console.log(`🔄 Processing webhook: ${webhook.topic}`);
+        
         // Check if webhook already exists
         const existingWebhook = existingWebhooks.find(w => w.topic === webhook.topic);
         
         if (existingWebhook) {
           // Update existing webhook if address is different
           if (existingWebhook.address !== webhook.address) {
+            console.log(`🔄 Updating existing webhook: ${webhook.topic}`);
             const updateResponse = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks/${existingWebhook.id}.json`, {
               method: 'PUT',
               headers: {
@@ -505,18 +553,21 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
             });
 
             if (updateResponse.ok) {
+              const updatedData = await updateResponse.json();
               results.push({
                 topic: webhook.topic,
                 status: 'updated',
-                webhook: await updateResponse.json()
+                webhook: updatedData.webhook
               });
               console.log(`✅ Webhook updated: ${webhook.topic}`);
             } else {
+              const errorData = await updateResponse.json();
               results.push({
                 topic: webhook.topic,
                 status: 'error',
-                error: 'Failed to update existing webhook'
+                error: errorData.errors || 'Failed to update existing webhook'
               });
+              console.error(`❌ Failed to update webhook: ${webhook.topic}`, errorData);
             }
           } else {
             results.push({
@@ -528,6 +579,7 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
           }
         } else {
           // Create new webhook
+          console.log(`➕ Creating new webhook: ${webhook.topic}`);
           const response = await fetch(`https://${credentials.shopDomain}/admin/api/${credentials.apiVersion}/webhooks.json`, {
             method: 'POST',
             headers: {
@@ -565,22 +617,31 @@ app.post('/api/shopify/register-webhooks', authenticateToken, async (req, res) =
       }
     }
 
+    const summary = {
+      total: webhooksToRegister.length,
+      success: results.filter(r => r.status === 'success').length,
+      updated: results.filter(r => r.status === 'updated').length,
+      exists: results.filter(r => r.status === 'exists').length,
+      errors: results.filter(r => r.status === 'error').length
+    };
+
+    console.log(`📊 Webhook registration summary:`, summary);
+
     res.json({
       success: true,
       message: 'Webhook registration completed',
       results,
-      summary: {
-        total: webhooksToRegister.length,
-        success: results.filter(r => r.status === 'success').length,
-        updated: results.filter(r => r.status === 'updated').length,
-        exists: results.filter(r => r.status === 'exists').length,
-        errors: results.filter(r => r.status === 'error').length
-      }
+      summary,
+      webhookBaseUrl // Include this for debugging
     });
 
   } catch (error) {
-    console.error('Webhook registration error:', error);
-    res.status(500).json({ error: 'Failed to register webhooks' });
+    console.error('❌ Webhook registration error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to register webhooks',
+      details: error.message
+    });
   }
 });
 
