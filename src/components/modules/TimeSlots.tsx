@@ -120,6 +120,37 @@ export function TimeSlots() {
     }
   };
 
+  // Bulk day selection functions
+  const handleSelectAllDays = () => {
+    setFormData({
+      ...formData,
+      assignedDays: [...days]
+    });
+  };
+
+  const handleSelectNoDays = () => {
+    setFormData({
+      ...formData,
+      assignedDays: []
+    });
+  };
+
+  const handleSelectWeekdays = () => {
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    setFormData({
+      ...formData,
+      assignedDays: weekdays
+    });
+  };
+
+  const handleSelectWeekends = () => {
+    const weekends = ['saturday', 'sunday'];
+    setFormData({
+      ...formData,
+      assignedDays: weekends
+    });
+  };
+
   const deliverySlots = timeslots.filter(slot => slot.type === 'delivery');
   const collectionSlots = timeslots.filter(slot => slot.type === 'collection');
 
@@ -230,17 +261,60 @@ export function TimeSlots() {
 
               <div>
                 <Label>Assigned Days</Label>
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                  {days.map((day) => (
-                    <div key={day} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={day}
-                        checked={formData.assignedDays.includes(day)}
-                        onCheckedChange={(checked) => handleDayToggle(day, checked as boolean)}
-                      />
-                      <Label htmlFor={day} className="text-sm">{getDayName(day).slice(0, 3)}</Label>
-                    </div>
-                  ))}
+                <div className="space-y-3 mt-2">
+                  {/* Bulk selection buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllDays}
+                      className="text-xs"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectNoDays}
+                      className="text-xs"
+                    >
+                      Select None
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectWeekdays}
+                      className="text-xs"
+                    >
+                      Weekdays
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectWeekends}
+                      className="text-xs"
+                    >
+                      Weekends
+                    </Button>
+                  </div>
+                  
+                  {/* Individual day checkboxes */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {days.map((day) => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={day}
+                          checked={formData.assignedDays.includes(day)}
+                          onCheckedChange={(checked) => handleDayToggle(day, checked as boolean)}
+                        />
+                        <Label htmlFor={day} className="text-sm">{getDayName(day).slice(0, 3)}</Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

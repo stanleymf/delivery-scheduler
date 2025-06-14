@@ -33,6 +33,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented automatic redirect from root path to delivery-areas
 - Added fallback route handling for unknown URLs
 
+## [1.6.1] - 2024-12-19
+
+### Added ✨
+- **Bulk Day Selection**: Added convenient bulk selection buttons for assigning days when creating timeslots
+- **Quick Day Presets**: Added "Select All", "Select None", "Weekdays", and "Weekends" buttons
+- **Improved UX**: Streamlined day assignment process for both TimeSlots and Express components
+
+### Enhanced 🔄
+- **TimeSlots Creation**: Enhanced day assignment UI with bulk selection options
+- **Express Slots Creation**: Added same bulk selection functionality to Express delivery slots
+- **User Experience**: Reduced clicks needed to assign common day patterns
+
+### Technical Details
+- Added bulk selection functions: `handleSelectAllDays`, `handleSelectNoDays`, `handleSelectWeekdays`, `handleSelectWeekends`
+- Updated UI layout to include bulk selection buttons above individual day checkboxes
+- Maintained existing individual day selection functionality
+- Applied consistent styling and behavior across both TimeSlots and Express components
+
 ## [1.5.4] - 2024-12-19
 
 ### Fixed
