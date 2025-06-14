@@ -5,11 +5,16 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+const APP_VERSION = packageJson.version;
 
 const app = express();
 const PORT = process.env.PORT || 4321;
@@ -88,24 +93,31 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
+  console.log(`🔐 Auth check for ${req.method} ${req.path}`);
+  console.log(`🎫 Token present: ${!!token}`);
+
   if (!token) {
+    console.log(`❌ No token provided for ${req.path}`);
     return res.status(401).json({ error: 'Access token required' });
   }
 
   const session = sessions.get(token);
   if (!session) {
+    console.log(`❌ Invalid token for ${req.path}`);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
   // Check if session is expired
   if (Date.now() - session.timestamp > AUTH_CONFIG.SESSION_TIMEOUT) {
     sessions.delete(token);
+    console.log(`❌ Expired session for ${req.path}`);
     return res.status(401).json({ error: 'Session expired' });
   }
 
   // Update session timestamp
   session.timestamp = Date.now();
   req.user = session.user;
+  console.log(`✅ Authenticated user: ${session.user} for ${req.path}`);
   next();
 };
 
@@ -164,7 +176,7 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    version: process.env.VITE_APP_VERSION || '1.1.5',
+    version: APP_VERSION,
     timestamp: new Date().toISOString()
   });
 });
@@ -229,7 +241,11 @@ app.get('/api/shopify/test-connection', authenticateToken, async (req, res) => {
   const userId = req.user;
   const credentials = shopifyCredentials.get(userId);
 
+  console.log(`🔍 Test connection request from user: ${userId}`);
+  console.log(`📋 Credentials found: ${!!credentials}`);
+
   if (!credentials) {
+    console.log(`❌ No credentials found for user: ${userId}`);
     return res.status(404).json({
       success: false,
       error: 'No Shopify credentials found. Please save your credentials first.'
