@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette } from "lucide-react";
-import { mockSettings, type CollectionLocation } from "@/lib/mockData";
+import { loadSettings, saveSettings, type CollectionLocation } from "@/lib/mockData";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
 import { TagMappingSettings } from "./TagMappingSettings";
 import { SyncStatus } from "../sync/SyncStatus";
 
 export function Settings() {
-  const [settings, setSettings] = useState(mockSettings);
+  const [settings, setSettings] = useState(loadSettings());
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<CollectionLocation | null>(null);
   const [locationForm, setLocationForm] = useState({
@@ -47,19 +47,23 @@ export function Settings() {
       address: locationForm.address
     };
 
+    let updatedSettings;
     if (editingLocation) {
-      setSettings({
+      updatedSettings = {
         ...settings,
         collectionLocations: settings.collectionLocations.map(loc => 
           loc.id === editingLocation.id ? newLocation : loc
         )
-      });
+      };
     } else {
-      setSettings({
+      updatedSettings = {
         ...settings,
         collectionLocations: [...settings.collectionLocations, newLocation]
-      });
+      };
     }
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
 
     setIsLocationDialogOpen(false);
     setEditingLocation(null);
@@ -67,17 +71,21 @@ export function Settings() {
   };
 
   const handleDeleteLocation = (id: string) => {
-    setSettings({
+    const updatedSettings = {
       ...settings,
       collectionLocations: settings.collectionLocations.filter(loc => loc.id !== id)
-    });
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
   };
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
-    setSettings({
+    const updatedSettings = {
       ...settings,
       theme
-    });
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
   };
 
   return (
