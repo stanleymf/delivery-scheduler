@@ -1808,6 +1808,17 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log(`   - User: ${userId}, Last Updated: ${data.lastUpdated || 'Never'}`);
     }
   }
+
+  // Enhanced logging for Railway deployment
+  console.log('🚀 Starting Delivery Scheduler Server...');
+  console.log('📊 Environment Check:');
+  console.log('   - NODE_ENV:', process.env.NODE_ENV || 'development');
+  console.log('   - PORT:', process.env.PORT || 4321);
+  console.log('   - Admin Username:', process.env.VITE_ADMIN_USERNAME || 'admin');
+  console.log('   - Admin Email:', process.env.VITE_ADMIN_EMAIL || 'admin@example.com');
+  console.log('   - Shopify Credentials Env:', !!process.env.SHOPIFY_CREDENTIALS_JSON);
+  console.log('   - User Data Env:', !!process.env.USER_DATA_JSON);
+  console.log('   - Sessions Env:', !!process.env.SESSIONS_JSON);
 });
 
 // Webhook Handler Functions for Delivery Scheduling
@@ -2225,7 +2236,33 @@ function extractDeliveryTimeFromOrder(order) {
   return null;
 }
 
-// Load sessions from file on startup
+// Load sessions from environment variables (Railway-compatible persistence)
+async function loadSessionsFromEnv() {
+  try {
+    const sessionsEnv = process.env.SESSIONS_JSON;
+    if (sessionsEnv) {
+      const sessionsObj = JSON.parse(sessionsEnv);
+      console.log('📁 Loaded sessions from environment for', Object.keys(sessionsObj).length, 'tokens');
+      
+      // Only load non-expired sessions
+      const now = Date.now();
+      for (const [token, session] of Object.entries(sessionsObj)) {
+        if (now - session.timestamp < AUTH_CONFIG.SESSION_TIMEOUT) {
+          sessions.set(token, session);
+        }
+      }
+      console.log('✅ Restored', sessions.size, 'valid sessions from environment');
+      return sessions;
+    }
+    console.log('📁 No sessions found in environment, starting fresh');
+    return sessions;
+  } catch (error) {
+    console.error('❌ Error loading sessions from environment:', error);
+    return sessions;
+  }
+}
+
+// Load sessions from file on startup (fallback)
 async function loadSessionsFromFile() {
   try {
     const data = await fs.readFile(SESSIONS_FILE, 'utf8');
@@ -2243,20 +2280,27 @@ async function loadSessionsFromFile() {
     return sessions;
   } catch (error) {
     if (error.code === 'ENOENT') {
-      console.log('📁 No existing sessions file found, starting fresh');
+      console.log('📁 No existing sessions file found, checking environment...');
+      return await loadSessionsFromEnv();
     } else {
       console.error('❌ Error loading sessions from file:', error);
+      return await loadSessionsFromEnv();
     }
-    return sessions;
   }
 }
 
-// Save sessions to file
+// Save sessions to file and log environment variable suggestion
 async function saveSessionsToFile() {
   try {
     const sessionsObj = Object.fromEntries(sessions);
     await fs.writeFile(SESSIONS_FILE, JSON.stringify(sessionsObj, null, 2));
     console.log('💾 Saved sessions to file for', sessions.size, 'tokens');
+    
+    // Also log suggestion for Railway environment variable
+    if (sessions.size > 0) {
+      console.log('💡 To persist sessions across Railway restarts, set environment variable:');
+      console.log('   SESSIONS_JSON=' + JSON.stringify(sessionsObj));
+    }
   } catch (error) {
     console.error('❌ Error saving sessions to file:', error);
   }
