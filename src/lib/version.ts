@@ -6,8 +6,8 @@ export interface VersionInfo {
 }
 
 export const VERSION_CONFIG: VersionInfo = {
-  version: "1.0.9",
-  buildNumber: "1.0.9.0",
+  version: "1.7.1",
+  buildNumber: "1.7.1.0",
   releaseDate: new Date().toISOString().split('T')[0],
   changelog: [
     "Initial release of Delivery Scheduler",
@@ -31,7 +31,20 @@ export const VERSION_CONFIG: VersionInfo = {
     "Future dates blocking logic based on configurable order limit settings",
     "Updated Future Dates button label for better clarity and user experience",
     "Fixed year/month view functionality in availability calendar with proper multi-month display",
-    "Replaced dropdown with clickable month header for intuitive year selection navigation"
+    "Replaced dropdown with clickable month header for intuitive year selection navigation",
+    "Implemented URL routing with React Router DOM for bookmarkable pages",
+    "Added bulk day selection for timeslots with convenient preset buttons",
+    "Enhanced Shopify integration with persistent credential storage",
+    "Added comprehensive webhook management with Railway deployment support",
+    "Implemented real-time widget synchronization between admin dashboard and customer widget",
+    "Added public API endpoints for widget data access without authentication",
+    "Enhanced customer widget (v1.3.0) with complete sync capabilities",
+    "Added widget sync status indicators and comprehensive integration documentation",
+    "Implemented server-side data persistence for admin dashboard configurations",
+    "Added data migration system for localStorage to server storage transition",
+    "Added sync status dashboard with manual sync controls and cross-device synchronization",
+    "Fixed LivePreview white screen error caused by undefined tagMapping properties",
+    "Enhanced settings validation and data integrity with comprehensive safety checks"
   ]
 };
 

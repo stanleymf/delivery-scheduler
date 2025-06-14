@@ -5,6 +5,48 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 14/06/2025
+
+### Added ✨
+- **Server Data Persistence**: Implemented complete server-side data storage for admin dashboard configurations
+- **Data Migration System**: Added one-click migration from localStorage to server storage
+- **Sync Status Dashboard**: Added comprehensive sync status monitoring in Settings page
+- **Manual Sync Controls**: Added manual sync triggers and migration tools
+- **Cross-Device Synchronization**: Configurations now persist across devices and browser sessions
+- **Data Backup & Recovery**: Server-side data storage with automatic persistence
+
+### Enhanced 🔄
+- **Settings Loading**: Improved settings validation to ensure complete object structure
+- **Data Integrity**: Enhanced data loading with proper fallbacks for missing properties
+- **Error Prevention**: Added comprehensive safety checks for undefined property access
+- **Sync Service**: Enhanced userDataSync service with better error handling and migration support
+
+### Fixed 🐛
+- **LivePreview White Screen**: Fixed critical error where LivePreview module showed white screen due to undefined tagMapping
+- **Data Persistence Issues**: Resolved localStorage-only storage causing configuration loss across sessions
+- **Settings Structure**: Fixed incomplete settings objects missing required properties like tagMapping
+- **Undefined Property Access**: Added safety checks and optional chaining to prevent runtime errors
+- **Cross-Session Data Loss**: Eliminated configuration loss when switching devices or clearing browser data
+
+### Technical Details
+- **Server Endpoints**: Added `/api/user/migrate` and `/api/user/sync` endpoints for data management
+- **Settings Validation**: Enhanced `loadSettings()` function to ensure complete settings structure
+- **Safety Checks**: Added optional chaining (`?.`) for all tagMapping property access
+- **Fallback Strategy**: Comprehensive fallback system for missing or incomplete data
+- **Migration Logic**: Smart migration that preserves existing server data while allowing localStorage migration
+
+### Migration Guide 📋
+- **Existing Users**: Use "Migrate Data to Server" button in Settings → Data Sync Status
+- **New Users**: Data automatically stored on server from first configuration
+- **Multi-Device**: Login from any device to access your configurations
+- **Data Recovery**: Server-side storage provides automatic backup and recovery
+
+### Deployment 🚀
+- **Railway Server**: Updated with new migration and sync endpoints (✅ DEPLOYED)
+- **Data Storage**: Server-side persistence active and functional (✅ OPERATIONAL)
+- **Sync Status**: Real-time sync monitoring available in admin dashboard (✅ LIVE)
+- **Migration Tools**: One-click migration tools available for existing users (✅ READY)
+
 ## [1.7.0] - 14/06/2025
 
 ### Added ✨
