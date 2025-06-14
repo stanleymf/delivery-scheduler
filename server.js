@@ -716,6 +716,116 @@ app.get('/api/user/data', authenticateToken, (req, res) => {
   });
 });
 
+// Public API endpoints for widget (no authentication required)
+// These endpoints return data for the first user (admin) for widget consumption
+app.get('/api/public/widget/timeslots', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const timeslots = userConfig?.timeslots || [];
+    
+    res.json({
+      success: true,
+      data: timeslots
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch timeslots',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/settings', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: { collectionLocations: [] }
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const settings = userConfig?.settings || {};
+    
+    res.json({
+      success: true,
+      data: settings
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch settings',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/blocked-dates', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const blockedDates = userConfig?.blockedDates || [];
+    
+    res.json({
+      success: true,
+      data: blockedDates
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch blocked dates',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/blocked-date-ranges', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const blockedDateRanges = userConfig?.blockedDateRanges || [];
+    
+    res.json({
+      success: true,
+      data: blockedDateRanges
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch blocked date ranges',
+      details: error.message
+    });
+  }
+});
+
 // Save user data
 app.post('/api/user/data', authenticateToken, async (req, res) => {
   const userId = req.user;
@@ -1182,6 +1292,116 @@ app.delete('/api/shopify/webhooks/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error deleting webhook:', error);
     res.status(500).json({ error: 'Failed to delete webhook' });
+  }
+});
+
+// Public API endpoints for widget (no authentication required)
+// These endpoints return data for the first user (admin) for widget consumption
+app.get('/api/public/widget/timeslots', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const timeslots = userConfig?.timeslots || [];
+    
+    res.json({
+      success: true,
+      data: timeslots
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch timeslots',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/settings', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: { collectionLocations: [] }
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const settings = userConfig?.settings || {};
+    
+    res.json({
+      success: true,
+      data: settings
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch settings',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/blocked-dates', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const blockedDates = userConfig?.blockedDates || [];
+    
+    res.json({
+      success: true,
+      data: blockedDates
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch blocked dates',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/public/widget/blocked-date-ranges', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: []
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const blockedDateRanges = userConfig?.blockedDateRanges || [];
+    
+    res.json({
+      success: true,
+      data: blockedDateRanges
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch blocked date ranges',
+      details: error.message
+    });
   }
 });
 
