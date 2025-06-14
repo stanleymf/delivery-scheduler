@@ -420,7 +420,16 @@ export const saveBlockedDateRanges = (blockedDateRanges: BlockedDateRange[]): vo
 export const loadSettings = (): Settings => {
   try {
     const stored = syncLoadSettings();
-    return Object.keys(stored).length > 0 ? stored : mockSettings;
+    if (Object.keys(stored).length > 0) {
+      // Ensure the stored settings have all required properties
+      return {
+        futureOrderLimit: stored.futureOrderLimit || mockSettings.futureOrderLimit,
+        collectionLocations: stored.collectionLocations || mockSettings.collectionLocations,
+        theme: stored.theme || mockSettings.theme,
+        tagMapping: stored.tagMapping || mockSettings.tagMapping
+      };
+    }
+    return mockSettings;
   } catch (error) {
     console.error('Error loading settings:', error);
     return mockSettings;

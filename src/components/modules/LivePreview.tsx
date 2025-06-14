@@ -16,7 +16,17 @@ type WidgetStep = 'type-selection' | 'postal-validation' | 'location-selection' 
 
 export function LivePreview() {
   // Load data from localStorage with fallback to mock data
-  const mockSettings = loadSettings();
+  const loadedSettings = loadSettings();
+  const mockSettings = {
+    ...loadedSettings,
+    // Ensure tagMapping exists with proper defaults
+    tagMapping: loadedSettings.tagMapping || {
+      mappings: [],
+      enableTagging: false,
+      prefix: '',
+      separator: ','
+    }
+  };
   const mockTimeslots = loadTimeslots();
   const mockBlockedDates = loadBlockedDates();
   const mockBlockedDateRanges = loadBlockedDateRanges();
@@ -202,65 +212,56 @@ export function LivePreview() {
   };
 
   const generateOrderTags = (): string[] => {
-    if (!mockSettings.tagMapping.enableTagging) return [];
+    if (!mockSettings.tagMapping?.enableTagging) return [];
     
     const tags: string[] = [];
-    const { mappings, prefix, separator } = mockSettings.tagMapping;
-    
-    // Generate tags based on customer selections
+    const { mappings = [], prefix = '', separator = ',' } = mockSettings.tagMapping || {};
+
     mappings.forEach((mapping: TagMapping) => {
       if (!mapping.enabled) return;
-      
-      let tagValue = '';
+
+      let tag = mapping.tag;
       
       switch (mapping.type) {
         case 'delivery':
           if (selectedType === 'delivery') {
-            tagValue = mapping.tag;
+            tags.push(prefix + tag);
           }
           break;
         case 'collection':
           if (selectedType === 'collection') {
-            tagValue = mapping.tag;
+            tags.push(prefix + tag);
           }
           break;
         case 'express':
           if (selectedType === 'express') {
-            tagValue = mapping.tag;
+            tags.push(prefix + tag);
           }
           break;
         case 'timeslot':
           if (selectedTimeslot) {
             const timeslot = timeslots.find(t => t.id === selectedTimeslot);
             if (timeslot) {
-              // Format as hh:mm-hh:mm (24-hour format)
-              tagValue = `${timeslot.startTime}-${timeslot.endTime}`;
+              const timeslotTag = tag.replace('hh:mm-hh:mm', `${timeslot.startTime}-${timeslot.endTime}`);
+              tags.push(prefix + timeslotTag);
             }
           }
           break;
         case 'date':
           if (selectedDate) {
-            // Format as dd/mm/yyyy
-            const day = selectedDate.getDate().toString().padStart(2, '0');
-            const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
-            const year = selectedDate.getFullYear();
-            tagValue = `${day}/${month}/${year}`;
+            const dateTag = tag.replace('dd/mm/yyyy', format(selectedDate, 'dd/MM/yyyy'));
+            tags.push(prefix + dateTag);
           }
           break;
       }
-      
-      if (tagValue) {
-        tags.push(prefix + tagValue);
-      }
     });
-    
+
     return tags;
   };
 
   const getGeneratedTags = () => {
     const tags = generateOrderTags();
-    if (tags.length === 0) return 'No tags generated (tagging disabled)';
-    return tags.join(mockSettings.tagMapping.separator);
+    return tags.join(mockSettings.tagMapping?.separator || ',');
   };
 
   return (
