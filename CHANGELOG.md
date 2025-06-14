@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.5.0] - 2025-06-14
+
+### Added ✨
+- **Persistent Storage for Shopify Credentials**: Implemented file-based credential storage with JSON persistence
+- **Automatic Backup System**: Added automatic backup every 5 minutes and on graceful shutdown
+- **Storage Status Dashboard**: Real-time storage status indicator with file information and refresh capability
+- **Manual Backup/Restore Endpoints**: Admin endpoints for manual credential backup and restore operations
+- **Enhanced Webhook Registration**: Fixed webhook URL construction and added comprehensive error handling
+- **Debug Endpoint**: Added troubleshooting endpoint for webhook and credential debugging
+- **UI Reorganization**: Moved Shopify configuration and webhooks to unified Shopify Integration tab
+- **Persistence Recovery**: Comprehensive error handling and recovery mechanisms for storage failures
+
+### Fixed 🐛
+- **Webhook Registration Issues**: Fixed webhook URL construction to use correct Railway domain
+- **Credential Persistence**: Credentials now survive server restarts and app refreshes
+- **Duplicate Module Navigation**: Eliminated duplicate Shopify functionality between Settings and Shopify Integration
+- **Error Handling**: Enhanced error messages with detailed information for troubleshooting
+
+### Changed 🔄
+- **Settings Organization**: Restored original Settings with collection locations and theme preferences
+- **Shopify Integration Structure**: Consolidated ShopifySettings and WebhookManager into unified module
+- **Storage Architecture**: Migrated from memory-only to persistent file-based credential storage
+- **UI Layout**: Better organization with Store Connection, Webhooks, and Integration Settings tabs
+
+### Technical
+- Enhanced server.js with persistent storage using fs/promises
+- Added graceful shutdown handlers for data preservation
+- Implemented periodic backup mechanism with 5-minute intervals
+- Added comprehensive logging and debugging capabilities
+- Updated ShopifySettings component with storage status monitoring
+- Reorganized navigation structure for better user experience
+- Version bump for minor release
+- Automated changelog update
+
+### Security 🔒
+- User-isolated credential storage with secure file-based persistence
+- Server-side storage with no client-side credential exposure
+- Graceful error handling for file corruption and recovery scenarios
+
+
+
 ## [1.4.0] - 2025-06-14
 
 ### Added ✨
