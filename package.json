@@ -1,6 +1,6 @@
 {
   "name": "delivery-scheduler",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "Advanced delivery scheduling system with Shopify integration",
   "type": "module",
   "private": true,
@@ -75,6 +75,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.55.0",
     "react-resizable-panels": "^2.1.7",
+    "react-router-dom": "^7.6.2",
     "recharts": "^2.15.2",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.0",
@@ -89,6 +90,7 @@
     "@types/node": "^24.0.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.24.0",

@@ -5,6 +5,34 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2024-12-19
+
+### Added ✨
+- **URL Routing**: Implemented proper URL routing with React Router DOM
+- **Bookmarkable Pages**: Each module now has its own URL that can be bookmarked and shared
+- **Browser Navigation**: Back/forward buttons now work correctly with module navigation
+- **Direct Links**: Users can now navigate directly to specific modules via URL
+
+### Changed 🔄
+- **Navigation System**: Replaced state-based navigation with URL-based routing
+- **Sidebar Navigation**: Updated AppSidebar to use NavLink components with proper active states
+- **URL Structure**: Added clean URL paths for each module:
+  - `/delivery-areas` - Delivery Areas management
+  - `/time-slots` - Time Slots configuration
+  - `/express` - Express delivery settings
+  - `/calendar` - Availability Calendar
+  - `/products` - Product Management
+  - `/preview` - Live Preview widget
+  - `/shopify` - Shopify Integration
+  - `/settings` - Application Settings
+
+### Technical Details
+- Added `react-router-dom` dependency for client-side routing
+- Updated App.tsx to use BrowserRouter with Routes and Route components
+- Modified AppSidebar to use useLocation hook and NavLink components
+- Implemented automatic redirect from root path to delivery-areas
+- Added fallback route handling for unknown URLs
+
 ## [1.5.4] - 2024-12-19
 
 ### Fixed
@@ -428,19 +456,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full-stack application with modern React frontend
 - Comprehensive API integration with Shopify
 - Production-ready deployment configuration
-
-## [1.5.4] - 2024-12-19
-
-### Fixed
-- **Timeslot Persistence**: Fixed issue where deleted express timeslots would reappear after page refresh
-- **Component State Sync**: Updated TimeSlots and Express components to properly load from and save to localStorage
-- **Cross-Component Updates**: Added reactive state management so Express component updates when delivery timeslots are modified in TimeSlots component
-
-### Technical Details
-- Updated TimeSlots component to use localStorage persistence for all timeslot operations
-- Updated Express component to use localStorage persistence and react to storage changes
-- Fixed state initialization to load from saved data instead of static mock data
-- Added proper state synchronization between components that share timeslot data
 
 All notable changes to the Delivery Scheduler project will be documented in this file.
 

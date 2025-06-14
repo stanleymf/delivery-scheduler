@@ -1,3 +1,4 @@
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -23,55 +24,52 @@ import {
   Store
 } from "lucide-react";
 
-interface AppSidebarProps {
-  activeModule: string;
-  onModuleChange: (module: string) => void;
-}
-
 const menuItems = [
   {
     title: "Delivery Areas",
     icon: MapPin,
-    id: "delivery-areas"
+    path: "/delivery-areas"
   },
   {
     title: "Time Slots",
     icon: Clock,
-    id: "time-slots"
+    path: "/time-slots"
   },
   {
     title: "Express",
     icon: Zap,
-    id: "express"
+    path: "/express"
   },
   {
     title: "Availability Calendar",
     icon: Calendar,
-    id: "calendar"
+    path: "/calendar"
   },
   {
     title: "Product Management",
     icon: Package,
-    id: "products"
+    path: "/products"
   },
   {
     title: "Live Preview",
     icon: Eye,
-    id: "preview"
+    path: "/preview"
   },
   {
     title: "Shopify Integration",
     icon: Store,
-    id: "shopify"
+    path: "/shopify"
   },
   {
     title: "Settings",
     icon: Settings,
-    id: "settings"
+    path: "/settings"
   },
 ];
 
-export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
+export function AppSidebar() {
+  const location = useLocation();
+
   return (
     <Sidebar className="border-r border-border" collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
@@ -92,14 +90,16 @@ export function AppSidebar({ activeModule, onModuleChange }: AppSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
+                <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
-                    onClick={() => onModuleChange(item.id)}
-                    isActive={activeModule === item.id}
+                    asChild
+                    isActive={location.pathname === item.path}
                     className="w-full justify-start"
                   >
-                    <item.icon className="w-4 h-4 mr-2" />
-                    <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
+                    <NavLink to={item.path}>
+                      <item.icon className="w-4 h-4 mr-2" />
+                      <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

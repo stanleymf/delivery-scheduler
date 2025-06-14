@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DeliveryAreas } from "@/components/modules/DeliveryAreas";
 import { TimeSlots } from "@/components/modules/TimeSlots";
@@ -14,39 +14,26 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Header } from "@/components/layout/Header";
 
 function AppContent() {
-  const [activeModule, setActiveModule] = useState("delivery-areas");
-
-  const renderModule = () => {
-    switch (activeModule) {
-      case "delivery-areas":
-        return <DeliveryAreas />;
-      case "time-slots":
-        return <TimeSlots />;
-      case "express":
-        return <Express />;
-      case "calendar":
-        return <AvailabilityCalendar />;
-      case "products":
-        return <ProductManagement />;
-      case "preview":
-        return <LivePreview />;
-      case "shopify":
-        return <ShopifyIntegration />;
-      case "settings":
-        return <Settings />;
-      default:
-        return <DeliveryAreas />;
-    }
-  };
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar activeModule={activeModule} onModuleChange={setActiveModule} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <Header />
           <main className="flex-1 p-6 overflow-auto">
-            {renderModule()}
+            <Routes>
+              <Route path="/" element={<Navigate to="/delivery-areas" replace />} />
+              <Route path="/delivery-areas" element={<DeliveryAreas />} />
+              <Route path="/time-slots" element={<TimeSlots />} />
+              <Route path="/express" element={<Express />} />
+              <Route path="/calendar" element={<AvailabilityCalendar />} />
+              <Route path="/products" element={<ProductManagement />} />
+              <Route path="/preview" element={<LivePreview />} />
+              <Route path="/shopify" element={<ShopifyIntegration />} />
+              <Route path="/settings" element={<Settings />} />
+              {/* Fallback route */}
+              <Route path="*" element={<Navigate to="/delivery-areas" replace />} />
+            </Routes>
           </main>
         </SidebarInset>
       </div>
@@ -57,9 +44,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <ProtectedRoute>
-        <AppContent />
-      </ProtectedRoute>
+      <Router>
+        <ProtectedRoute>
+          <AppContent />
+        </ProtectedRoute>
+      </Router>
     </AuthProvider>
   );
 }
