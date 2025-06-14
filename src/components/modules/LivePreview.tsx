@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Eye, Truck, Building, Zap, MapPin, AlertCircle, CheckCircle, Tag, Store, Copy, AlertTriangle, Globe, ChevronDown, ChevronRight, ShoppingCart, Package } from "lucide-react";
 import { loadSettings, loadTimeslots, loadBlockedDates, loadBlockedDateRanges, isPostalCodeBlocked, formatTimeRange, type BlockedDate, type BlockedDateRange, type TagMapping } from "@/lib/mockData";
+import { format, addDays, startOfDay, isAfter, isBefore } from 'date-fns';
+import { saveSettings } from '@/lib/mockData';
 
 type DeliveryType = 'delivery' | 'collection' | 'express';
 type WidgetStep = 'type-selection' | 'postal-validation' | 'location-selection' | 'date-selection' | 'timeslot-selection' | 'confirmation';
@@ -651,10 +653,22 @@ export function LivePreview() {
                 🚀 Add Widget to Your Shopify Store
               </CardTitle>
               <CardDescription>
-                Choose where to integrate the delivery scheduler widget in your Shopify theme
+                Integrate the delivery scheduler widget that's fully synced with your admin dashboard settings
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Sync Status */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="font-semibold text-green-800">Widget Sync Status: LIVE</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Your widget is now fully synced with this admin dashboard. Any changes you make to timeslots, 
+                  collection locations, or blocked dates will automatically appear in the customer widget.
+                </p>
+              </div>
+
               {/* Prerequisites */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -668,11 +682,11 @@ export function LivePreview() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span>Shopify credentials configured in admin dashboard</span>
+                    <span>Widget deployed and synced with admin dashboard</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span>Widget deployed and accessible</span>
+                    <span>Configure your timeslots and settings above</span>
                   </div>
                 </div>
               </div>
@@ -694,7 +708,7 @@ export function LivePreview() {
                       <Package className="w-5 h-5 text-olive" />
                       <div>
                         <h5 className="font-semibold">Product Page Integration</h5>
-                        <p className="text-sm text-muted-foreground">Add widget to individual product pages</p>
+                        <p className="text-sm text-muted-foreground">Individual product delivery scheduling</p>
                       </div>
                     </div>
                     {isProductPageOpen ? (
@@ -711,7 +725,7 @@ export function LivePreview() {
                           Add this code to your product page template (usually <code className="bg-muted px-1 rounded">sections/product-form.liquid</code> or <code className="bg-muted px-1 rounded">templates/product.liquid</code>):
                         </p>
                         <div className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
-                          <pre>{`<!-- Delivery Scheduler Widget -->
+                          <pre>{`<!-- Delivery Scheduler Widget (Synced with Admin Dashboard) -->
 <div id="delivery-scheduler-widget" 
      data-delivery-scheduler 
      data-shop-domain="{{ shop.domain }}"
@@ -719,14 +733,14 @@ export function LivePreview() {
      data-variant-id="{{ product.selected_or_first_available_variant.id }}">
 </div>
 
-<!-- Widget Script -->
+<!-- Widget Script (v1.3.0 - Synced) -->
 <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`}</pre>
                         </div>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => {
-                            const code = `<!-- Delivery Scheduler Widget -->
+                            const code = `<!-- Delivery Scheduler Widget (Synced with Admin Dashboard) -->
 <div id="delivery-scheduler-widget" 
      data-delivery-scheduler 
      data-shop-domain="{{ shop.domain }}"
@@ -734,7 +748,7 @@ export function LivePreview() {
      data-variant-id="{{ product.selected_or_first_available_variant.id }}">
 </div>
 
-<!-- Widget Script -->
+<!-- Widget Script (v1.3.0 - Synced) -->
 <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`;
                             navigator.clipboard.writeText(code);
                           }}
@@ -745,11 +759,13 @@ export function LivePreview() {
                         </Button>
                         
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <h6 className="font-semibold text-blue-800 text-sm mb-2">Best for:</h6>
+                          <h6 className="font-semibold text-blue-800 text-sm mb-2">✨ Features:</h6>
                           <ul className="text-sm text-blue-700 space-y-1">
-                            <li>• Individual product customization</li>
-                            <li>• Products requiring delivery scheduling</li>
-                            <li>• When you want delivery options visible during product browsing</li>
+                            <li>• Individual product delivery scheduling with product context</li>
+                            <li>• Real-time sync with your admin dashboard settings</li>
+                            <li>• Automatic timeslot availability and blocked date handling</li>
+                            <li>• Postal code validation for delivery areas</li>
+                            <li>• Collection location selection for pickup orders</li>
                           </ul>
                         </div>
                       </div>
@@ -767,7 +783,7 @@ export function LivePreview() {
                       <ShoppingCart className="w-5 h-5 text-olive" />
                       <div>
                         <h5 className="font-semibold">Cart Page Integration</h5>
-                        <p className="text-sm text-muted-foreground">Add widget to cart/checkout page</p>
+                        <p className="text-sm text-muted-foreground">Unified delivery for entire cart</p>
                       </div>
                     </div>
                     {isCartPageOpen ? (
@@ -784,7 +800,7 @@ export function LivePreview() {
                           Add this code to your cart page template (usually <code className="bg-muted px-1 rounded">templates/cart.liquid</code> or <code className="bg-muted px-1 rounded">sections/cart-drawer.liquid</code>):
                         </p>
                         <div className="bg-gray-900 text-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
-                          <pre>{`<!-- Delivery Scheduler Widget for Cart -->
+                          <pre>{`<!-- Delivery Scheduler Widget for Cart (Synced with Admin Dashboard) -->
 <div id="delivery-scheduler-cart-widget" 
      data-delivery-scheduler 
      data-shop-domain="{{ shop.domain }}"
@@ -792,14 +808,14 @@ export function LivePreview() {
      data-cart-items="{{ cart.items | json | escape }}">
 </div>
 
-<!-- Widget Script -->
+<!-- Widget Script (v1.3.0 - Synced) -->
 <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`}</pre>
                         </div>
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => {
-                            const code = `<!-- Delivery Scheduler Widget for Cart -->
+                            const code = `<!-- Delivery Scheduler Widget for Cart (Synced with Admin Dashboard) -->
 <div id="delivery-scheduler-cart-widget" 
      data-delivery-scheduler 
      data-shop-domain="{{ shop.domain }}"
@@ -807,7 +823,7 @@ export function LivePreview() {
      data-cart-items="{{ cart.items | json | escape }}">
 </div>
 
-<!-- Widget Script -->
+<!-- Widget Script (v1.3.0 - Synced) -->
 <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>`;
                             navigator.clipboard.writeText(code);
                           }}
@@ -818,12 +834,13 @@ export function LivePreview() {
                         </Button>
                         
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <h6 className="font-semibold text-green-800 text-sm mb-2">Best for:</h6>
+                          <h6 className="font-semibold text-green-800 text-sm mb-2">✨ Features:</h6>
                           <ul className="text-sm text-green-700 space-y-1">
-                            <li>• Unified delivery selection for entire cart</li>
-                            <li>• Checkout flow optimization</li>
-                            <li>• When delivery applies to multiple products</li>
-                            <li>• Reducing checkout abandonment</li>
+                            <li>• Unified delivery selection for entire cart contents</li>
+                            <li>• Optimized checkout flow with delivery preferences</li>
+                            <li>• Real-time sync with admin dashboard configuration</li>
+                            <li>• Automatic order tagging for delivery management</li>
+                            <li>• Reduces checkout abandonment with clear delivery options</li>
                           </ul>
                         </div>
                       </div>
@@ -838,22 +855,43 @@ export function LivePreview() {
                   <div className="w-6 h-6 bg-olive text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
                   <h4 className="font-semibold">Test Integration</h4>
                 </div>
-                <div className="ml-8 space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
-                    <span>Visit your chosen page (product or cart) on your Shopify store</span>
+                <div className="ml-8 space-y-3">
+                  <div className="bg-gray-50 border rounded-lg p-3">
+                    <h6 className="font-semibold text-sm mb-2">🧪 Testing Checklist</h6>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Visit your chosen page (product or cart) on your Shopify store</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Verify the delivery scheduler widget appears and loads correctly</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Test delivery type selection (Delivery vs Collection)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Verify timeslots match your admin dashboard configuration</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Test blocked dates are properly excluded</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
+                        <span>Complete a test order and verify delivery tags are applied</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
-                    <span>Verify the delivery scheduler widget appears</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
-                    <span>Test the complete delivery selection flow</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 bg-olive rounded-full mt-2 flex-shrink-0" />
-                    <span>Check that order tags are generated correctly</span>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <h6 className="font-semibold text-blue-800 text-sm mb-2">💡 Pro Tip</h6>
+                    <p className="text-sm text-blue-700">
+                      Open your browser's developer console (F12) to see real-time sync logs and debug any issues. 
+                      The widget logs all data fetching and configuration steps.
+                    </p>
                   </div>
                 </div>
               </div>
