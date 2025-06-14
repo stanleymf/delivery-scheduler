@@ -26,7 +26,8 @@ const AUTH_CONFIG = {
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
   TOKEN_KEY: 'admin_token',
   USER_KEY: 'admin_user',
-  SESSION_TIMESTAMP_KEY: 'admin_session_timestamp'
+  SESSION_TIMESTAMP_KEY: 'admin_session_timestamp',
+  ADMIN_EMAIL: process.env.VITE_ADMIN_EMAIL || 'admin@example.com'
 };
 
 // In-memory session store (in production, use Redis or database)
@@ -1493,6 +1494,294 @@ app.post('/api/debug/clear-test-data', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to clear test data',
+      details: error.message
+    });
+  }
+});
+
+// Account Management Endpoints
+
+// Get current account info
+app.get('/api/account/info', authenticateToken, (req, res) => {
+  const userId = req.user;
+  
+  try {
+    // Get account info (excluding sensitive data)
+    const accountInfo = {
+      username: userId,
+      email: AUTH_CONFIG.ADMIN_EMAIL || 'admin@example.com',
+      createdAt: '2024-01-01T00:00:00.000Z', // Default creation date
+      lastLogin: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      account: accountInfo
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get account info',
+      details: error.message
+    });
+  }
+});
+
+// Change password
+app.post('/api/account/change-password', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  
+  try {
+    // Validate input
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'All password fields are required'
+      });
+    }
+    
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'New passwords do not match'
+      });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'New password must be at least 6 characters long'
+      });
+    }
+    
+    // Verify current password
+    if (currentPassword !== AUTH_CONFIG.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        success: false,
+        error: 'Current password is incorrect'
+      });
+    }
+    
+    // Update password in environment (in production, this would update a database)
+    AUTH_CONFIG.ADMIN_PASSWORD = newPassword;
+    
+    // In production, you would:
+    // 1. Hash the new password
+    // 2. Update the database
+    // 3. Invalidate all existing sessions except current one
+    
+    // For now, we'll just update the in-memory config
+    // Note: This won't persist across server restarts without env var update
+    
+    res.json({
+      success: true,
+      message: 'Password changed successfully',
+      note: 'Please update your environment variables to persist this change'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to change password',
+      details: error.message
+    });
+  }
+});
+
+// Change email
+app.post('/api/account/change-email', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const { newEmail, password } = req.body;
+  
+  try {
+    // Validate input
+    if (!newEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required'
+      });
+    }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid email address'
+      });
+    }
+    
+    // Verify password
+    if (password !== AUTH_CONFIG.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password is incorrect'
+      });
+    }
+    
+    // Update email in environment (in production, this would update a database)
+    AUTH_CONFIG.ADMIN_EMAIL = newEmail;
+    
+    res.json({
+      success: true,
+      message: 'Email changed successfully',
+      newEmail: newEmail,
+      note: 'Please update your environment variables to persist this change'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to change email',
+      details: error.message
+    });
+  }
+});
+
+// Change username
+app.post('/api/account/change-username', authenticateToken, async (req, res) => {
+  const currentUserId = req.user;
+  const { newUsername, password } = req.body;
+  
+  try {
+    // Validate input
+    if (!newUsername || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username and password are required'
+      });
+    }
+    
+    if (newUsername.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username must be at least 3 characters long'
+      });
+    }
+    
+    // Username validation (alphanumeric and underscores only)
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(newUsername)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username can only contain letters, numbers, and underscores'
+      });
+    }
+    
+    // Verify password
+    if (password !== AUTH_CONFIG.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password is incorrect'
+      });
+    }
+    
+    // Check if username is different
+    if (newUsername === currentUserId) {
+      return res.status(400).json({
+        success: false,
+        error: 'New username must be different from current username'
+      });
+    }
+    
+    // Update username in environment
+    const oldUsername = AUTH_CONFIG.ADMIN_USERNAME;
+    AUTH_CONFIG.ADMIN_USERNAME = newUsername;
+    
+    // Migrate user data to new username
+    const oldUserData = userData.get(currentUserId);
+    if (oldUserData) {
+      userData.set(newUsername, oldUserData);
+      userData.delete(currentUserId);
+      await saveUserDataToFile(userData);
+    }
+    
+    // Migrate Shopify credentials to new username
+    const oldCredentials = shopifyCredentials.get(currentUserId);
+    if (oldCredentials) {
+      shopifyCredentials.set(newUsername, oldCredentials);
+      shopifyCredentials.delete(currentUserId);
+      await saveCredentialsToFile(shopifyCredentials);
+    }
+    
+    // Invalidate current session and create new one
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      sessions.delete(token);
+    }
+    
+    // Create new session with new username
+    const newToken = btoa(`${newUsername}:${Date.now()}:${Math.random()}`);
+    sessions.set(newToken, {
+      user: newUsername,
+      timestamp: Date.now()
+    });
+    
+    await saveSessionsToFile();
+    
+    res.json({
+      success: true,
+      message: 'Username changed successfully',
+      newUsername: newUsername,
+      newToken: newToken,
+      note: 'Please update your environment variables to persist this change'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to change username',
+      details: error.message
+    });
+  }
+});
+
+// Delete account (with confirmation)
+app.post('/api/account/delete', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const { password, confirmDelete } = req.body;
+  
+  try {
+    // Validate input
+    if (!password || confirmDelete !== 'DELETE') {
+      return res.status(400).json({
+        success: false,
+        error: 'Password and confirmation required. Type "DELETE" to confirm.'
+      });
+    }
+    
+    // Verify password
+    if (password !== AUTH_CONFIG.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password is incorrect'
+      });
+    }
+    
+    // Delete all user data
+    userData.delete(userId);
+    shopifyCredentials.delete(userId);
+    
+    // Clear all sessions
+    sessions.clear();
+    
+    // Save changes
+    await saveUserDataToFile(userData);
+    await saveCredentialsToFile(shopifyCredentials);
+    await saveSessionsToFile();
+    
+    res.json({
+      success: true,
+      message: 'Account deleted successfully',
+      note: 'All data has been permanently removed'
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete account',
       details: error.message
     });
   }

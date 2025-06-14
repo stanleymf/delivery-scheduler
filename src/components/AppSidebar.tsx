@@ -21,7 +21,8 @@ import {
   Eye, 
   Settings,
   Flower2,
-  Store
+  Store,
+  User
 } from "lucide-react";
 
 const menuItems = [
@@ -64,6 +65,11 @@ const menuItems = [
     title: "Settings",
     icon: Settings,
     path: "/settings"
+  },
+  {
+    title: "Account",
+    icon: User,
+    path: "/account"
   },
 ];
 

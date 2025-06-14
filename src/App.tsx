@@ -9,6 +9,7 @@ import { ProductManagement } from "@/components/modules/ProductManagement";
 import { LivePreview } from "@/components/modules/LivePreview";
 import { Settings } from "@/components/modules/Settings";
 import { ShopifyIntegration } from "@/components/modules/ShopifyIntegration";
+import { AccountManagement } from "@/components/account/AccountManagement";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Header } from "@/components/layout/Header";
@@ -31,6 +32,7 @@ function AppContent() {
               <Route path="/preview" element={<LivePreview />} />
               <Route path="/shopify" element={<ShopifyIntegration />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/account" element={<AccountManagement />} />
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/delivery-areas" replace />} />
             </Routes>
