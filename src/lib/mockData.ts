@@ -15,6 +15,7 @@ export interface Timeslot {
   cutoffDay: 'same' | 'previous';
   assignedDays: string[];
   parentTimeslotId?: string; // For express slots
+  fee?: number; // Fee for express delivery (in dollars)
 }
 
 export interface BlockedDate {
@@ -140,6 +141,7 @@ export const mockTimeslots: Timeslot[] = [
     cutoffDay: 'same',
     assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     parentTimeslotId: '1',
+    fee: 15.00
   },
   {
     id: '6',
@@ -152,6 +154,7 @@ export const mockTimeslots: Timeslot[] = [
     cutoffDay: 'previous',
     assignedDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     parentTimeslotId: '2',
+    fee: 12.50
   },
 ];
 
