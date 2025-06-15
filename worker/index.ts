@@ -408,12 +408,12 @@ async function serveWidgetBundle(): Promise<Response> {
                         border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;
                         transition: background-color 0.2s; opacity: 0.5;
                     " disabled>
-                        \${cartMode ? 'Update Cart with Delivery' : 'Add to Cart with Delivery'}
+                        <span id="add-to-cart-text">\${cartMode ? 'Update Cart with Delivery' : 'Add to Cart with Delivery'}</span>
                     </button>
                 </div>
                 
                 <div style="text-align: center; margin-top: 16px; font-size: 12px; color: #6b7280;">
-                    Powered by Delivery Scheduler v1.7.0 - <span style="color: #16a34a; font-weight: 600;">●</span> LIVE
+                    Powered by Delivery Scheduler v1.12.0 - <span style="color: #16a34a; font-weight: 600;">●</span> LIVE
                 </div>
             </div>
         \`;
@@ -453,6 +453,7 @@ async function serveWidgetBundle(): Promise<Response> {
         
         // Initialize with delivery type
         selectDeliveryType('delivery');
+        updateButtonText();
     }
     
     window.selectDeliveryType = function(type) {
@@ -487,6 +488,7 @@ async function serveWidgetBundle(): Promise<Response> {
         
         updateTimeslots();
         updateSummary();
+        updateButtonText();
     };
     
     function handleDateChange() {
@@ -557,7 +559,34 @@ async function serveWidgetBundle(): Promise<Response> {
         });
         
         updateSummary();
+        updateButtonText(); // Update button text when timeslot changes
     };
+    
+    function updateButtonText() {
+        const buttonText = document.getElementById('add-to-cart-text');
+        
+        if (buttonText) {
+            let buttonTextContent = 'Add to Cart with Delivery'; // Default
+            
+            if (selectedType === 'collection') {
+                buttonTextContent = 'Add to Cart with Collection';
+            } else if (selectedType === 'delivery') {
+                // Check if selected timeslot has a fee (Express Delivery)
+                if (selectedTimeslot) {
+                    const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+                    if (slot && slot.fee && slot.fee > 0) {
+                        buttonTextContent = 'Add to Cart with Express Delivery';
+                    } else {
+                        buttonTextContent = 'Add to Cart with Delivery';
+                    }
+                } else {
+                    buttonTextContent = 'Add to Cart with Delivery';
+                }
+            }
+            
+            buttonText.textContent = buttonTextContent;
+        }
+    }
     
     function updateSummary() {
         const summarySection = document.getElementById('summary-section');
@@ -641,9 +670,10 @@ async function serveWidgetBundle(): Promise<Response> {
         
         // Disable button during processing
         const addToCartBtn = document.getElementById('add-to-cart-btn');
-        const originalText = addToCartBtn.textContent;
+        const buttonTextSpan = document.getElementById('add-to-cart-text');
+        const originalText = buttonTextSpan.textContent;
         addToCartBtn.disabled = true;
-        addToCartBtn.textContent = 'Adding to Cart...';
+        buttonTextSpan.textContent = 'Adding to Cart...';
         
         try {
             // Generate tags based on tag mapping settings
@@ -718,7 +748,7 @@ Your delivery preferences have been added to your cart!\`;
         } finally {
             // Re-enable button
             addToCartBtn.disabled = false;
-            addToCartBtn.textContent = originalText;
+            buttonTextSpan.textContent = originalText;
         }
     };
     
