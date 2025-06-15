@@ -1425,7 +1425,8 @@ app.post('/api/shopify/automate-express-fees', authenticateToken, async (req, re
     const currentUserData = userData.get(userId) || {};
     currentUserData.feeAutomation = {
       lastRun: new Date().toISOString(),
-      results: results.summary
+      results: results.summary,
+      triggeredBy: 'manual_trigger'
     };
     userData.set(userId, currentUserData);
     

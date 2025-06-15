@@ -376,7 +376,7 @@ export function FeeAutomationPanel() {
                   {userAutomation.results.success ? "Success" : "Failed"}
                 </Badge>
                 <span className="text-muted-foreground">
-                  Triggered by: {userAutomation.triggeredBy.replace('_', ' ')}
+                  Triggered by: {userAutomation.triggeredBy ? userAutomation.triggeredBy.replace('_', ' ') : 'manual'}
                 </span>
               </div>
               <div className="text-muted-foreground">
