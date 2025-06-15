@@ -1,5 +1,94 @@
 # Changelog
 
+## [1.15.0] - 2024-12-19
+
+### 🔧 COMPLETE RAILWAY PERSISTENCE SOLUTION - NO MORE DATA LOSS!
+
+#### 🚨 PROBLEM SOLVED: Data Loss on Every Deploy
+- **Fixed**: Admin login credentials lost on every Railway deploy
+- **Fixed**: Shopify API settings lost on every Railway deploy  
+- **Fixed**: Mock blocked dates lost on every Railway deploy
+- **Fixed**: All configuration lost on every Railway deploy
+- **Fixed**: Frustrating re-entry of credentials after each deploy
+
+#### 🤖 AUTOMATED PERSISTENCE FIX SCRIPT
+- **New Script**: `scripts/fix-railway-persistence.sh` - One-command solution to persistence issues
+- **Interactive Setup**: Guides through Railway API token setup
+- **Admin Credentials**: Permanent configuration of admin username, password, email
+- **Shopify Integration**: Optional Shopify API credentials setup
+- **Automatic Deployment**: Deploys with full persistence enabled
+- **Comprehensive Validation**: Verifies all persistence variables are set correctly
+
+#### 🔑 RAILWAY API INTEGRATION
+- **Automatic Environment Updates**: Uses Railway GraphQL API to update environment variables
+- **Railway Token Support**: Secure API token authentication for automatic persistence
+- **Background Processing**: Non-blocking automatic saves to Railway environment
+- **Error Handling**: Graceful fallback to manual persistence mode if API fails
+- **Real-time Logging**: Shows automatic persistence operations in Railway logs
+
+#### 💾 ENTERPRISE-GRADE DATA PERSISTENCE
+- **Admin Credentials**: `VITE_ADMIN_USERNAME`, `VITE_ADMIN_PASSWORD`, `VITE_ADMIN_EMAIL`
+- **Shopify Settings**: `SHOPIFY_CREDENTIALS_JSON` - Automatic save/restore of API credentials
+- **User Configuration**: `USER_DATA_JSON` - Timeslots, locations, blocked dates, settings
+- **Login Sessions**: `SESSIONS_JSON` - Persistent login sessions across deployments
+- **Automatic Backups**: Every 5 minutes and on graceful shutdown
+
+#### 🎯 TWO PERSISTENCE MODES
+- **Automatic Mode**: With Railway API token - zero manual work required
+- **Manual Mode**: Without API token - logs commands for manual copying
+- **Seamless Fallback**: Automatically switches between modes based on token availability
+- **User Choice**: Script allows skipping automatic mode for manual preference
+
+#### 🔍 COMPREHENSIVE MONITORING
+- **Real-time Status**: Live persistence status in admin dashboard
+- **Automatic Logging**: `✅ Automatically updated Railway environment variable` messages
+- **Error Tracking**: Detailed error messages for troubleshooting
+- **Persistence Verification**: Built-in checks to verify data survival across deploys
+
+#### 📋 COMPLETE SETUP AUTOMATION
+- **Railway CLI Integration**: Automatic Railway CLI installation and login verification
+- **Project Detection**: Automatic project and environment ID extraction
+- **Variable Management**: Intelligent handling of existing vs new environment variables
+- **Deployment Integration**: Seamless deployment with persistence enabled
+- **Status Verification**: Post-deployment verification of persistence functionality
+
+#### 🛡️ SECURITY & RELIABILITY
+- **Secure Token Handling**: Railway API tokens encrypted in environment variables
+- **Credential Protection**: Admin passwords securely stored in Railway environment
+- **API Security**: Shopify tokens properly encrypted and managed
+- **Session Security**: Login sessions with proper expiration and renewal
+- **Backup Strategy**: Multiple layers of data protection and recovery
+
+#### 🎉 USER EXPERIENCE IMPROVEMENTS
+- **Zero Configuration Loss**: Never lose settings again after deployments
+- **Persistent Login**: Stay logged in across Railway restarts
+- **Automatic Restoration**: All settings automatically restored on startup
+- **Seamless Updates**: Configuration changes automatically persisted
+- **Peace of Mind**: Deploy with confidence knowing data will persist
+
+### Technical Implementation
+- **Railway GraphQL API**: Direct integration with Railway's environment variable API
+- **Automated Script**: Comprehensive bash script for one-command setup
+- **Environment Management**: Intelligent handling of Railway environment variables
+- **Persistence Layer**: Multi-tier data persistence with automatic and manual modes
+- **Error Recovery**: Robust error handling and fallback mechanisms
+
+### Files Added/Updated
+- `scripts/fix-railway-persistence.sh` - Automated persistence setup script (NEW)
+- `RAILWAY_PERSISTENCE_SOLUTION.md` - Comprehensive persistence guide (NEW)
+- `src/components/shopify/FeeAutomationPanel.tsx` - Fixed undefined triggeredBy error
+- `server.js` - Enhanced Railway API integration and automatic persistence
+
+### Breaking Changes
+- None - fully backward compatible with existing deployments
+
+### Migration Notes
+- Run `./scripts/fix-railway-persistence.sh` to enable automatic persistence
+- Existing manual persistence continues working
+- Railway API token optional but recommended for best experience
+
+---
+
 ## [1.14.0] - 2024-12-19
 
 ### 🤖 COMPLETE SHOPIFY FEE AUTOMATION SYSTEM
