@@ -1049,12 +1049,18 @@ export function AvailabilityCalendar() {
             )}
           </div>
           <DialogFooter>
-              <Button variant="outline" onClick={() => setIsBlockDialogOpen(false)}>
-                Cancel
+            <Button variant="outline" onClick={() => setIsBlockDialogOpen(false)}>
+              Cancel
+            </Button>
+            {selectedDateInfo ? (
+              <Button onClick={handleSaveEdit}>
+                Update
               </Button>
-            <Button onClick={handleSaveEdit}>
-              {selectedDateInfo ? 'Update' : 'Block Date'}
-                </Button>
+            ) : (
+              <Button onClick={handleBlockDate}>
+                Block Date
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

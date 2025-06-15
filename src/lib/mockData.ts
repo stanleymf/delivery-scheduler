@@ -387,7 +387,12 @@ export const saveTimeslots = (timeslots: Timeslot[]): void => {
 export const loadBlockedDates = (): BlockedDate[] => {
   try {
     const stored = syncLoadBlockedDates();
-    return stored.length > 0 ? stored : mockBlockedDates;
+    // Return stored data even if empty array (user may have deleted all dates)
+    // Only fall back to mock data if no data has ever been stored (null/undefined)
+    if (Array.isArray(stored)) {
+      return stored;
+    }
+    return mockBlockedDates;
   } catch (error) {
     console.error('Error loading blocked dates:', error);
     return mockBlockedDates;
@@ -405,7 +410,12 @@ export const saveBlockedDates = (blockedDates: BlockedDate[]): void => {
 export const loadBlockedDateRanges = (): BlockedDateRange[] => {
   try {
     const stored = syncLoadBlockedDateRanges();
-    return stored.length > 0 ? stored : mockBlockedDateRanges;
+    // Return stored data even if empty array (user may have deleted all ranges)
+    // Only fall back to mock data if no data has ever been stored (null/undefined)
+    if (Array.isArray(stored)) {
+      return stored;
+    }
+    return mockBlockedDateRanges;
   } catch (error) {
     console.error('Error loading blocked date ranges:', error);
     return mockBlockedDateRanges;
