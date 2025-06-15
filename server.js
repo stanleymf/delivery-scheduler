@@ -78,6 +78,70 @@ async function loadCredentialsFromFile() {
   }
 }
 
+// Enhanced Railway persistence with automatic environment variable updates
+async function updateRailwayEnvironmentVariable(key, value) {
+  // Only attempt Railway API updates if we have the necessary environment
+  const railwayToken = process.env.RAILWAY_TOKEN;
+  const railwayProjectId = process.env.RAILWAY_PROJECT_ID;
+  const railwayEnvironmentId = process.env.RAILWAY_ENVIRONMENT_ID;
+  
+  if (!railwayToken || !railwayProjectId || !railwayEnvironmentId) {
+    console.log(`💡 To persist ${key} across Railway restarts, set environment variable:`);
+    console.log(`   ${key}=${JSON.stringify(value)}`);
+    console.log(`💡 Or set these Railway API variables for automatic updates:`);
+    console.log(`   RAILWAY_TOKEN=your_railway_token`);
+    console.log(`   RAILWAY_PROJECT_ID=your_project_id`);
+    console.log(`   RAILWAY_ENVIRONMENT_ID=your_environment_id`);
+    return false;
+  }
+
+  try {
+    const response = await fetch(`https://backboard.railway.app/graphql`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${railwayToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          mutation variableUpsert($input: VariableUpsertInput!) {
+            variableUpsert(input: $input) {
+              id
+              name
+              value
+            }
+          }
+        `,
+        variables: {
+          input: {
+            projectId: railwayProjectId,
+            environmentId: railwayEnvironmentId,
+            name: key,
+            value: JSON.stringify(value)
+          }
+        }
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.data?.variableUpsert) {
+        console.log(`✅ Automatically updated Railway environment variable: ${key}`);
+        return true;
+      } else {
+        console.log(`❌ Failed to update Railway variable ${key}:`, result.errors);
+        return false;
+      }
+    } else {
+      console.log(`❌ Railway API request failed for ${key}:`, response.status);
+      return false;
+    }
+  } catch (error) {
+    console.log(`❌ Error updating Railway variable ${key}:`, error.message);
+    return false;
+  }
+}
+
 // Save credentials to both file and environment (Railway-compatible)
 async function saveCredentialsToFile(credentialsMap) {
   try {
@@ -87,10 +151,12 @@ async function saveCredentialsToFile(credentialsMap) {
     await fs.writeFile(CREDENTIALS_FILE, JSON.stringify(credentialsObj, null, 2));
     console.log('💾 Saved credentials to file for', credentialsMap.size, 'users');
     
-    // Also log suggestion for Railway environment variable
+    // Attempt automatic Railway environment variable update
     if (credentialsMap.size > 0) {
-      console.log('💡 To persist credentials across Railway restarts, set environment variable:');
-      console.log('   SHOPIFY_CREDENTIALS_JSON=' + JSON.stringify(credentialsObj));
+      const updated = await updateRailwayEnvironmentVariable('SHOPIFY_CREDENTIALS_JSON', credentialsObj);
+      if (!updated) {
+        console.log('💡 Manual Railway update required - copy the command above');
+      }
     }
   } catch (error) {
     console.error('❌ Error saving credentials to file:', error);
@@ -140,10 +206,12 @@ async function saveUserDataToFile(userDataMap) {
     await fs.writeFile(USER_DATA_FILE, JSON.stringify(userDataObj, null, 2));
     console.log('💾 Saved user data to file for', userDataMap.size, 'users');
     
-    // Also log suggestion for Railway environment variable
+    // Attempt automatic Railway environment variable update
     if (userDataMap.size > 0) {
-      console.log('💡 To persist user data across Railway restarts, set environment variable:');
-      console.log('   USER_DATA_JSON=' + JSON.stringify(userDataObj));
+      const updated = await updateRailwayEnvironmentVariable('USER_DATA_JSON', userDataObj);
+      if (!updated) {
+        console.log('💡 Manual Railway update required - copy the command above');
+      }
     }
   } catch (error) {
     console.error('❌ Error saving user data to file:', error);
@@ -2583,10 +2651,12 @@ async function saveSessionsToFile() {
     await fs.writeFile(SESSIONS_FILE, JSON.stringify(sessionsObj, null, 2));
     console.log('💾 Saved sessions to file for', sessions.size, 'tokens');
     
-    // Also log suggestion for Railway environment variable
+    // Attempt automatic Railway environment variable update
     if (sessions.size > 0) {
-      console.log('💡 To persist sessions across Railway restarts, set environment variable:');
-      console.log('   SESSIONS_JSON=' + JSON.stringify(sessionsObj));
+      const updated = await updateRailwayEnvironmentVariable('SESSIONS_JSON', sessionsObj);
+      if (!updated) {
+        console.log('💡 Manual Railway update required - copy the command above');
+      }
     }
   } catch (error) {
     console.error('❌ Error saving sessions to file:', error);
