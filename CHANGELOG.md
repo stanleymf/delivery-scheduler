@@ -5,6 +5,26 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.4] - 2024-12-19
+
+### 🚨 CRITICAL FIX - Restore Data Persistence
+- **Fixed data reset issue**: Removed temporary mock data bypass from v1.11.2
+- **Restored server sync**: All data loading functions now properly use server sync again
+- **Fixed configuration persistence**: User configurations will now persist across page refreshes
+- **Removed bypass code**: Eliminated all temporary bypass functions that were forcing mock data
+
+### 🔧 Root Cause
+The issue was leftover temporary bypass code in `src/lib/mockData.ts` from v1.11.2 that was forcing all data loading functions to return mock data instead of using the server sync. This caused all user configurations to reset to defaults on every page refresh.
+
+### ✅ What's Fixed
+- ✅ TimeSlots configurations now persist
+- ✅ Settings changes now persist  
+- ✅ Express delivery configurations now persist
+- ✅ Blocked dates and date ranges now persist
+- ✅ Product configurations now persist
+- ✅ Delivery area restrictions now persist
+- ✅ TagMappingSettings now persist (from v1.11.3)
+
 ## [1.11.3] - 2024-12-19
 
 ### 🔧 Critical Data Persistence Fix
