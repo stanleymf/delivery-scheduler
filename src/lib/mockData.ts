@@ -368,8 +368,13 @@ import {
 // Load data with fallback to mock data and server sync
 export const loadTimeslots = (): Timeslot[] => {
   try {
-    const stored = syncLoadTimeslots();
-    return stored.length > 0 ? stored : mockTimeslots;
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock timeslots data (bypassing server sync)');
+    return mockTimeslots;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadTimeslots();
+    // return stored.length > 0 ? stored : mockTimeslots;
   } catch (error) {
     console.error('Error loading timeslots:', error);
     return mockTimeslots;
@@ -386,8 +391,13 @@ export const saveTimeslots = (timeslots: Timeslot[]): void => {
 
 export const loadBlockedDates = (): BlockedDate[] => {
   try {
-    const stored = syncLoadBlockedDates();
-    return stored.length > 0 ? stored : mockBlockedDates;
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock blocked dates data (bypassing server sync)');
+    return mockBlockedDates;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadBlockedDates();
+    // return stored.length > 0 ? stored : mockBlockedDates;
   } catch (error) {
     console.error('Error loading blocked dates:', error);
     return mockBlockedDates;
@@ -404,8 +414,13 @@ export const saveBlockedDates = (blockedDates: BlockedDate[]): void => {
 
 export const loadBlockedDateRanges = (): BlockedDateRange[] => {
   try {
-    const stored = syncLoadBlockedDateRanges();
-    return stored.length > 0 ? stored : mockBlockedDateRanges;
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock blocked date ranges data (bypassing server sync)');
+    return mockBlockedDateRanges;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadBlockedDateRanges();
+    // return stored.length > 0 ? stored : mockBlockedDateRanges;
   } catch (error) {
     console.error('Error loading blocked date ranges:', error);
     return mockBlockedDateRanges;
@@ -422,17 +437,22 @@ export const saveBlockedDateRanges = (blockedDateRanges: BlockedDateRange[]): vo
 
 export const loadSettings = (): Settings => {
   try {
-    const stored = syncLoadSettings();
-    if (Object.keys(stored).length > 0) {
-      // Ensure the stored settings have all required properties
-      return {
-        futureOrderLimit: stored.futureOrderLimit || mockSettings.futureOrderLimit,
-        collectionLocations: stored.collectionLocations || mockSettings.collectionLocations,
-        theme: stored.theme || mockSettings.theme,
-        tagMapping: stored.tagMapping || mockSettings.tagMapping
-      };
-    }
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock settings data (bypassing server sync)');
     return mockSettings;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadSettings();
+    // if (Object.keys(stored).length > 0) {
+    //   // Ensure the stored settings have all required properties
+    //   return {
+    //     futureOrderLimit: stored.futureOrderLimit || mockSettings.futureOrderLimit,
+    //     collectionLocations: stored.collectionLocations || mockSettings.collectionLocations,
+    //     theme: stored.theme || mockSettings.theme,
+    //     tagMapping: stored.tagMapping || mockSettings.tagMapping
+    //   };
+    // }
+    // return mockSettings;
   } catch (error) {
     console.error('Error loading settings:', error);
     return mockSettings;
@@ -449,8 +469,13 @@ export const saveSettings = (settings: Settings): void => {
 
 export const loadProducts = (): Product[] => {
   try {
-    const stored = syncLoadProducts();
-    return stored.length > 0 ? stored : mockProducts;
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock products data (bypassing server sync)');
+    return mockProducts;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadProducts();
+    // return stored.length > 0 ? stored : mockProducts;
   } catch (error) {
     console.error('Error loading products:', error);
     return mockProducts;
@@ -467,8 +492,13 @@ export const saveProducts = (products: Product[]): void => {
 
 export const loadBlockedCodes = (): BlockedPostalCode[] => {
   try {
-    const stored = syncLoadBlockedCodes();
-    return stored.length > 0 ? stored : mockBlockedCodes;
+    // TEMPORARY FIX: Always return mock data to bypass corrupted server data
+    console.log('🔧 Using mock blocked codes data (bypassing server sync)');
+    return mockBlockedCodes;
+    
+    // Original code (commented out until server data is fixed):
+    // const stored = syncLoadBlockedCodes();
+    // return stored.length > 0 ? stored : mockBlockedCodes;
   } catch (error) {
     console.error('Error loading blocked codes:', error);
     return mockBlockedCodes;
