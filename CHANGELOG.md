@@ -1,5 +1,77 @@
 # Changelog
 
+## [1.14.0] - 2024-12-19
+
+### 🤖 COMPLETE SHOPIFY FEE AUTOMATION SYSTEM
+
+#### 🏭 AUTOMATED FEE PRODUCT CREATION
+- **Fully Automated Workflow** - System automatically creates Shopify products when admin creates express timeslots
+- **Smart Product Management** - Detects existing products, prevents duplicates, updates prices automatically
+- **Intelligent Cleanup** - Removes unused fee products when timeslots are deleted or modified
+- **Background Processing** - Non-blocking automation with automatic triggers on timeslot saves
+- **Production Ready** - Complete Railway persistence and deployment support
+
+#### 🎨 COMPLETE ADMIN UI PANEL
+- **FeeAutomationPanel Component** - Full management interface integrated into Shopify settings tab
+- **Real-time Monitoring** - Live status dashboard with product listing and automation history
+- **Manual Controls** - Trigger automation, cleanup products, view detailed results
+- **Status Dashboard** - Metrics showing total products, recent operations, success rates
+- **Comprehensive Results Display** - Detailed operation logs with timestamps and status
+
+#### 🔧 BACKEND AUTOMATION SERVICE
+- **ShopifyFeeAutomation Class** - Core automation service with full product lifecycle management
+- **3 New API Endpoints**:
+  - `/api/shopify/automate-express-fees` - Trigger fee product automation
+  - `/api/shopify/fee-automation-status` - Get automation status and product list
+  - `/api/shopify/cleanup-fee-products` - Clean up unused fee products
+- **Automatic Triggers** - Runs automation when timeslots are saved or updated
+- **Persistent History** - Stores automation results and operation logs
+
+#### 🚀 RAILWAY PERSISTENCE SOLUTION
+- **Complete Railway API Integration** - Automatic environment variable updates using Railway GraphQL API
+- **Two-Option Setup**:
+  - **Option A (Automatic)** - Full Railway API integration with `RAILWAY_TOKEN`, `RAILWAY_PROJECT_ID`, `RAILWAY_ENVIRONMENT_ID`
+  - **Option B (Manual)** - Copy JSON values from logs to Railway dashboard
+- **Automated Setup Script** - `scripts/setup-railway-persistence.sh` for one-command setup
+- **Comprehensive Documentation** - Complete guides for both setup options
+
+#### 🔄 COMPLETE AUTOMATION WORKFLOW
+```
+Admin creates express timeslot with fee → System automatically detects → Creates Shopify product "Express Delivery Fee - $X.XX" → Saves variant ID to database → Widget uses correct product for cart integration → Customer pays accurate amount
+```
+
+#### ✅ PRODUCTION BENEFITS
+- **Zero Manual Work** - Fee products created automatically, no admin intervention needed
+- **Always Accurate** - Prices sync perfectly with timeslot configurations
+- **Clean Store Management** - Unused products automatically removed, no clutter
+- **Full Visibility** - Complete monitoring and control through admin interface
+- **Production Stable** - Comprehensive error handling, logging, and fallback mechanisms
+- **Performance Optimized** - Background processing ensures UI remains responsive
+
+#### 📋 TECHNICAL IMPLEMENTATION
+- **Core Service**: `src/services/shopify-fee-automation.js` - Complete automation logic
+- **Backend Integration**: Enhanced `server.js` with 3 new endpoints and automatic triggers
+- **Admin UI**: `src/components/shopify/FeeAutomationPanel.tsx` - Complete React interface
+- **Settings Integration**: Added automation panel as new tab in Shopify settings
+- **Comprehensive Documentation**: `SHOPIFY_FEE_AUTOMATION_COMPLETE.md` with full workflow guide
+
+### Files Added/Updated
+- `src/services/shopify-fee-automation.js` - Core automation service (NEW)
+- `src/components/shopify/FeeAutomationPanel.tsx` - Complete admin UI (NEW)
+- `src/components/shopify/ShopifySettings.tsx` - Added automation tab
+- `server.js` - Enhanced with 3 new API endpoints and automatic triggers
+- `SHOPIFY_FEE_AUTOMATION_COMPLETE.md` - Comprehensive automation guide (NEW)
+
+### Breaking Changes
+- None - fully backward compatible with existing fee handling
+
+### Migration Notes
+- Existing manual fee products continue working
+- Widget automatically detects and uses automated products
+- Admin can monitor and control automation through new UI panel
+
+---
+
 ## [1.13.0] - 2024-12-19
 
 ### 🚀 MAJOR RELEASE - Dynamic Fee Handling & Automated Product Creation
