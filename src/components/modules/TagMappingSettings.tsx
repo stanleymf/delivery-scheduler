@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tag, Settings, Save, RotateCcw, Info, Copy, Eye, Plus, Trash2, Download, Upload, CheckCircle } from "lucide-react";
+import { loadTagMappingSettings, saveTagMappingSettings } from '@/lib/userDataSync';
 
 export interface TagMapping {
   id: string;
@@ -191,24 +192,20 @@ export function TagMappingSettings() {
   });
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
-  // Load settings from localStorage on component mount
+  // Load settings from server-synced storage on component mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('tagMappingSettings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings) as TagMappingSettings;
-        // Validate the parsed data
-        if (parsed.mappings && Array.isArray(parsed.mappings)) {
-          setSettings(parsed);
-        }
-      } catch (error) {
-        console.error('Error loading saved settings:', error);
+    try {
+      const savedSettings = loadTagMappingSettings();
+      if (savedSettings && savedSettings.mappings && Array.isArray(savedSettings.mappings)) {
+        setSettings(savedSettings);
       }
+    } catch (error) {
+      console.error('Error loading saved settings:', error);
     }
   }, []);
 
   const saveSettings = () => {
-    localStorage.setItem('tagMappingSettings', JSON.stringify(settings));
+    saveTagMappingSettings(settings);
     setShowSaveSuccess(true);
     setTimeout(() => setShowSaveSuccess(false), 3000);
   };

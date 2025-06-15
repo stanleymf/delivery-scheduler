@@ -876,6 +876,12 @@ app.post('/api/user/data/:type', authenticateToken, async (req, res) => {
       settings: {},
       products: [],
       blockedCodes: [],
+      tagMappingSettings: {
+        mappings: [],
+        enableTagging: true,
+        prefix: '',
+        separator: ','
+      },
       lastUpdated: new Date().toISOString()
     };
     
@@ -898,6 +904,9 @@ app.post('/api/user/data/:type', authenticateToken, async (req, res) => {
         break;
       case 'blockedCodes':
         userConfig.blockedCodes = data;
+        break;
+      case 'tagMappingSettings':
+        userConfig.tagMappingSettings = data;
         break;
       default:
         return res.status(400).json({
@@ -953,6 +962,12 @@ app.post('/api/user/migrate', authenticateToken, async (req, res) => {
       settings: localStorageData.settings || {},
       products: localStorageData.products || [],
       blockedCodes: localStorageData.blockedCodes || [],
+      tagMappingSettings: localStorageData.tagMappingSettings || {
+        mappings: [],
+        enableTagging: true,
+        prefix: '',
+        separator: ','
+      },
       lastUpdated: new Date().toISOString(),
       migratedAt: new Date().toISOString()
     };
@@ -972,7 +987,8 @@ app.post('/api/user/migrate', authenticateToken, async (req, res) => {
         blockedDateRanges: migratedData.blockedDateRanges.length,
         settings: Object.keys(migratedData.settings).length,
         products: migratedData.products.length,
-        blockedCodes: migratedData.blockedCodes.length
+        blockedCodes: migratedData.blockedCodes.length,
+        tagMappingSettings: Object.keys(migratedData.tagMappingSettings).length
       }
     });
   } catch (error) {
@@ -1008,7 +1024,13 @@ app.post('/api/user/sync', authenticateToken, async (req, res) => {
           blockedDateRanges: [],
           settings: {},
           products: [],
-          blockedCodes: []
+          blockedCodes: [],
+          tagMappingSettings: {
+            mappings: [],
+            enableTagging: true,
+            prefix: '',
+            separator: ','
+          }
         }
       });
     }

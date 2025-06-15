@@ -5,6 +5,27 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2024-12-19
+
+### 🔧 Critical Data Persistence Fix
+- **Fixed TagMappingSettings server persistence**: Integrated TagMappingSettings with userDataSync service
+- **Added comprehensive data validation**: Enhanced validation for all data loading functions
+- **Implemented server-side tagMappingSettings support**: Added full CRUD operations for tag mapping data
+- **Created comprehensive data persistence audit**: Documented all data storage points and prevention plan
+- **Enhanced data integrity monitoring**: Added validation and fallback mechanisms
+
+### 🛡️ Prevention Measures
+- All modules now use centralized userDataSync service
+- Server-side validation for all user data types
+- Comprehensive audit document created (DATA_PERSISTENCE_AUDIT.md)
+- Enhanced error handling and data recovery mechanisms
+
+### 📋 Technical Changes
+- Updated `src/lib/userDataSync.ts` with tagMappingSettings support
+- Enhanced server endpoints to handle tagMappingSettings data type
+- Modified TagMappingSettings component to use server-synced storage
+- Added comprehensive validation and fallback mechanisms
+
 ## [1.11.2] - 30/12/2024
 
 ### 🚨 IMMEDIATE FIX - Bypass Corrupted Server Data

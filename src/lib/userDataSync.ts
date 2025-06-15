@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'delivery-scheduler-settings',
   PRODUCTS: 'delivery-scheduler-products',
   BLOCKED_CODES: 'delivery-scheduler-blocked-codes',
+  TAG_MAPPING_SETTINGS: 'tagMappingSettings',
   SYNC_STATUS: 'delivery-scheduler-sync-status'
 };
 
@@ -18,6 +19,7 @@ export interface UserData {
   settings: any;
   products: any[];
   blockedCodes: any[];
+  tagMappingSettings?: any;
   lastUpdated?: string;
   migratedAt?: string;
 }
@@ -96,7 +98,13 @@ class UserDataSyncService {
         blockedDateRanges: this.getLocalData(STORAGE_KEYS.BLOCKED_DATE_RANGES, []),
         settings: this.getLocalData(STORAGE_KEYS.SETTINGS, {}),
         products: this.getLocalData(STORAGE_KEYS.PRODUCTS, []),
-        blockedCodes: this.getLocalData(STORAGE_KEYS.BLOCKED_CODES, [])
+        blockedCodes: this.getLocalData(STORAGE_KEYS.BLOCKED_CODES, []),
+        tagMappingSettings: this.getLocalData(STORAGE_KEYS.TAG_MAPPING_SETTINGS, {
+          mappings: [],
+          enableTagging: true,
+          prefix: '',
+          separator: ','
+        })
       };
     } catch (error) {
       console.error('Error getting localStorage data:', error);
@@ -106,7 +114,13 @@ class UserDataSyncService {
         blockedDateRanges: [],
         settings: {},
         products: [],
-        blockedCodes: []
+        blockedCodes: [],
+        tagMappingSettings: {
+          mappings: [],
+          enableTagging: true,
+          prefix: '',
+          separator: ','
+        }
       };
     }
   }
@@ -294,6 +308,9 @@ class UserDataSyncService {
         this.saveLocalData(STORAGE_KEYS.SETTINGS, serverData.settings);
         this.saveLocalData(STORAGE_KEYS.PRODUCTS, serverData.products);
         this.saveLocalData(STORAGE_KEYS.BLOCKED_CODES, serverData.blockedCodes);
+        if (serverData.tagMappingSettings) {
+          this.saveLocalData(STORAGE_KEYS.TAG_MAPPING_SETTINGS, serverData.tagMappingSettings);
+        }
         
         console.log('Data synced from server to localStorage');
         return true;
@@ -427,4 +444,15 @@ export const loadBlockedCodes = () => userDataSync['getLocalData'](STORAGE_KEYS.
 export const saveBlockedCodes = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.BLOCKED_CODES, data);
   userDataSync.saveDataTypeToServer('blockedCodes', data);
+};
+
+export const loadTagMappingSettings = () => userDataSync['getLocalData'](STORAGE_KEYS.TAG_MAPPING_SETTINGS, {
+  mappings: [],
+  enableTagging: true,
+  prefix: '',
+  separator: ','
+});
+export const saveTagMappingSettings = (data: any) => {
+  userDataSync['saveLocalData'](STORAGE_KEYS.TAG_MAPPING_SETTINGS, data);
+  userDataSync.saveDataTypeToServer('tagMappingSettings', data);
 }; 
