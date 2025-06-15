@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Save, TestTube, CheckCircle, XCircle, Eye, EyeOff, Store, Key, Globe, Database, RefreshCw } from 'lucide-react';
 import { authenticatedFetch } from '@/utils/api';
+import { FeeAutomationPanel } from './FeeAutomationPanel';
 
 interface ShopifyCredentials {
   shopDomain: string;
@@ -207,6 +208,7 @@ export function ShopifySettings() {
             <TabsList>
               <TabsTrigger value="credentials">Credentials</TabsTrigger>
               <TabsTrigger value="status">Connection Status</TabsTrigger>
+              <TabsTrigger value="automation">Fee Automation</TabsTrigger>
               <TabsTrigger value="help">Setup Guide</TabsTrigger>
             </TabsList>
 
@@ -456,6 +458,10 @@ export function ShopifySettings() {
                   </div>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="automation" className="space-y-4">
+              <FeeAutomationPanel />
             </TabsContent>
 
             <TabsContent value="help" className="space-y-4">

@@ -39,6 +39,9 @@ const SESSIONS_FILE = join(__dirname, 'sessions.json');
 // User data storage - stores all user configuration data
 const userData = new Map();
 
+// Import Shopify Fee Automation Service
+const ShopifyFeeAutomation = require('./src/services/shopify-fee-automation.js');
+
 // Persistent storage for Shopify credentials
 // Note: Railway filesystem is ephemeral, so we'll use environment variables for persistence
 const CREDENTIALS_FILE = join(__dirname, 'shopify-credentials.json');
@@ -1034,11 +1037,43 @@ app.post('/api/user/data', authenticateToken, async (req, res) => {
     
     // Persist to file
     await saveUserDataToFile(userData);
+
+    // 🤖 AUTOMATIC FEE AUTOMATION TRIGGER
+    // Check if there are express timeslots and Shopify credentials
+    const credentials = shopifyCredentials.get(userId);
+    const hasExpressTimeslots = timeslots && timeslots.some(slot => slot.type === 'express' && slot.fee > 0);
+    
+    if (credentials && hasExpressTimeslots) {
+      console.log(`🤖 Detected express timeslots, triggering automatic fee product creation...`);
+      
+      // Run automation in background (don't wait for completion)
+      setImmediate(async () => {
+        try {
+          const automation = new ShopifyFeeAutomation(credentials);
+          const results = await automation.automateExpressTimeslots(timeslots);
+          
+          // Update user data with automation results
+          const currentUserData = userData.get(userId) || {};
+          currentUserData.feeAutomation = {
+            lastRun: new Date().toISOString(),
+            results: results.summary,
+            triggeredBy: 'data_save'
+          };
+          userData.set(userId, currentUserData);
+          await saveUserDataToFile(userData);
+          
+          console.log(`✅ Automatic fee automation completed for ${userId}:`, results.summary);
+        } catch (error) {
+          console.error(`❌ Automatic fee automation failed for ${userId}:`, error);
+        }
+      });
+    }
     
     res.json({
       success: true,
       message: 'User data saved successfully',
-      timestamp: userConfig.lastUpdated
+      timestamp: userConfig.lastUpdated,
+      automationTriggered: credentials && hasExpressTimeslots
     });
   } catch (error) {
     res.status(500).json({
@@ -1107,6 +1142,38 @@ app.post('/api/user/data/:type', authenticateToken, async (req, res) => {
     
     // Persist to file
     await saveUserDataToFile(userData);
+
+    // 🤖 AUTOMATIC FEE AUTOMATION TRIGGER (for timeslots)
+    if (dataType === 'timeslots') {
+      const credentials = shopifyCredentials.get(userId);
+      const hasExpressTimeslots = data && data.some(slot => slot.type === 'express' && slot.fee > 0);
+      
+      if (credentials && hasExpressTimeslots) {
+        console.log(`🤖 Detected express timeslots update, triggering automatic fee product creation...`);
+        
+        // Run automation in background
+        setImmediate(async () => {
+          try {
+            const automation = new ShopifyFeeAutomation(credentials);
+            const results = await automation.automateExpressTimeslots(data);
+            
+            // Update user data with automation results
+            const currentUserData = userData.get(userId) || {};
+            currentUserData.feeAutomation = {
+              lastRun: new Date().toISOString(),
+              results: results.summary,
+              triggeredBy: 'timeslots_update'
+            };
+            userData.set(userId, currentUserData);
+            await saveUserDataToFile(userData);
+            
+            console.log(`✅ Automatic fee automation completed for ${userId}:`, results.summary);
+          } catch (error) {
+            console.error(`❌ Automatic fee automation failed for ${userId}:`, error);
+          }
+        });
+      }
+    }
     
     res.json({
       success: true,
@@ -1304,6 +1371,157 @@ app.get('/api/shopify/railway-env', authenticateToken, (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate Railway command',
+      details: error.message
+    });
+  }
+});
+
+// 🤖 SHOPIFY FEE AUTOMATION ENDPOINTS
+
+// Trigger express timeslot automation
+app.post('/api/shopify/automate-express-fees', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const credentials = shopifyCredentials.get(userId);
+  
+  if (!credentials) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Shopify credentials not configured. Please set up your credentials first.' 
+    });
+  }
+
+  try {
+    // Get user's current timeslots
+    const userTimeslots = userData.get(userId)?.timeslots || [];
+    
+    if (userTimeslots.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No timeslots configured yet',
+        results: {
+          created: [],
+          updated: [],
+          errors: [],
+          summary: {
+            totalFeeAmounts: 0,
+            productsCreated: 0,
+            productsUpdated: 0,
+            errors: 0,
+            success: true
+          }
+        }
+      });
+    }
+
+    console.log(`🤖 Starting fee automation for user ${userId} with ${userTimeslots.length} timeslots`);
+    
+    // Initialize automation service
+    const automation = new ShopifyFeeAutomation(credentials);
+    
+    // Run automation
+    const results = await automation.automateExpressTimeslots(userTimeslots);
+    
+    // Update user data with automation results
+    const currentUserData = userData.get(userId) || {};
+    currentUserData.feeAutomation = {
+      lastRun: new Date().toISOString(),
+      results: results.summary
+    };
+    userData.set(userId, currentUserData);
+    
+    // Save user data
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: 'Express fee automation completed successfully',
+      results,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Express fee automation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Fee automation failed',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get fee automation status
+app.get('/api/shopify/fee-automation-status', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const credentials = shopifyCredentials.get(userId);
+  
+  if (!credentials) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Shopify credentials not configured' 
+    });
+  }
+
+  try {
+    const automation = new ShopifyFeeAutomation(credentials);
+    const status = await automation.getAutomationStatus();
+    
+    // Get user's automation history
+    const userAutomationData = userData.get(userId)?.feeAutomation || null;
+    
+    res.json({
+      success: true,
+      status,
+      userAutomation: userAutomationData,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Error getting fee automation status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get automation status',
+      details: error.message
+    });
+  }
+});
+
+// Clean up unused fee products
+app.post('/api/shopify/cleanup-fee-products', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  const credentials = shopifyCredentials.get(userId);
+  
+  if (!credentials) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'Shopify credentials not configured' 
+    });
+  }
+
+  try {
+    // Get current active fee amounts from user's timeslots
+    const userTimeslots = userData.get(userId)?.timeslots || [];
+    const automation = new ShopifyFeeAutomation(credentials);
+    const activeFeeAmounts = automation.extractFeeAmounts(userTimeslots);
+    
+    console.log(`🧹 Starting cleanup for user ${userId}, active fees:`, activeFeeAmounts);
+    
+    // Run cleanup
+    const cleanupResults = await automation.cleanupUnusedFeeProducts(activeFeeAmounts);
+    
+    res.json({
+      success: true,
+      message: 'Fee product cleanup completed',
+      results: cleanupResults,
+      activeFeeAmounts,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Fee product cleanup failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Cleanup failed',
       details: error.message
     });
   }
