@@ -5,6 +5,40 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 30/12/2024
+
+### 🔄 EMERGENCY REVERT - Restore Stable TimeSlots Functionality
+- 🚨 **CRITICAL REVERT** - Reverted to v1.9.2 stable codebase to restore TimeSlots functionality
+- ✅ **TimeSlots Working** - All TimeSlots module functionality restored and operational
+- ✅ **Express Delivery Working** - Express delivery features maintained from v1.9.0-1.9.2
+- ✅ **Core Features Stable** - All core delivery scheduling features operational
+- 🛡️ **Data Persistence** - Railway deployment data persistence maintained
+
+### What Was Reverted
+- Removed problematic data sync changes from v1.9.9+ that caused white screen errors
+- Removed availability calendar data persistence changes that broke component loading
+- Removed array safety fixes that introduced new issues instead of solving them
+
+### What's Maintained
+- ✅ Express delivery fees functionality (v1.9.0)
+- ✅ Widget stability fixes (v1.9.1) 
+- ✅ Enhanced data persistence for Railway (v1.9.2)
+- ✅ All core scheduling functionality
+- ✅ Shopify integration
+- ✅ Account management
+- ✅ Live preview and settings
+
+### Technical Changes
+- Reverted to commit 2a824d7 (v1.9.2) as stable base
+- Updated version to v1.11.0 to indicate emergency revert
+- Maintained all working features from v1.9.0-1.9.2 series
+- Removed all problematic changes from v1.9.9-1.10.5 series
+
+### Next Steps
+- TimeSlots module now fully functional
+- Future data persistence improvements will be implemented more carefully
+- All new features will be thoroughly tested before deployment
+
 ## [1.8.0] - 2024-06-14
 
 ### Added - Account Management System
