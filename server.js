@@ -40,7 +40,7 @@ const SESSIONS_FILE = join(__dirname, 'sessions.json');
 const userData = new Map();
 
 // Import Shopify Fee Automation Service
-const ShopifyFeeAutomation = require('./src/services/shopify-fee-automation.js');
+import ShopifyFeeAutomation from './src/services/shopify-fee-automation.js';
 
 // Persistent storage for Shopify credentials
 // Note: Railway filesystem is ephemeral, so we'll use environment variables for persistence

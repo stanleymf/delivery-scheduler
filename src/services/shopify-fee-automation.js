@@ -391,4 +391,4 @@ class ShopifyFeeAutomation {
   }
 }
 
-module.exports = ShopifyFeeAutomation; 
+export default ShopifyFeeAutomation; 
