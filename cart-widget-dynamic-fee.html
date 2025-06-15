@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Scheduler Widget - Dynamic Fee v1.13.0</title>
+    <style>
+        /* Widget Styles */
+        .delivery-scheduler {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .delivery-scheduler h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .delivery-type-selector {
+            margin-bottom: 20px;
+        }
+
+        .delivery-type-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .delivery-type-selector select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .date-selector {
+            margin-bottom: 20px;
+        }
+
+        .date-selector label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .date-selector input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .timeslot-selector {
+            margin-bottom: 20px;
+        }
+
+        .timeslot-selector label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .timeslot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .timeslot-option {
+            position: relative;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .timeslot-option:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+
+        .timeslot-option.selected {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+
+        .timeslot-option.unavailable {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f5f5f5;
+        }
+
+        .timeslot-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .timeslot-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .timeslot-fee {
+            font-size: 12px;
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .timeslot-availability {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .save-button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .save-button:hover {
+            background: #0056b3;
+        }
+
+        .save-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+        }
+
+        .success-message {
+            color: #155724;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .widget-version {
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="delivery-scheduler" id="deliveryScheduler">
+        <h3>🚚 Schedule Your Delivery</h3>
+        
+        <div class="delivery-type-selector">
+            <label for="deliveryType">Delivery Type:</label>
+            <select id="deliveryType">
+                <option value="">Select delivery type...</option>
+                <option value="delivery">Home Delivery</option>
+                <option value="collection">Store Collection</option>
+            </select>
+        </div>
+
+        <div class="date-selector">
+            <label for="deliveryDate">Delivery Date:</label>
+            <input type="date" id="deliveryDate" min="">
+        </div>
+
+        <div class="timeslot-selector">
+            <label>Available Time Slots:</label>
+            <div class="timeslot-grid" id="timeslotGrid">
+                <div class="loading">Loading available time slots...</div>
+            </div>
+        </div>
+
+        <button class="save-button" id="saveButton" disabled>Save Delivery Preferences</button>
+        
+        <div class="widget-version">Delivery Scheduler v1.13.0 - Dynamic Fee</div>
+    </div>
+
+    <script>
+        // Widget Configuration
+        const WIDGET_CONFIG = {
+            version: '1.13.0',
+            apiBaseUrl: 'https://delivery-scheduler-production.up.railway.app',
+            debug: true,
+            dynamicFeeVariantId: null, // Will be set dynamically
+            shopifyDomain: window.location.hostname
+        };
+
+        // Widget State
+        let widgetState = {
+            selectedDeliveryType: null,
+            selectedDate: null,
+            selectedTimeslot: null,
+            availableTimeslots: [],
+            isLoading: false
+        };
+
+        // Utility Functions
+        function log(message, data = null) {
+            if (WIDGET_CONFIG.debug) {
+                console.log(`[Delivery Scheduler v${WIDGET_CONFIG.version}] ${message}`, data || '');
+            }
+        }
+
+        function showError(message) {
+            const existingError = document.querySelector('.error-message');
+            if (existingError) existingError.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            document.getElementById('saveButton').parentNode.insertBefore(errorDiv, document.getElementById('saveButton').nextSibling);
+        }
+
+        function showSuccess(message) {
+            const existingSuccess = document.querySelector('.success-message');
+            if (existingSuccess) existingSuccess.remove();
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            document.getElementById('saveButton').parentNode.insertBefore(successDiv, document.getElementById('saveButton').nextSibling);
+        }
+
+        function clearMessages() {
+            const messages = document.querySelectorAll('.error-message, .success-message');
+            messages.forEach(msg => msg.remove());
+        }
+
+        // Initialize Dynamic Fee Product
+        async function initializeDynamicFeeProduct() {
+            try {
+                log('🔍 Checking for dynamic fee product...');
+                
+                // Try to find existing dynamic fee product
+                const response = await fetch('/products/express-delivery-fee.json');
+                
+                if (response.ok) {
+                    const productData = await response.json();
+                    WIDGET_CONFIG.dynamicFeeVariantId = productData.product.variants[0].id;
+                    log('✅ Found dynamic fee product', { variantId: WIDGET_CONFIG.dynamicFeeVariantId });
+                } else {
+                    log('⚠️ Dynamic fee product not found - fees will be saved as cart attributes only');
+                    log('💡 Create a product with handle "express-delivery-fee" and $0.00 price for automatic fee handling');
+                }
+            } catch (error) {
+                log('⚠️ Could not check for dynamic fee product:', error);
+            }
+        }
+
+        // API Functions
+        async function fetchTimeslots(deliveryType, date) {
+            try {
+                widgetState.isLoading = true;
+                updateTimeslotGrid();
+
+                const dateStr = date.toISOString().split('T')[0];
+                const url = `${WIDGET_CONFIG.apiBaseUrl}/api/timeslots?delivery_type=${deliveryType}&date=${dateStr}`;
+                
+                log('📡 Fetching timeslots', { url, deliveryType, date: dateStr });
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log('✅ Timeslots loaded', data);
+
+                widgetState.availableTimeslots = data.timeslots || [];
+                return widgetState.availableTimeslots;
+
+            } catch (error) {
+                log('❌ Error fetching timeslots:', error);
+                showError('Unable to load available time slots. Please try again.');
+                widgetState.availableTimeslots = [];
+                return [];
+            } finally {
+                widgetState.isLoading = false;
+                updateTimeslotGrid();
+            }
+        }
+
+        // Dynamic Fee Handling
+        async function addDynamicFeeToCart(feeAmount, timeslotName, deliveryDate) {
+            if (!WIDGET_CONFIG.dynamicFeeVariantId || feeAmount <= 0) {
+                log('⚠️ No dynamic fee product or zero fee amount');
+                return false;
+            }
+
+            try {
+                log(`💰 Adding dynamic fee: $${feeAmount}`);
+
+                // First, remove any existing fee items
+                await removeFeeFromCart();
+
+                // Add fee item with dynamic price
+                const response = await fetch('/cart/add.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        items: [{
+                            id: WIDGET_CONFIG.dynamicFeeVariantId,
+                            quantity: 1,
+                            properties: {
+                                '_delivery_fee': 'true',
+                                '_fee_amount': feeAmount.toString(),
+                                '_delivery_date': deliveryDate,
+                                '_delivery_timeslot': timeslotName,
+                                '_dynamic_price': 'true'
+                            }
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    // Update the line item price using cart API
+                    await updateFeeLineItemPrice(feeAmount);
+                    log('✅ Dynamic fee added successfully');
+                    return true;
+                } else {
+                    const errorData = await response.json();
+                    log('❌ Failed to add fee:', errorData);
+                    return false;
+                }
+
+            } catch (error) {
+                log('❌ Error adding dynamic fee:', error);
+                return false;
+            }
+        }
+
+        async function updateFeeLineItemPrice(feeAmount) {
+            try {
+                // Get current cart
+                const cartResponse = await fetch('/cart.js');
+                const cart = await cartResponse.json();
+
+                // Find the fee line item
+                const feeItem = cart.items.find(item => 
+                    item.variant_id === WIDGET_CONFIG.dynamicFeeVariantId ||
+                    (item.properties && item.properties._delivery_fee === 'true')
+                );
+
+                if (feeItem) {
+                    // Update cart with new line item price
+                    const updates = {};
+                    updates[feeItem.key] = 1; // Keep quantity as 1
+
+                    // Use cart update API with line item properties
+                    const updateResponse = await fetch('/cart/update.js', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            updates: updates,
+                            attributes: {
+                                '_express_fee_amount': feeAmount.toString(),
+                                '_fee_line_item_key': feeItem.key
+                            }
+                        })
+                    });
+
+                    if (updateResponse.ok) {
+                        log('✅ Fee line item price updated');
+                        
+                        // Trigger cart refresh if available
+                        if (window.theme && window.theme.cart && window.theme.cart.refresh) {
+                            window.theme.cart.refresh();
+                        }
+                        
+                        // Dispatch custom event for cart updates
+                        window.dispatchEvent(new CustomEvent('cart:updated', {
+                            detail: { feeAmount, action: 'fee_updated' }
+                        }));
+                    }
+                }
+
+            } catch (error) {
+                log('⚠️ Could not update line item price:', error);
+            }
+        }
+
+        async function removeFeeFromCart() {
+            try {
+                const cartResponse = await fetch('/cart.js');
+                const cart = await cartResponse.json();
+
+                // Find existing fee items
+                const feeItems = cart.items.filter(item => 
+                    item.variant_id === WIDGET_CONFIG.dynamicFeeVariantId ||
+                    (item.properties && item.properties._delivery_fee === 'true')
+                );
+
+                if (feeItems.length > 0) {
+                    const updates = {};
+                    feeItems.forEach(item => {
+                        updates[item.key] = 0; // Set quantity to 0 to remove
+                    });
+
+                    const response = await fetch('/cart/update.js', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ updates })
+                    });
+
+                    if (response.ok) {
+                        log('✅ Existing fee items removed');
+                    }
+                }
+
+            } catch (error) {
+                log('⚠️ Error removing existing fees:', error);
+            }
+        }
+
+        // Cart Integration
+        async function saveToCart() {
+            if (!widgetState.selectedDeliveryType || !widgetState.selectedDate || !widgetState.selectedTimeslot) {
+                showError('Please select delivery type, date, and time slot.');
+                return;
+            }
+
+            try {
+                clearMessages();
+                document.getElementById('saveButton').disabled = true;
+                document.getElementById('saveButton').textContent = 'Saving...';
+
+                const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+                if (!selectedSlot) {
+                    throw new Error('Selected timeslot not found');
+                }
+
+                // Generate simplified tags
+                const deliveryTypeTag = widgetState.selectedDeliveryType === 'delivery' ? 'Delivery' : 
+                                     widgetState.selectedDeliveryType === 'collection' ? 'Collection' : 'Express';
+                const deliveryDateTag = widgetState.selectedDate.toLocaleDateString('en-GB');
+                const timeslotTag = selectedSlot.name;
+
+                // Prepare cart data
+                const cartData = {
+                    attributes: {
+                        'delivery_type': deliveryTypeTag,
+                        'delivery_date': deliveryDateTag,
+                        'delivery_timeslot': timeslotTag,
+                        'delivery_scheduler_version': WIDGET_CONFIG.version
+                    }
+                };
+
+                // Add fee information if applicable
+                if (selectedSlot.fee && selectedSlot.fee > 0) {
+                    cartData.attributes['express_delivery_fee'] = selectedSlot.fee.toString();
+                    cartData.attributes['express_delivery_fee_applied'] = 'pending';
+                }
+
+                log('💾 Saving to cart', cartData);
+
+                // Save cart attributes
+                const response = await fetch('/cart/update.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cartData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to save cart attributes: ${response.status}`);
+                }
+
+                // Handle express delivery fee
+                if (selectedSlot.fee && selectedSlot.fee > 0) {
+                    const feeAdded = await addDynamicFeeToCart(
+                        selectedSlot.fee, 
+                        selectedSlot.name, 
+                        deliveryDateTag
+                    );
+
+                    if (feeAdded) {
+                        showSuccess(`✅ Delivery scheduled! Express fee of $${selectedSlot.fee} added to cart.`);
+                    } else {
+                        showSuccess(`✅ Delivery scheduled! Express fee of $${selectedSlot.fee} will be applied at checkout.`);
+                    }
+                } else {
+                    showSuccess('✅ Delivery preferences saved successfully!');
+                }
+
+                // Trigger cart refresh
+                if (window.theme && window.theme.cart && window.theme.cart.refresh) {
+                    window.theme.cart.refresh();
+                }
+
+                // Dispatch custom event
+                window.dispatchEvent(new CustomEvent('delivery:scheduled', {
+                    detail: {
+                        deliveryType: deliveryTypeTag,
+                        deliveryDate: deliveryDateTag,
+                        timeslot: timeslotTag,
+                        fee: selectedSlot.fee || 0
+                    }
+                }));
+
+                log('✅ Cart updated successfully');
+
+            } catch (error) {
+                log('❌ Error saving to cart:', error);
+                showError('Failed to save delivery preferences. Please try again.');
+            } finally {
+                document.getElementById('saveButton').disabled = false;
+                document.getElementById('saveButton').textContent = 'Save Delivery Preferences';
+            }
+        }
+
+        // UI Functions
+        function updateTimeslotGrid() {
+            const grid = document.getElementById('timeslotGrid');
+            
+            if (widgetState.isLoading) {
+                grid.innerHTML = '<div class="loading">Loading available time slots...</div>';
+                return;
+            }
+
+            if (!widgetState.selectedDeliveryType || !widgetState.selectedDate) {
+                grid.innerHTML = '<div class="loading">Please select delivery type and date first.</div>';
+                return;
+            }
+
+            if (widgetState.availableTimeslots.length === 0) {
+                grid.innerHTML = '<div class="loading">No time slots available for the selected date.</div>';
+                return;
+            }
+
+            grid.innerHTML = widgetState.availableTimeslots.map(slot => {
+                const isSelected = widgetState.selectedTimeslot === slot.id;
+                const isUnavailable = slot.available_slots <= 0;
+                const feeText = slot.fee && slot.fee > 0 ? `+$${slot.fee} Express Fee` : '';
+                
+                return `
+                    <div class="timeslot-option ${isSelected ? 'selected' : ''} ${isUnavailable ? 'unavailable' : ''}" 
+                         data-slot-id="${slot.id}" 
+                         onclick="${isUnavailable ? '' : `selectTimeslot('${slot.id}')`}">
+                        <input type="radio" name="timeslot" value="${slot.id}" ${isSelected ? 'checked' : ''} ${isUnavailable ? 'disabled' : ''}>
+                        <div class="timeslot-name">${slot.name}</div>
+                        ${feeText ? `<div class="timeslot-fee">${feeText}</div>` : ''}
+                        <div class="timeslot-availability">
+                            ${isUnavailable ? 'Fully Booked' : `${slot.available_slots} slots available`}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectTimeslot(slotId) {
+            widgetState.selectedTimeslot = slotId;
+            updateTimeslotGrid();
+            updateSaveButton();
+            clearMessages();
+        }
+
+        function updateSaveButton() {
+            const button = document.getElementById('saveButton');
+            const canSave = widgetState.selectedDeliveryType && 
+                           widgetState.selectedDate && 
+                           widgetState.selectedTimeslot;
+            
+            button.disabled = !canSave;
+        }
+
+        // Event Handlers
+        function handleDeliveryTypeChange() {
+            const select = document.getElementById('deliveryType');
+            widgetState.selectedDeliveryType = select.value;
+            widgetState.selectedTimeslot = null;
+            
+            if (widgetState.selectedDeliveryType && widgetState.selectedDate) {
+                fetchTimeslots(widgetState.selectedDeliveryType, widgetState.selectedDate);
+            } else {
+                updateTimeslotGrid();
+            }
+            
+            updateSaveButton();
+            clearMessages();
+        }
+
+        function handleDateChange() {
+            const input = document.getElementById('deliveryDate');
+            widgetState.selectedDate = input.value ? new Date(input.value + 'T00:00:00') : null;
+            widgetState.selectedTimeslot = null;
+            
+            if (widgetState.selectedDeliveryType && widgetState.selectedDate) {
+                fetchTimeslots(widgetState.selectedDeliveryType, widgetState.selectedDate);
+            } else {
+                updateTimeslotGrid();
+            }
+            
+            updateSaveButton();
+            clearMessages();
+        }
+
+        // Initialize Widget
+        async function initializeWidget() {
+            log('🚀 Initializing Delivery Scheduler Widget');
+            
+            // Set minimum date to today
+            const today = new Date();
+            const minDate = today.toISOString().split('T')[0];
+            document.getElementById('deliveryDate').min = minDate;
+
+            // Initialize dynamic fee product
+            await initializeDynamicFeeProduct();
+
+            // Add event listeners
+            document.getElementById('deliveryType').addEventListener('change', handleDeliveryTypeChange);
+            document.getElementById('deliveryDate').addEventListener('change', handleDateChange);
+            document.getElementById('saveButton').addEventListener('click', saveToCart);
+
+            // Initial UI update
+            updateTimeslotGrid();
+            updateSaveButton();
+
+            log('✅ Widget initialized successfully');
+        }
+
+        // Start the widget when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeWidget);
+        } else {
+            initializeWidget();
+        }
+
+        // Global functions for external access
+        window.DeliveryScheduler = {
+            version: WIDGET_CONFIG.version,
+            getState: () => widgetState,
+            refresh: () => {
+                if (widgetState.selectedDeliveryType && widgetState.selectedDate) {
+                    fetchTimeslots(widgetState.selectedDeliveryType, widgetState.selectedDate);
+                }
+            }
+        };
+    </script>
+</body>
+</html> 

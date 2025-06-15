@@ -283,7 +283,7 @@ export function Settings() {
           </CardContent>
         </Card>
 
-        <TagMappingSettings />
+        {/* <TagMappingSettings /> */}
 
         <SyncStatus />
 

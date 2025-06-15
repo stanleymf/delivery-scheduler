@@ -1,5 +1,215 @@
 # Changelog
 
+## [1.13.0] - 2024-12-19
+
+### 🚀 MAJOR RELEASE - Dynamic Fee Handling & Automated Product Creation
+
+#### 💰 DYNAMIC FEE HANDLING SYSTEM
+- **Automated fee product creation** - System automatically creates Shopify products when admin creates express timeslots
+- **Dynamic fee detection** - Widget automatically finds and uses correct fee products based on timeslot selections
+- **Smart fee management** - Removes old fees when changing selections, prevents duplicate fees
+- **Multiple fee support** - Handles unlimited fee amounts ($15, $25, $35, etc.) with single system
+
+#### 🛍️ SHOPIFY PRODUCT INTEGRATION
+- **Auto-product creation** - Backend creates fee products with correct pricing when timeslots are saved
+- **Product lifecycle management** - Automatic creation, updating, and deletion of fee products
+- **Correct cart totals** - Customers see accurate pricing immediately in cart
+- **Professional checkout** - Seamless fee handling with proper line items
+
+#### 🎯 INTELLIGENT FEE RESOLUTION
+- **Priority-based detection** - Widget tries timeslot-specific products first, then manual products, then fallbacks
+- **Graceful degradation** - Falls back to cart notes if products don't exist
+- **Error-resistant** - Continues working even if Shopify API fails
+- **Debug-friendly** - Comprehensive console logging for troubleshooting
+
+#### 🔧 BACKEND AUTOMATION FEATURES
+- **Shopify Admin API integration** - Full product creation/deletion via Shopify API
+- **Database schema enhancements** - Stores fee product IDs with timeslots
+- **Enhanced timeslot management** - Creates/updates/deletes fee products automatically
+- **Widget API improvements** - Includes fee variant IDs in timeslot responses
+
+#### 🧹 CODE CLEANUP & OPTIMIZATION
+- **Removed hard-coded variant IDs** - No more manual product ID management
+- **Clean Express button** - Removed misleading static fee displays
+- **Updated version tracking** - Consistent v1.13.0 across all components
+- **Improved console messages** - Clearer debugging and status information
+- **Professional UI** - Clean, dynamic fee displays in timeslot selection
+
+#### 📋 COMPLETE AUTOMATION WORKFLOW
+1. **Admin creates express timeslot** with fee amount in Railway dashboard
+2. **System automatically creates** Shopify fee product with correct price
+3. **Timeslot saved** with reference to fee product variant ID
+4. **Customer selects express timeslot** in widget
+5. **Widget automatically adds** correct fee product to cart
+6. **Cart total shows** accurate amount immediately
+
+#### 🎯 DEPLOYMENT OPTIONS
+- **Option A: Full Automation** - Complete backend integration with automatic product creation
+- **Option B: Manual Products** - Create fee products manually, widget auto-detects them
+- **Option C: Cart Notes** - Fallback to manual processing with comprehensive fee information
+
+#### 🔄 MIGRATION SUPPORT
+- **Backward compatible** - Works with existing setups
+- **Graceful fallbacks** - Handles missing products elegantly
+- **Easy migration** - Can upgrade from manual to automated approach seamlessly
+
+### Technical Implementation
+- Added Shopify Admin API integration for product management
+- Enhanced timeslot creation/update/delete with fee product lifecycle
+- Updated widget with intelligent fee variant detection
+- Added comprehensive error handling and fallback mechanisms
+- Implemented priority-based fee resolution system
+
+### Files Updated
+- `cart-widget-updated.html` - Enhanced with dynamic fee handling
+- `package.json` - Version bump to 1.13.0
+- Added `AUTOMATED_FEE_PRODUCT_CREATION.md` - Complete automation guide
+- Added `RAILWAY_BACKEND_INTEGRATION.md` - Step-by-step backend implementation
+- Added `SHOPIFY_FEE_SOLUTIONS.md` - Technical limitation explanations
+- Added `WIDGET_CLEANUP_SUMMARY.md` - Code cleanup documentation
+
+### Breaking Changes
+- None - fully backward compatible
+
+### Migration Notes
+- Existing widgets continue working with cart notes fallback
+- Manual fee products are automatically detected and used
+- No immediate action required for existing deployments
+
+---
+
+## [1.12.3] - 2024-12-19
+
+### 🎯 SIMPLIFIED TAGGING - Clean Shopify Order Tags
+
+#### 🏷️ STREAMLINED TAG GENERATION
+- **Reduced complexity** - Simplified from 15+ tags to just 3 essential tags
+- **Shopify-optimized** - Clean, readable tags perfect for order management
+- **Fulfillment-friendly** - Easy identification and processing for teams
+
+#### 📋 THE 3 ESSENTIAL TAGS
+1. **Delivery Type** - `Delivery`, `Collection`, or `Express`
+2. **Delivery Date** - `20/12/2024` (dd/mm/yyyy format)
+3. **Timeslot** - `10:00-14:00` (hh:mm-hh:mm format)
+
+#### ✨ EXAMPLES
+- **Delivery Order**: `Delivery, 20/12/2024, 10:00-14:00`
+- **Collection Order**: `Collection, 20/12/2024, 14:00-16:00`
+- **Express Order**: `Express, 20/12/2024, 10:30-11:30`
+
+#### 🎯 BENEFITS
+- **Clean Shopify orders** - No tag clutter, just essential information
+- **Easy order filtering** - Simple tags for order management
+- **Quick fulfillment** - Instant identification of delivery requirements
+- **Professional appearance** - Clean, readable tags in Shopify admin
+
+#### 🔧 TECHNICAL CHANGES
+- Simplified `generateDeliveryTags()` function to 3 core tags
+- Updated default tag mapping settings with proper capitalization
+- Maintained all cart attributes and delivery notes functionality
+- Preserved automatic order tagging workflow
+
+### Files Updated
+- `cart-widget-updated.html` - Simplified tag generation system
+- `test-enhanced-tagging.html` - Updated to show simplified tagging examples
+
+
+
+## [1.12.2] - 2024-12-19
+
+### 🏷️ ENHANCED TAGGING SYSTEM - Comprehensive Timeslot-Based Tags
+
+#### 🕐 TIMESLOT-BASED TAGGING
+- **Timeslot name tags** - `timeslot-am-delivery`, `timeslot-pm-collection`, `timeslot-ex-1030`
+- **Start time tags** - `start-10:00`, `start-14:00`, `start-10:30` (hh:mm format)
+- **End time tags** - `end-14:00`, `end-16:00`, `end-11:30` (hh:mm format)
+- **Time range tags** - `10:00-14:00`, `14:00-16:00`, `10:30-11:30` (full range)
+- **Type-specific time tags** - `delivery-10:00-14:00`, `collection-14:00-16:00`, `express-10:30-11:30`
+
+#### 📅 ENHANCED DATE TAGGING
+- **ISO date format** - `delivery-date-2024-12-20`
+- **Day of week tags** - `delivery-monday`, `delivery-friday`, `delivery-sunday`
+- **Formatted date tags** - `date-20-12-2024` (dd-mm-yyyy format for readability)
+
+#### 📍 IMPROVED LOCATION TAGGING
+- **Location name tags** - `collection-windflower-florist`, `collection-main-store`
+- **Location ID tags** - `location-id-1749988809207` (for precise tracking)
+- **Postal area tags** - `delivery-area-12`, `delivery-area-60` (first 2 digits)
+- **Full postal tags** - `postal-123456`, `postal-608123` (complete postal code)
+
+#### 💰 COMPREHENSIVE FEE TAGGING
+- **Premium delivery tag** - `premium-delivery` (for any paid service)
+- **General fee tags** - `fee-25`, `fee-15` (fee amount)
+- **Express-specific tags** - `express-fee-25`, `express-fee-15` (express delivery fees)
+
+#### 🔧 TECHNICAL ENHANCEMENTS
+- **Enhanced delivery notes** - includes timeslot details, cutoff times, max orders
+- **Tag reference in notes** - generated tags included in delivery notes for debugging
+- **Configurable tag generation** - `enableTimeslotTags` option in settings
+- **Comprehensive cart attributes** - all tag data stored in cart for order processing
+
+#### 📋 EXAMPLE TAG GENERATION
+**AM Delivery (10:00-14:00, $25 Express Fee):**
+`delivery`, `timeslot-am-delivery`, `start-10:00`, `end-14:00`, `10:00-14:00`, `delivery-10:00-14:00`, `delivery-date-2024-12-20`, `delivery-friday`, `date-20-12-2024`, `delivery-area-12`, `postal-123456`, `premium-delivery`, `fee-25`, `express-fee-25`
+
+**PM Collection (14:00-16:00, Windflower Florist):**
+`collection`, `timeslot-pm-collection`, `start-14:00`, `end-16:00`, `14:00-16:00`, `collection-14:00-16:00`, `delivery-date-2024-12-20`, `delivery-friday`, `date-20-12-2024`, `collection-windflower-florist`, `location-id-1749988809207`
+
+### Files Enhanced
+- `cart-widget-updated.html` - Enhanced tag generation system
+- `test-enhanced-tagging.html` - Comprehensive tagging demonstration
+- Enhanced delivery notes with detailed timeslot information
+
+
+
+## [1.12.1] - 2024-12-19
+
+### 🚀 ENHANCED CUSTOM WIDGET - Full Shopify Cart Integration
+
+#### 🛒 COMPLETE SHOPIFY CART INTEGRATION
+- **Enhanced custom cart widget** with full Shopify `/cart/update.js` API integration
+- **Comprehensive cart attributes** - delivery_date, delivery_timeslot, delivery_type, delivery_postal_code, delivery_location_name, delivery_location_address, delivery_fee, delivery_tags, delivery_notes, delivery_widget_version, delivery_timestamp
+- **Real-time cart updates** - proper cart attribute processing and validation
+- **Error handling and user feedback** - comprehensive cart update error handling with detailed messages
+
+#### 🏷️ AUTOMATIC ORDER TAGGING INTEGRATION
+- **Tag generation from selections** - automatic tag creation based on delivery type, date, and location
+- **Tag mapping settings integration** - fetches and applies configured tag mappings
+- **Dynamic tag application** - tags generated based on user selections and applied to cart
+- **Order webhook processing** - automatic tag application when orders are created
+
+#### 📝 ORDER NOTES INTEGRATION
+- **Automatic delivery notes** - comprehensive delivery information added to cart attributes
+- **Professional formatting** - structured delivery details for order processing
+- **Order confirmation display** - delivery details shown in order confirmation
+- **Admin order visibility** - enhanced order information for staff processing
+
+#### 🎨 DYNAMIC BUTTON TEXT ENHANCEMENT
+- **Cart-specific button text** - "Update Cart with [Delivery/Collection/Express Delivery]"
+- **Real-time text updates** - button text changes based on selected delivery type
+- **Loading state management** - "Updating Cart..." during processing
+- **Type-specific messaging** - different text for delivery, collection, and express options
+
+#### 🔧 TECHNICAL ENHANCEMENTS
+- **Tag mapping settings API integration** - fetches real-time tag configuration
+- **Enhanced data validation** - comprehensive delivery data validation before cart update
+- **Improved error handling** - detailed error messages and fallback mechanisms
+- **Cart mode detection** - automatic detection of cart page vs product page context
+
+#### 📋 INTEGRATION FEATURES
+- **Widget selections** → **Cart attributes** → **Order attributes** → **Order tags** (complete flow)
+- **Delivery details** → **Order notes** (automatic transfer)
+- **Tag mapping settings** → **Applied tags** (configurable tagging)
+- **Collection locations** → **Location attributes** (branch support)
+
+### Files Enhanced
+- `cart-widget-updated.html` - Enhanced with full Shopify cart integration
+- Added comprehensive cart attribute processing
+- Integrated automatic order tagging functionality
+- Enhanced dynamic button text system
+
+
+
 All notable changes to the Delivery Scheduler project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

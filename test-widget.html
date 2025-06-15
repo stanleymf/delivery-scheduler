@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test - Dynamic Button Text</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Widget Dynamic Button Text Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Product Page Widget</h2>
+        <div id="delivery-scheduler-widget" 
+             data-delivery-scheduler 
+             data-shop-domain="test-shop.myshopify.com"
+             data-product-id="123"
+             data-variant-id="456">
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Cart Page Widget</h2>
+        <div id="delivery-scheduler-cart-widget" 
+             data-delivery-scheduler 
+             data-shop-domain="test-shop.myshopify.com"
+             data-cart-mode="true"
+             data-cart-items='[]'>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Debug Info</h2>
+        <div id="debug-info">
+            <p>Widget version: <span id="widget-version">Loading...</span></p>
+            <p>Button text updates: <span id="button-updates">0</span></p>
+        </div>
+    </div>
+    
+    <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>
+    
+    <script>
+        // Debug script to monitor button text changes
+        let updateCount = 0;
+        
+        function monitorButtonText() {
+            const buttons = document.querySelectorAll('#add-to-cart-text');
+            buttons.forEach((button, index) => {
+                if (button) {
+                    console.log(`Button ${index + 1} text:`, button.textContent);
+                    
+                    // Monitor for changes
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                                updateCount++;
+                                document.getElementById('button-updates').textContent = updateCount;
+                                console.log(`Button ${index + 1} text changed to:`, button.textContent);
+                            }
+                        });
+                    });
+                    
+                    observer.observe(button, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+                }
+            });
+        }
+        
+        // Wait for widgets to load
+        setTimeout(() => {
+            monitorButtonText();
+            
+            // Check widget version
+            const versionElement = document.querySelector('[data-delivery-scheduler]');
+            if (versionElement) {
+                document.getElementById('widget-version').textContent = '1.12.0 (Dynamic Button Text)';
+            }
+        }, 2000);
+        
+        // Test button text changes manually
+        setTimeout(() => {
+            console.log('🧪 Testing manual button text updates...');
+            
+            // Simulate delivery type change
+            if (window.selectDeliveryType) {
+                console.log('Testing collection selection...');
+                window.selectDeliveryType('collection');
+                
+                setTimeout(() => {
+                    console.log('Testing delivery selection...');
+                    window.selectDeliveryType('delivery');
+                }, 2000);
+            }
+        }, 5000);
+    </script>
+</body>
+</html> 

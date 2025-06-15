@@ -1,0 +1,187 @@
+<!-- DELIVERY SCHEDULER - SIMPLE FEE HANDLING VERSION -->
+<div id="delivery-scheduler-cart-widget"></div>
+
+<script>
+// DELIVERY SCHEDULER WITH SIMPLE FEE HANDLING
+(function() {
+    console.log('🏢 Delivery scheduler with simple fee handling starting...');
+    
+    let widgetData = { timeslots: [], settings: {}, collectionLocations: [], tagMappingSettings: {} };
+    let selectedType = 'delivery';
+    let selectedDate = null;
+    let selectedTimeslot = null;
+    let selectedLocation = null;
+    let postalCode = '';
+    
+    async function loadData() {
+        try {
+            const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
+            
+            const [timeslotsRes, settingsRes] = await Promise.all([
+                fetch(baseUrl + '/api/public/widget/timeslots'),
+                fetch(baseUrl + '/api/public/widget/settings')
+            ]);
+            
+            if (timeslotsRes.ok) {
+                const data = await timeslotsRes.json();
+                widgetData.timeslots = data.data || [];
+                console.log('✅ Loaded', widgetData.timeslots.length, 'timeslots');
+            }
+            
+            if (settingsRes.ok) {
+                const data = await settingsRes.json();
+                widgetData.settings = data.data || {};
+                widgetData.collectionLocations = widgetData.settings.collectionLocations || [
+                    {id: '1', name: 'Main Store', address: '123 Orchard Road, Singapore 238858'}
+                ];
+                console.log('✅ Loaded', widgetData.collectionLocations.length, 'collection locations');
+            }
+            
+            widgetData.tagMappingSettings = getDefaultTagMappingSettings();
+            console.log('✅ Using default tag mapping settings');
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to load data:', error);
+            return false;
+        }
+    }
+    
+    function getDefaultTagMappingSettings() {
+        return {
+            deliveryTag: 'Delivery',
+            collectionTag: 'Collection',
+            expressTag: 'Express'
+        };
+    }
+    
+    function generateDeliveryTags() {
+        const tags = [];
+        const tagMapping = widgetData.tagMappingSettings;
+        
+        if (selectedType === 'delivery') {
+            tags.push(tagMapping.deliveryTag || 'Delivery');
+        } else if (selectedType === 'collection') {
+            tags.push(tagMapping.collectionTag || 'Collection');
+        } else if (selectedType === 'express') {
+            tags.push(tagMapping.expressTag || 'Express');
+        }
+        
+        if (selectedDate) {
+            const formattedDate = selectedDate.toLocaleDateString('en-GB');
+            tags.push(formattedDate);
+        }
+        
+        if (selectedTimeslot) {
+            const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+            if (slot && slot.startTime && slot.endTime) {
+                tags.push(`${slot.startTime}-${slot.endTime}`);
+            }
+        }
+        
+        return tags;
+    }
+    
+    // SIMPLE FEE HANDLING: Add fee info to cart notes
+    async function addToCart() {
+        if (!selectedDate || !selectedTimeslot) return;
+        
+        const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+        const deliveryTags = generateDeliveryTags();
+        
+        const cartAttributes = {
+            'delivery_date': selectedDate.toISOString().split('T')[0],
+            'delivery_timeslot': slot.name,
+            'delivery_type': selectedType,
+            'delivery_fee': slot.fee || 0,
+            'delivery_tags': deliveryTags.join(','),
+            'delivery_widget_version': 'v1.12.3'
+        };
+        
+        // Add location-specific attributes
+        if (selectedType === 'collection' && selectedLocation) {
+            const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+            if (location) {
+                cartAttributes['delivery_location_name'] = location.name;
+                cartAttributes['delivery_location_address'] = location.address;
+            }
+        } else if (selectedType !== 'collection' && postalCode) {
+            cartAttributes['delivery_postal_code'] = postalCode;
+        }
+        
+        // Add fee information to cart note if there's a fee
+        let cartNote = '';
+        if (slot.fee && slot.fee > 0) {
+            cartNote = `EXPRESS DELIVERY FEE: +$${slot.fee} will be added to your order total.\n`;
+            cartNote += `Delivery: ${selectedDate.toLocaleDateString()} - ${slot.name}`;
+        }
+        
+        console.log('🎯 Adding to cart with delivery data and fee info:', cartAttributes);
+        
+        const buttonTextElement = document.getElementById('button-text');
+        const originalText = buttonTextElement.textContent;
+        buttonTextElement.textContent = 'Updating Cart...';
+        document.getElementById('add-btn').disabled = true;
+        
+        try {
+            const updateData = { attributes: cartAttributes };
+            if (cartNote) {
+                updateData.note = cartNote;
+            }
+            
+            const response = await fetch('/cart/update.js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (response.ok) {
+                console.log('✅ Cart updated successfully');
+                
+                let message = `✅ Cart updated with ${selectedType === 'collection' ? 'collection' : 'delivery'} details!\n\n`;
+                message += `📅 ${selectedDate.toLocaleDateString()} - ${slot.name}\n`;
+                
+                if (selectedType === 'collection' && selectedLocation) {
+                    const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+                    message += `📍 ${location.name}\n`;
+                }
+                
+                if (slot.fee) {
+                    message += `\n💰 EXPRESS DELIVERY FEE: +$${slot.fee}\n`;
+                    message += `This fee will be added to your order total during checkout.\n`;
+                }
+                
+                message += `\n🏷️ Order will be tagged: ${deliveryTags.join(', ')}`;
+                
+                alert(message);
+                
+                // Refresh to show updated cart
+                window.location.reload();
+                
+            } else {
+                throw new Error(`Cart update failed: ${response.status}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Cart update failed:', error);
+            alert('❌ Failed to update cart. Please try again.');
+        }
+        
+        buttonTextElement.textContent = originalText;
+        document.getElementById('add-btn').disabled = false;
+    }
+    
+    // ... rest of the UI code (same as before)
+    
+    setTimeout(async () => {
+        const success = await loadData();
+        if (success) {
+            // Create UI here
+            console.log('✅ Simple fee handling widget ready!');
+        }
+    }, 500);
+})();
+</script> 

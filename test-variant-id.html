@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Variant ID</title>
+</head>
+<body>
+    <h1>🧪 Test Variant ID: 46933910225053</h1>
+    <button onclick="testVariantId()">Test Add to Cart</button>
+    <div id="result"></div>
+
+    <script>
+    async function testVariantId() {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = 'Testing...';
+        
+        try {
+            console.log('🧪 Testing variant ID: 46933910225053');
+            
+            // Test 1: Try to add the variant to cart
+            const response = await fetch('/cart/add.js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    items: [{
+                        id: 46933910225053,
+                        quantity: 1
+                    }]
+                })
+            });
+            
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Success! Variant added to cart:', data);
+                resultDiv.innerHTML = `
+                    <div style="color: green;">
+                        ✅ SUCCESS! Variant ID is valid and product was added to cart.
+                        <br>Check your cart to see the Express Delivery Fee product.
+                    </div>
+                `;
+            } else {
+                const errorText = await response.text();
+                console.log('❌ Error response:', errorText);
+                resultDiv.innerHTML = `
+                    <div style="color: red;">
+                        ❌ FAILED! Status: ${response.status}
+                        <br>Error: ${errorText}
+                        <br><br>
+                        <strong>Possible issues:</strong>
+                        <ul>
+                            <li>Variant ID doesn't exist</li>
+                            <li>Product is not published</li>
+                            <li>Product is out of stock</li>
+                            <li>Product requires selling plan</li>
+                        </ul>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('❌ Test failed:', error);
+            resultDiv.innerHTML = `
+                <div style="color: red;">
+                    ❌ TEST FAILED: ${error.message}
+                </div>
+            `;
+        }
+    }
+    </script>
+</body>
+</html> 

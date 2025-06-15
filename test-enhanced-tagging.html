@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Tagging Test - Delivery Scheduler v1.12.1</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #374151;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-info {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0ea5e9;
+        }
+        .tag-examples {
+            background: #f0fdf4;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #22c55e;
+        }
+        .tag {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        .tag.delivery { background: #3b82f6; }
+        .tag.collection { background: #f59e0b; }
+        .tag.express { background: #ef4444; }
+        .tag.timeslot { background: #8b5cf6; }
+        .tag.date { background: #06b6d4; }
+        .tag.location { background: #10b981; }
+        .tag.postal { background: #f97316; }
+        .tag.fee { background: #ec4899; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ Enhanced Tagging System - v1.12.1</h1>
+        
+        <div class="test-info">
+            <h3>🎯 Simplified Tagging for Shopify Orders:</h3>
+            <ul>
+                <li>✅ <strong>Delivery Type</strong> - Delivery, Collection, or Express</li>
+                <li>✅ <strong>Delivery Date</strong> - dd/mm/yyyy format (e.g., 20/12/2024)</li>
+                <li>✅ <strong>Timeslot</strong> - hh:mm-hh:mm format (e.g., 10:00-14:00)</li>
+                <li>🎯 <strong>Clean & Readable</strong> - Perfect for Shopify order management</li>
+                <li>🎯 <strong>Easy Processing</strong> - Simple tags for fulfillment teams</li>
+                <li>🎯 <strong>No Clutter</strong> - Only essential information</li>
+            </ul>
+        </div>
+
+        <div class="tag-examples">
+            <h3>🏷️ Simplified Tag Generation for Shopify Orders:</h3>
+            
+            <h4>📦 Delivery Example (AM Delivery, 10:00-14:00):</h4>
+            <span class="tag delivery">Delivery</span>
+            <span class="tag date">20/12/2024</span>
+            <span class="tag timeslot">10:00-14:00</span>
+
+            <h4>🏢 Collection Example (PM Collection, 14:00-16:00):</h4>
+            <span class="tag collection">Collection</span>
+            <span class="tag date">20/12/2024</span>
+            <span class="tag timeslot">14:00-16:00</span>
+
+            <h4>⚡ Express Example (Ex 1030, 10:30-11:30):</h4>
+            <span class="tag express">Express</span>
+            <span class="tag date">20/12/2024</span>
+            <span class="tag timeslot">10:30-11:30</span>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                <h4>🎯 Perfect for Shopify Order Management:</h4>
+                <p><strong>Clean, readable tags</strong> that appear directly on Shopify orders for easy identification and processing.</p>
+                <p><strong>Example Order Tags:</strong> <code>Delivery, 20/12/2024, 10:00-14:00</code></p>
+            </div>
+        </div>
+
+        <!-- Include the actual widget for testing -->
+        <div id="delivery-scheduler-cart-widget"></div>
+
+        <script>
+        // Simplified demo script to show tag generation
+        console.log('🏷️ Enhanced tagging system loaded');
+        
+        // Demo function to show tag generation
+        function demoTagGeneration() {
+            console.log('=== DEMO TAG GENERATION ===');
+            
+            // Example 1: AM Delivery with Express Fee
+            console.log('📦 AM Delivery Example:');
+            const deliveryTags = [
+                'delivery',
+                'timeslot-am-delivery', 
+                'start-10:00',
+                'end-14:00',
+                '10:00-14:00',
+                'delivery-10:00-14:00',
+                'delivery-date-2024-12-20',
+                'delivery-friday',
+                'date-20-12-2024',
+                'delivery-area-12',
+                'postal-123456',
+                'premium-delivery',
+                'fee-25',
+                'express-fee-25'
+            ];
+            console.log('Tags:', deliveryTags.join(', '));
+            
+            // Example 2: Collection
+            console.log('🏢 Collection Example:');
+            const collectionTags = [
+                'collection',
+                'timeslot-pm-collection',
+                'start-14:00', 
+                'end-16:00',
+                '14:00-16:00',
+                'collection-14:00-16:00',
+                'delivery-date-2024-12-20',
+                'delivery-friday',
+                'date-20-12-2024',
+                'collection-windflower-florist',
+                'location-id-1749988809207'
+            ];
+            console.log('Tags:', collectionTags.join(', '));
+            
+            console.log('=== END DEMO ===');
+        }
+        
+        // Run demo
+        setTimeout(demoTagGeneration, 1000);
+        </script>
+    </div>
+</body>
+</html> 
