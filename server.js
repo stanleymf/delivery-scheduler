@@ -1044,6 +1044,31 @@ app.delete('/api/user/data', authenticateToken, async (req, res) => {
   }
 });
 
+// Emergency reset - clear all corrupted data and force fresh start
+app.post('/api/user/emergency-reset', authenticateToken, async (req, res) => {
+  const userId = req.user;
+  
+  try {
+    // Clear server data
+    userData.delete(userId);
+    
+    // Persist to file
+    await saveUserDataToFile(userData);
+    
+    res.json({
+      success: true,
+      message: 'Emergency reset completed - all data cleared, will fallback to defaults',
+      action: 'Please refresh the page to load fresh default data'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform emergency reset',
+      details: error.message
+    });
+  }
+});
+
 // Get Railway environment variable command for persistence
 app.get('/api/shopify/railway-env', authenticateToken, (req, res) => {
   try {

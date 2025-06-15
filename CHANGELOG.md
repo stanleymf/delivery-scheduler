@@ -5,6 +5,31 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 30/12/2024
+
+### 🚨 CRITICAL FIX - Emergency Data Reset Tool
+- 🛠️ **Emergency Reset Endpoint** - Added `/api/user/emergency-reset` to clear corrupted server data
+- 🔧 **Settings Reset Button** - Added emergency reset button in Settings page for easy access
+- 🗑️ **Data Corruption Fix** - Resolves white screen issues caused by corrupted server data from previous versions
+- ⚡ **Auto Refresh** - Automatically refreshes page after reset to load fresh default data
+- 🛡️ **Safety Warnings** - Clear warnings and confirmations before data deletion
+
+### Root Cause Resolution
+The white screen persisted after code revert because corrupted data remained on the server. This tool clears all server data, forcing the app to use fresh default mock data.
+
+### How to Use
+1. Go to Settings page
+2. Scroll to "Emergency Data Reset" section
+3. Click the red "Emergency Reset" button
+4. Confirm the action
+5. Page will auto-refresh with fresh data
+
+### Technical Changes
+- Added emergency reset API endpoint in server.js
+- Enhanced Settings component with reset functionality
+- Added proper error handling and user feedback
+- Implemented auto-refresh after successful reset
+
 ## [1.11.0] - 30/12/2024
 
 ### 🔄 EMERGENCY REVERT - Restore Stable TimeSlots Functionality

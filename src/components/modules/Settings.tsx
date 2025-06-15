@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette } from "lucide-react";
+import { Settings as SettingsIcon, Plus, Edit, Trash2, MapPin, Palette, AlertTriangle } from "lucide-react";
 import { loadSettings, saveSettings, type CollectionLocation } from "@/lib/mockData";
+import { authenticatedFetch } from "@/utils/api";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
 import { TagMappingSettings } from "./TagMappingSettings";
 import { SyncStatus } from "./SyncStatus";
@@ -20,6 +21,8 @@ export function Settings() {
     name: "",
     address: ""
   });
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const openLocationDialog = (location?: CollectionLocation) => {
     if (location) {
@@ -86,6 +89,38 @@ export function Settings() {
     };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+  };
+
+  const handleEmergencyReset = async () => {
+    if (!confirm('⚠️ EMERGENCY RESET ⚠️\n\nThis will clear ALL server data and force the app to use default settings. This action cannot be undone.\n\nAre you sure you want to proceed?')) {
+      return;
+    }
+
+    setIsResetting(true);
+    setResetMessage(null);
+
+    try {
+      const response = await authenticatedFetch('/api/user/emergency-reset', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setResetMessage('✅ Emergency reset completed! Please refresh the page to load fresh data.');
+        
+        // Auto refresh after 3 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      } else {
+        setResetMessage('❌ Reset failed. Please try again or contact support.');
+      }
+    } catch (error) {
+      console.error('Emergency reset error:', error);
+      setResetMessage('❌ Reset failed due to network error. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -331,6 +366,48 @@ export function Settings() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Emergency Data Reset
+            </CardTitle>
+            <CardDescription>
+              Use this only if you're experiencing data corruption issues (like white screens or loading errors)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <h4 className="font-medium text-red-800 mb-2">⚠️ Warning</h4>
+              <p className="text-sm text-red-700">
+                This will permanently delete all your server data including timeslots, blocked dates, settings, and products. 
+                The app will revert to default mock data. This action cannot be undone.
+              </p>
+            </div>
+            
+            {resetMessage && (
+              <div className={`p-4 rounded-lg ${resetMessage.includes('✅') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <p className={`text-sm ${resetMessage.includes('✅') ? 'text-green-700' : 'text-red-700'}`}>
+                  {resetMessage}
+                </p>
+              </div>
+            )}
+
+            <Button 
+              onClick={handleEmergencyReset}
+              disabled={isResetting}
+              variant="destructive"
+              className="w-full"
+            >
+              {isResetting ? 'Resetting...' : '🚨 Emergency Reset - Clear All Data'}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              Only use this if TimeSlots or other modules are showing white screens or errors
+            </p>
           </CardContent>
         </Card>
       </div>
