@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug Test</title>
+</head>
+<body>
+    <h1>Authentication Debug Test</h1>
+    
+    <div id="status"></div>
+    
+    <h2>Step 1: Login</h2>
+    <input type="text" id="username" placeholder="Username" value="stanley_mf">
+    <input type="password" id="password" placeholder="Password" value="asdnrkol">
+    <button onclick="testLogin()">Login</button>
+    
+    <h2>Step 2: Test Shopify Endpoints</h2>
+    <button onclick="testShopifySettings()">Test Shopify Settings</button>
+    <button onclick="testShopifyConnection()">Test Shopify Connection</button>
+    
+    <script>
+        const baseUrl = 'https://delivery-schedule2-production.up.railway.app';
+        let authToken = localStorage.getItem('admin_token');
+        
+        function log(message) {
+            document.getElementById('status').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('🔐 Attempting login...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.token;
+                    localStorage.setItem('admin_token', authToken);
+                    log('✅ Login successful! Token: ' + authToken.substring(0, 20) + '...');
+                } else {
+                    log('❌ Login failed: ' + data.error);
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message);
+            }
+        }
+        
+        async function testShopifySettings() {
+            if (!authToken) {
+                log('❌ No auth token. Please login first.');
+                return;
+            }
+            
+            log('🛍️ Testing Shopify settings endpoint...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/shopify/settings`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📊 Response status: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log(`📋 Response data: ${JSON.stringify(data, null, 2)}`);
+                
+            } catch (error) {
+                log('❌ Shopify settings error: ' + error.message);
+            }
+        }
+        
+        async function testShopifyConnection() {
+            if (!authToken) {
+                log('❌ No auth token. Please login first.');
+                return;
+            }
+            
+            log('🔗 Testing Shopify connection endpoint...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/shopify/test-connection`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`📊 Response status: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log(`📋 Response data: ${JSON.stringify(data, null, 2)}`);
+                
+            } catch (error) {
+                log('❌ Shopify connection error: ' + error.message);
+            }
+        }
+        
+        // Check if already logged in
+        if (authToken) {
+            log('🎫 Found existing token: ' + authToken.substring(0, 20) + '...');
+        }
+    </script>
+</body>
+</html> 
