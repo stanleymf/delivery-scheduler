@@ -44,8 +44,14 @@ export function AvailabilityCalendar() {
 
   // Helper function to update blocked dates with persistence
   const updateBlockedDates = (newBlockedDates: BlockedDate[]) => {
+    console.log('💾 updateBlockedDates called:', { 
+      oldCount: blockedDates.length, 
+      newCount: newBlockedDates.length,
+      newDates: newBlockedDates.map(d => ({ id: d.id, date: d.date, type: d.type }))
+    });
     setBlockedDates(newBlockedDates);
     saveBlockedDates(newBlockedDates);
+    console.log('✅ Blocked dates updated and saved');
   };
 
   // Helper function to update blocked date ranges with persistence
@@ -117,12 +123,20 @@ export function AvailabilityCalendar() {
   };
 
   const handleBlockDate = () => {
-    if (!selectedDate) return;
+    console.log('🚫 handleBlockDate called!', { selectedDate, blockType, blockReason });
+    
+    if (!selectedDate) {
+      console.error('❌ No selected date!');
+      return;
+    }
 
     const dateStr = selectedDate.toISOString().split('T')[0];
     const existingBlock = blockedDates.find(b => b.date === dateStr);
+    
+    console.log('📅 Date info:', { dateStr, existingBlock, currentBlockedDates: blockedDates.length });
 
     if (existingBlock) {
+      console.log('✏️ Updating existing block');
       // Update existing block
       updateBlockedDates(blockedDates.map(b => 
         b.date === dateStr 
@@ -130,6 +144,7 @@ export function AvailabilityCalendar() {
           : b
       ));
     } else {
+      console.log('➕ Creating new block');
       // Create new block
       const newBlock: BlockedDate = {
         id: Date.now().toString(),
@@ -138,6 +153,7 @@ export function AvailabilityCalendar() {
         blockedTimeslots: blockType === 'partial' ? selectedTimeslots : undefined,
         reason: blockReason
       };
+      console.log('🆕 New block created:', newBlock);
       updateBlockedDates([...blockedDates, newBlock]);
     }
 
