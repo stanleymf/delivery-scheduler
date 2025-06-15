@@ -827,6 +827,125 @@ app.get('/api/public/widget/blocked-date-ranges', (req, res) => {
   }
 });
 
+app.get('/api/public/widget/tag-mapping-settings', (req, res) => {
+  try {
+    // Get the first user's data (admin user)
+    const firstUserId = userData.keys().next().value;
+    if (!firstUserId) {
+      return res.json({
+        success: true,
+        data: {
+          mappings: [
+            {
+              id: 'delivery',
+              type: 'delivery',
+              label: 'Delivery',
+              tag: 'Delivery',
+              enabled: true,
+              description: 'Tag applied when customer selects delivery option'
+            },
+            {
+              id: 'collection',
+              type: 'collection',
+              label: 'Collection',
+              tag: 'Collection',
+              enabled: true,
+              description: 'Tag applied when customer selects collection option'
+            },
+            {
+              id: 'express',
+              type: 'express',
+              label: 'Express Delivery',
+              tag: 'Express',
+              enabled: true,
+              description: 'Tag applied when customer selects express delivery'
+            },
+            {
+              id: 'timeslot',
+              type: 'timeslot',
+              label: 'Timeslot',
+              tag: 'hh:mm-hh:mm',
+              enabled: true,
+              description: 'Tag applied with selected timeslot in 24-hour format'
+            },
+            {
+              id: 'date',
+              type: 'date',
+              label: 'Selected Date',
+              tag: 'dd/mm/yyyy',
+              enabled: true,
+              description: 'Tag applied with selected delivery date'
+            }
+          ],
+          enableTagging: true,
+          prefix: '',
+          separator: ','
+        }
+      });
+    }
+    
+    const userConfig = userData.get(firstUserId);
+    const tagMappingSettings = userConfig?.tagMappingSettings || {
+      mappings: [
+        {
+          id: 'delivery',
+          type: 'delivery',
+          label: 'Delivery',
+          tag: 'Delivery',
+          enabled: true,
+          description: 'Tag applied when customer selects delivery option'
+        },
+        {
+          id: 'collection',
+          type: 'collection',
+          label: 'Collection',
+          tag: 'Collection',
+          enabled: true,
+          description: 'Tag applied when customer selects collection option'
+        },
+        {
+          id: 'express',
+          type: 'express',
+          label: 'Express Delivery',
+          tag: 'Express',
+          enabled: true,
+          description: 'Tag applied when customer selects express delivery'
+        },
+        {
+          id: 'timeslot',
+          type: 'timeslot',
+          label: 'Timeslot',
+          tag: 'hh:mm-hh:mm',
+          enabled: true,
+          description: 'Tag applied with selected timeslot in 24-hour format'
+        },
+        {
+          id: 'date',
+          type: 'date',
+          label: 'Selected Date',
+          tag: 'dd/mm/yyyy',
+          enabled: true,
+          description: 'Tag applied with selected delivery date'
+        }
+      ],
+      enableTagging: true,
+      prefix: '',
+      separator: ','
+    };
+    
+    res.json({
+      success: true,
+      data: tagMappingSettings
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch tag mapping settings',
+      details: error.message
+    });
+  }
+});
+
 // Save user data
 app.post('/api/user/data', authenticateToken, async (req, res) => {
   const userId = req.user;
@@ -1870,6 +1989,124 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Webhook Handler Functions for Delivery Scheduling
 
+// Function to apply delivery tags to orders based on cart attributes
+async function applyDeliveryTagsToOrder(order, credentials, userId) {
+  try {
+    // Check if order has delivery attributes from cart
+    const deliveryTags = order.note_attributes?.find(attr => attr.name === 'delivery_tags')?.value ||
+                        order.attributes?.delivery_tags;
+    
+    if (!deliveryTags) {
+      console.log(`📦 Order ${order.id} has no delivery tags to apply`);
+      return;
+    }
+    
+    console.log(`🏷️ Applying delivery tags to order ${order.id}: ${deliveryTags}`);
+    
+    // Parse the delivery tags (comma-separated)
+    const tagsToAdd = deliveryTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    
+    if (tagsToAdd.length === 0) {
+      console.log(`📦 No valid delivery tags found for order ${order.id}`);
+      return;
+    }
+    
+    // Get existing tags
+    const existingTags = order.tags ? order.tags.split(',').map(tag => tag.trim()) : [];
+    
+    // Combine existing tags with new delivery tags (avoid duplicates)
+    const allTags = [...new Set([...existingTags, ...tagsToAdd])];
+    const tagsString = allTags.join(', ');
+    
+    // Update order with new tags using Shopify Admin API
+    const shopDomain = credentials.shop_domain;
+    const accessToken = credentials.access_token;
+    
+    const updateData = {
+      order: {
+        id: order.id,
+        tags: tagsString
+      }
+    };
+    
+    const response = await fetch(`https://${shopDomain}/admin/api/2023-10/orders/${order.id}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (response.ok) {
+      const updatedOrder = await response.json();
+      console.log(`✅ Successfully applied delivery tags to order ${order.id}:`, tagsToAdd);
+      console.log(`📋 Order ${order.id} now has tags: ${updatedOrder.order.tags}`);
+      
+      // Also update order notes with delivery information
+      await updateOrderNotesWithDeliveryInfo(order, credentials, userId);
+      
+    } else {
+      const errorData = await response.text();
+      console.error(`❌ Failed to apply delivery tags to order ${order.id}:`, response.status, errorData);
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error applying delivery tags to order ${order.id}:`, error);
+  }
+}
+
+// Function to update order notes with delivery information
+async function updateOrderNotesWithDeliveryInfo(order, credentials, userId) {
+  try {
+    // Get delivery notes from order attributes
+    const deliveryNotes = order.note_attributes?.find(attr => attr.name === 'delivery_notes')?.value ||
+                         order.attributes?.delivery_notes;
+    
+    if (!deliveryNotes) {
+      console.log(`📦 Order ${order.id} has no delivery notes to add`);
+      return;
+    }
+    
+    console.log(`📝 Adding delivery notes to order ${order.id}`);
+    
+    // Combine existing notes with delivery notes
+    const existingNotes = order.note || '';
+    const separator = existingNotes ? '\n\n---\n\n' : '';
+    const updatedNotes = existingNotes + separator + deliveryNotes;
+    
+    // Update order with new notes using Shopify Admin API
+    const shopDomain = credentials.shop_domain;
+    const accessToken = credentials.access_token;
+    
+    const updateData = {
+      order: {
+        id: order.id,
+        note: updatedNotes
+      }
+    };
+    
+    const response = await fetch(`https://${shopDomain}/admin/api/2023-10/orders/${order.id}.json`, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (response.ok) {
+      console.log(`✅ Successfully added delivery notes to order ${order.id}`);
+    } else {
+      const errorData = await response.text();
+      console.error(`❌ Failed to add delivery notes to order ${order.id}:`, response.status, errorData);
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error adding delivery notes to order ${order.id}:`, error);
+  }
+}
+
 // Order-related handlers
 async function handleOrderCreated(event, credentials, userId) {
   console.log(`📦 New order created: ${event.id}`);
@@ -1888,6 +2125,9 @@ async function handleOrderCreated(event, credentials, userId) {
       createdAt: order.created_at,
       userId: userId
     };
+
+    // CRITICAL: Apply delivery tags to the order based on cart attributes
+    await applyDeliveryTagsToOrder(order, credentials, userId);
 
     // Check if order has delivery scheduling tags
     const hasDeliveryTag = order.tags && order.tags.includes('delivery-scheduled');

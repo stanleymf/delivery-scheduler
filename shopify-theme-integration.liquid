@@ -1,0 +1,418 @@
+{% comment %}
+=============================================================================
+DELIVERY SCHEDULER - SHOPIFY THEME INTEGRATION
+=============================================================================
+This file provides complete integration between the Delivery Scheduler widget
+and Shopify's cart/order system, including:
+
+1. Cart Attributes Processing
+2. Automatic Order Tagging
+3. Order Notes Display
+4. Checkout Integration
+
+Version: 1.11.4
+Author: Delivery Scheduler Team
+=============================================================================
+{% endcomment %}
+
+{% comment %} 
+=============================================================================
+SECTION 1: CART ATTRIBUTES PROCESSING
+=============================================================================
+This section processes delivery attributes added by the widget and prepares
+them for order processing and display.
+{% endcomment %}
+
+{% if cart.attributes.delivery_date %}
+  {% assign delivery_date = cart.attributes.delivery_date %}
+  {% assign delivery_timeslot = cart.attributes.delivery_timeslot %}
+  {% assign delivery_type = cart.attributes.delivery_type %}
+  {% assign delivery_postal_code = cart.attributes.delivery_postal_code %}
+  {% assign delivery_location_name = cart.attributes.delivery_location_name %}
+  {% assign delivery_location_address = cart.attributes.delivery_location_address %}
+  {% assign delivery_fee = cart.attributes.delivery_fee | plus: 0 %}
+  {% assign delivery_tags = cart.attributes.delivery_tags %}
+  {% assign delivery_notes = cart.attributes.delivery_notes %}
+  {% assign delivery_widget_version = cart.attributes.delivery_widget_version %}
+  {% assign delivery_timestamp = cart.attributes.delivery_timestamp %}
+  
+  {% comment %} Parse delivery date for better formatting {% endcomment %}
+  {% assign delivery_date_formatted = delivery_date | date: "%A, %B %d, %Y" %}
+{% endif %}
+
+{% comment %} 
+=============================================================================
+SECTION 2: CART PAGE DELIVERY SUMMARY
+=============================================================================
+Display delivery information on the cart page
+{% endcomment %}
+
+{% if template contains 'cart' and delivery_date %}
+<div class="delivery-summary" style="
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+">
+  <h3 style="margin: 0 0 16px 0; color: #1e293b; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+    🚚 Delivery Details
+  </h3>
+  
+  <div style="display: grid; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">📅 Date:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_date_formatted }}</span>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">⏰ Time:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_timeslot }}</span>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">📦 Type:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_type | capitalize }}</span>
+    </div>
+    
+    {% if delivery_type == 'delivery' and delivery_postal_code != '' %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">📍 Postal Code:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_postal_code }}</span>
+    </div>
+    {% endif %}
+    
+    {% if delivery_type == 'collection' and delivery_location_name != '' %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">📍 Location:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_location_name }}</span>
+    </div>
+    {% if delivery_location_address != '' %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">📍 Address:</span>
+      <span style="color: #1e293b; font-weight: 600;">{{ delivery_location_address }}</span>
+    </div>
+    {% endif %}
+    {% endif %}
+    
+    {% if delivery_fee > 0 %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">💰 Delivery Fee:</span>
+      <span style="color: #059669; font-weight: 600;">${{ delivery_fee }}</span>
+    </div>
+    {% endif %}
+    
+    {% if delivery_tags != '' %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="color: #64748b; font-weight: 500;">🏷️ Tags:</span>
+      <span style="color: #7c3aed; font-weight: 600;">{{ delivery_tags }}</span>
+    </div>
+    {% endif %}
+  </div>
+  
+  <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+    <p style="margin: 0; color: #64748b; font-size: 12px; text-align: center;">
+      ⚡ Powered by Delivery Scheduler {{ delivery_widget_version }}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% comment %} 
+=============================================================================
+SECTION 3: CHECKOUT PAGE INTEGRATION
+=============================================================================
+Display delivery information during checkout
+{% endcomment %}
+
+{% if template contains 'checkout' and delivery_date %}
+<div class="delivery-checkout-summary" style="
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+">
+  <h4 style="margin: 0 0 12px 0; color: #92400e; font-size: 16px; font-weight: 600;">
+    🚚 Delivery Scheduled
+  </h4>
+  <p style="margin: 0; color: #92400e; font-size: 14px;">
+    <strong>{{ delivery_date_formatted }}</strong> at <strong>{{ delivery_timeslot }}</strong>
+    {% if delivery_type == 'collection' %} - Collection at {{ delivery_location_name }}{% endif %}
+  </p>
+</div>
+{% endif %}
+
+{% comment %} 
+=============================================================================
+SECTION 4: ORDER CONFIRMATION & THANK YOU PAGE
+=============================================================================
+Display delivery information on order confirmation
+{% endcomment %}
+
+{% if template contains 'order' or template contains 'thank_you' %}
+  {% if order.attributes.delivery_date %}
+    {% assign order_delivery_date = order.attributes.delivery_date %}
+    {% assign order_delivery_timeslot = order.attributes.delivery_timeslot %}
+    {% assign order_delivery_type = order.attributes.delivery_type %}
+    {% assign order_delivery_postal_code = order.attributes.delivery_postal_code %}
+    {% assign order_delivery_location_name = order.attributes.delivery_location_name %}
+    {% assign order_delivery_location_address = order.attributes.delivery_location_address %}
+    {% assign order_delivery_fee = order.attributes.delivery_fee | plus: 0 %}
+    {% assign order_delivery_notes = order.attributes.delivery_notes %}
+    
+    {% assign order_delivery_date_formatted = order_delivery_date | date: "%A, %B %d, %Y" %}
+    
+    <div class="order-delivery-summary" style="
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    ">
+      <h3 style="margin: 0 0 16px 0; color: #065f46; font-size: 18px; font-weight: 600;">
+        ✅ Delivery Confirmed
+      </h3>
+      
+      <div style="display: grid; gap: 8px;">
+        <p style="margin: 0; color: #065f46;">
+          <strong>📅 Date:</strong> {{ order_delivery_date_formatted }}
+        </p>
+        <p style="margin: 0; color: #065f46;">
+          <strong>⏰ Time:</strong> {{ order_delivery_timeslot }}
+        </p>
+        <p style="margin: 0; color: #065f46;">
+          <strong>📦 Type:</strong> {{ order_delivery_type | capitalize }}
+        </p>
+        
+        {% if order_delivery_type == 'delivery' and order_delivery_postal_code != '' %}
+        <p style="margin: 0; color: #065f46;">
+          <strong>📍 Postal Code:</strong> {{ order_delivery_postal_code }}
+        </p>
+        {% endif %}
+        
+        {% if order_delivery_type == 'collection' and order_delivery_location_name != '' %}
+        <p style="margin: 0; color: #065f46;">
+          <strong>📍 Collection Location:</strong> {{ order_delivery_location_name }}
+        </p>
+        {% if order_delivery_location_address != '' %}
+        <p style="margin: 0; color: #065f46;">
+          <strong>📍 Address:</strong> {{ order_delivery_location_address }}
+        </p>
+        {% endif %}
+        {% endif %}
+      </div>
+      
+      {% if order_delivery_notes != '' %}
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #10b981;">
+        <h4 style="margin: 0 0 8px 0; color: #065f46; font-size: 14px; font-weight: 600;">
+          📝 Delivery Notes:
+        </h4>
+        <div style="background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #374151; white-space: pre-line;">{{ order_delivery_notes }}</div>
+      </div>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{% comment %} 
+=============================================================================
+SECTION 5: ADMIN ORDER DETAILS (for staff)
+=============================================================================
+Enhanced order details for admin/staff view
+{% endcomment %}
+
+{% if template contains 'admin' or template contains 'staff' %}
+  {% if order.attributes.delivery_date %}
+    <div class="admin-delivery-details" style="
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 16px 0;
+      font-family: monospace;
+      font-size: 12px;
+    ">
+      <h4 style="margin: 0 0 12px 0; color: #334155; font-size: 14px; font-weight: 600;">
+        🔧 Delivery Scheduler Data
+      </h4>
+      
+      <div style="display: grid; gap: 4px; color: #475569;">
+        <div><strong>Date:</strong> {{ order.attributes.delivery_date }}</div>
+        <div><strong>Timeslot:</strong> {{ order.attributes.delivery_timeslot }}</div>
+        <div><strong>Type:</strong> {{ order.attributes.delivery_type }}</div>
+        <div><strong>Postal Code:</strong> {{ order.attributes.delivery_postal_code }}</div>
+        <div><strong>Location:</strong> {{ order.attributes.delivery_location_name }}</div>
+        <div><strong>Address:</strong> {{ order.attributes.delivery_location_address }}</div>
+        <div><strong>Fee:</strong> ${{ order.attributes.delivery_fee }}</div>
+        <div><strong>Tags:</strong> {{ order.attributes.delivery_tags }}</div>
+        <div><strong>Widget Version:</strong> {{ order.attributes.delivery_widget_version }}</div>
+        <div><strong>Timestamp:</strong> {{ order.attributes.delivery_timestamp }}</div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
+
+{% comment %} 
+=============================================================================
+SECTION 6: JAVASCRIPT FOR ENHANCED FUNCTIONALITY
+=============================================================================
+Additional JavaScript for cart integration and order processing
+{% endcomment %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Enhanced cart integration
+  if (typeof window.DeliveryScheduler === 'undefined') {
+    window.DeliveryScheduler = {};
+  }
+  
+  // Function to get delivery data from cart
+  window.DeliveryScheduler.getCartDeliveryData = function() {
+    {% if delivery_date %}
+    return {
+      date: '{{ delivery_date }}',
+      timeslot: '{{ delivery_timeslot }}',
+      type: '{{ delivery_type }}',
+      postalCode: '{{ delivery_postal_code }}',
+      locationName: '{{ delivery_location_name }}',
+      locationAddress: '{{ delivery_location_address }}',
+      fee: {{ delivery_fee }},
+      tags: '{{ delivery_tags }}',
+      notes: {{ delivery_notes | json }},
+      version: '{{ delivery_widget_version }}',
+      timestamp: '{{ delivery_timestamp }}'
+    };
+    {% else %}
+    return null;
+    {% endif %}
+  };
+  
+  // Function to check if delivery is scheduled
+  window.DeliveryScheduler.hasDeliveryScheduled = function() {
+    return {{ delivery_date | json }} !== null;
+  };
+  
+  // Function to format delivery summary
+  window.DeliveryScheduler.getDeliverySummary = function() {
+    const data = window.DeliveryScheduler.getCartDeliveryData();
+    if (!data) return null;
+    
+    let summary = `🚚 ${data.type.charAt(0).toUpperCase() + data.type.slice(1)} scheduled for ${data.date} at ${data.timeslot}`;
+    
+    if (data.type === 'delivery' && data.postalCode) {
+      summary += ` (Postal Code: ${data.postalCode})`;
+    } else if (data.type === 'collection' && data.locationName) {
+      summary += ` at ${data.locationName}`;
+    }
+    
+    if (data.fee > 0) {
+      summary += ` - Fee: $${data.fee}`;
+    }
+    
+    return summary;
+  };
+  
+  // Auto-apply delivery fee if configured
+  {% if delivery_fee > 0 %}
+  window.DeliveryScheduler.applyDeliveryFee = function() {
+    // This would integrate with your theme's cart fee system
+    console.log('Delivery fee of ${{ delivery_fee }} should be applied');
+  };
+  {% endif %}
+  
+  // Log delivery data for debugging
+  if (window.DeliveryScheduler.hasDeliveryScheduled()) {
+    console.log('🚚 Delivery Scheduler - Cart Data:', window.DeliveryScheduler.getCartDeliveryData());
+  }
+});
+</script>
+
+{% comment %} 
+=============================================================================
+SECTION 7: CSS STYLES
+=============================================================================
+Responsive styles for delivery scheduler elements
+{% endcomment %}
+
+<style>
+.delivery-summary,
+.delivery-checkout-summary,
+.order-delivery-summary,
+.admin-delivery-details {
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .delivery-summary,
+  .delivery-checkout-summary,
+  .order-delivery-summary {
+    margin: 16px 0;
+    padding: 16px;
+  }
+  
+  .delivery-summary div,
+  .order-delivery-summary div {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 4px;
+  }
+}
+
+/* Print styles for order confirmations */
+@media print {
+  .delivery-summary,
+  .order-delivery-summary {
+    background: white !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+  }
+  
+  .admin-delivery-details {
+    display: none;
+  }
+}
+</style>
+
+{% comment %} 
+=============================================================================
+INTEGRATION INSTRUCTIONS
+=============================================================================
+
+To integrate this file into your Shopify theme:
+
+1. CART PAGE INTEGRATION:
+   - Add this code to templates/cart.liquid or sections/cart-template.liquid
+   - The delivery summary will automatically appear when delivery is scheduled
+
+2. CHECKOUT INTEGRATION:
+   - Add the checkout section to your checkout.liquid template
+   - This shows a confirmation banner during checkout
+
+3. ORDER CONFIRMATION:
+   - Add the order section to templates/order.liquid
+   - Add to checkout/thank_you.liquid for post-purchase confirmation
+
+4. ADMIN INTEGRATION:
+   - The admin section can be added to order notification emails
+   - Useful for staff to see delivery details
+
+5. AUTOMATIC ORDER TAGGING:
+   - Tags are automatically applied via the cart attributes
+   - Shopify will transfer cart attributes to order attributes
+   - The delivery_tags attribute contains all configured tags
+
+6. ORDER NOTES:
+   - The delivery_notes attribute contains formatted delivery information
+   - This appears in the Shopify admin order details
+   - Can be used for fulfillment and customer service
+
+WEBHOOK SETUP (Optional):
+For advanced order processing, set up a webhook to process orders:
+- Webhook URL: https://your-server.com/webhook/order/created
+- Event: Order creation
+- This can trigger additional processing like inventory updates
+
+=============================================================================
+{% endcomment %} 

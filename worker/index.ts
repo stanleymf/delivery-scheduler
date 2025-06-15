@@ -129,7 +129,13 @@ async function serveWidgetBundle(): Promise<Response> {
         collectionLocations: [],
         settings: {},
         blockedDates: [],
-        blockedDateRanges: []
+        blockedDateRanges: [],
+        tagMappingSettings: {
+            mappings: [],
+            enableTagging: true,
+            prefix: '',
+            separator: ','
+        }
     };
     
     let selectedType = 'delivery';
@@ -144,11 +150,12 @@ async function serveWidgetBundle(): Promise<Response> {
             console.log('Fetching widget data for shop:', shopDomain);
             
             const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
-            const [timeslotsRes, settingsRes, blockedDatesRes, blockedRangesRes] = await Promise.all([
+            const [timeslotsRes, settingsRes, blockedDatesRes, blockedRangesRes, tagMappingRes] = await Promise.all([
                 fetch(baseUrl + '/api/public/widget/timeslots'),
                 fetch(baseUrl + '/api/public/widget/settings'), 
                 fetch(baseUrl + '/api/public/widget/blocked-dates'),
-                fetch(baseUrl + '/api/public/widget/blocked-date-ranges')
+                fetch(baseUrl + '/api/public/widget/blocked-date-ranges'),
+                fetch(baseUrl + '/api/public/widget/tag-mapping-settings')
             ]);
             
             if (timeslotsRes.ok) {
@@ -172,6 +179,16 @@ async function serveWidgetBundle(): Promise<Response> {
                 widgetData.blockedDateRanges = blockedRangesData.data || [];
             }
             
+            if (tagMappingRes.ok) {
+                const tagMappingData = await tagMappingRes.json();
+                widgetData.tagMappingSettings = tagMappingData.data || {
+                    mappings: [],
+                    enableTagging: true,
+                    prefix: '',
+                    separator: ','
+                };
+            }
+            
             console.log('Widget data loaded:', widgetData);
             return true;
         } catch (error) {
@@ -192,7 +209,54 @@ async function serveWidgetBundle(): Promise<Response> {
                 ],
                 settings: {theme: 'light', futureOrderLimit: 10},
                 blockedDates: [],
-                blockedDateRanges: []
+                blockedDateRanges: [],
+                tagMappingSettings: {
+                    mappings: [
+                        {
+                            id: 'delivery',
+                            type: 'delivery',
+                            label: 'Delivery',
+                            tag: 'Delivery',
+                            enabled: true,
+                            description: 'Tag applied when customer selects delivery option'
+                        },
+                        {
+                            id: 'collection',
+                            type: 'collection',
+                            label: 'Collection',
+                            tag: 'Collection',
+                            enabled: true,
+                            description: 'Tag applied when customer selects collection option'
+                        },
+                        {
+                            id: 'express',
+                            type: 'express',
+                            label: 'Express Delivery',
+                            tag: 'Express',
+                            enabled: true,
+                            description: 'Tag applied when customer selects express delivery'
+                        },
+                        {
+                            id: 'timeslot',
+                            type: 'timeslot',
+                            label: 'Timeslot',
+                            tag: 'hh:mm-hh:mm',
+                            enabled: true,
+                            description: 'Tag applied with selected timeslot in 24-hour format'
+                        },
+                        {
+                            id: 'date',
+                            type: 'date',
+                            label: 'Selected Date',
+                            tag: 'dd/mm/yyyy',
+                            enabled: true,
+                            description: 'Tag applied with selected delivery date'
+                        }
+                    ],
+                    enableTagging: true,
+                    prefix: '',
+                    separator: ','
+                }
             };
             return false;
         }
@@ -544,7 +608,7 @@ async function serveWidgetBundle(): Promise<Response> {
         }
     }
     
-    window.addToCartWithDelivery = function() {
+    window.addToCartWithDelivery = async function() {
         if (!selectedDate || !selectedTimeslot) {
             alert('Please select both date and time for delivery');
             return;
@@ -569,14 +633,177 @@ async function serveWidgetBundle(): Promise<Response> {
             timeslot: slot.name,
             type: selectedType,
             postalCode: selectedType === 'delivery' ? postalCode : null,
-            location: selectedType === 'collection' ? location : null
+            location: selectedType === 'collection' ? location : null,
+            fee: slot.fee || 0
         };
         
-        console.log('Delivery preferences:', deliveryData);
+        console.log('🚚 Adding delivery preferences to cart:', deliveryData);
         
-        // Here you would integrate with Shopify cart
-        // For now, show success message
-        alert(\`Delivery scheduled for \${formatDate(selectedDate)} - \${slot.name}\`);
+        // Disable button during processing
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        const originalText = addToCartBtn.textContent;
+        addToCartBtn.disabled = true;
+        addToCartBtn.textContent = 'Adding to Cart...';
+        
+        try {
+            // Generate tags based on tag mapping settings
+            const tags = generateDeliveryTags(deliveryData, widgetData.tagMappingSettings);
+            
+            // Create delivery notes for order
+            const deliveryNotes = generateDeliveryNotes(deliveryData, location);
+            
+            // Add delivery preferences as cart attributes
+            const cartUpdateData = {
+                attributes: {
+                    // Core delivery information
+                    'delivery_date': deliveryData.date,
+                    'delivery_timeslot': deliveryData.timeslot,
+                    'delivery_type': deliveryData.type,
+                    'delivery_postal_code': deliveryData.postalCode || '',
+                    'delivery_location_name': location ? location.name : '',
+                    'delivery_location_address': location ? location.address : '',
+                    'delivery_fee': deliveryData.fee.toString(),
+                    
+                    // Tags for order processing
+                    'delivery_tags': tags.join(','),
+                    
+                    // Notes for order display
+                    'delivery_notes': deliveryNotes,
+                    
+                    // Metadata
+                    'delivery_widget_version': '1.11.4',
+                    'delivery_timestamp': new Date().toISOString()
+                }
+            };
+            
+            // Update cart with delivery attributes
+            const response = await fetch('/cart/update.js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(cartUpdateData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(\`Cart update failed: \${response.status} \${response.statusText}\`);
+            }
+            
+            const cartData = await response.json();
+            console.log('✅ Cart updated successfully:', cartData);
+            
+            // Show success message with details
+            const successMessage = \`✅ Delivery Added Successfully!
+            
+📅 Date: \${formatDate(selectedDate)}
+⏰ Time: \${slot.name}
+🚚 Type: \${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}
+\${deliveryData.postalCode ? \`📍 Postal Code: \${deliveryData.postalCode}\` : ''}
+\${location ? \`📍 Location: \${location.name}\` : ''}
+\${deliveryData.fee > 0 ? \`💰 Fee: $\${deliveryData.fee}\` : ''}
+
+🏷️ Tags: \${tags.join(', ')}
+
+Your delivery preferences have been added to your cart!\`;
+            
+            alert(successMessage);
+            
+            // Optional: Redirect to cart page
+            // window.location.href = '/cart';
+            
+        } catch (error) {
+            console.error('❌ Error adding delivery to cart:', error);
+            alert(\`Error adding delivery to cart: \${error.message}\`);
+        } finally {
+            // Re-enable button
+            addToCartBtn.disabled = false;
+            addToCartBtn.textContent = originalText;
+        }
+    };
+    
+    // Generate delivery tags based on tag mapping settings
+    function generateDeliveryTags(deliveryData, tagMappingSettings) {
+        if (!tagMappingSettings || !tagMappingSettings.enableTagging) {
+            return [];
+        }
+        
+        const tags = [];
+        const { mappings, prefix, separator } = tagMappingSettings;
+        
+        mappings.forEach(mapping => {
+            if (!mapping.enabled) return;
+            
+            let tag = mapping.tag;
+            
+            switch (mapping.type) {
+                case 'delivery':
+                    if (deliveryData.type === 'delivery') {
+                        tags.push(prefix + tag);
+                    }
+                    break;
+                case 'collection':
+                    if (deliveryData.type === 'collection') {
+                        tags.push(prefix + tag);
+                    }
+                    break;
+                case 'express':
+                    if (deliveryData.fee > 0) { // Express delivery has fee
+                        tags.push(prefix + tag);
+                    }
+                    break;
+                case 'timeslot':
+                    // Replace placeholder with actual timeslot
+                    const slot = widgetData.timeslots.find(s => s.name === deliveryData.timeslot);
+                    if (slot) {
+                        tag = tag.replace('hh:mm-hh:mm', \`\${slot.startTime}-\${slot.endTime}\`);
+                        tag = tag.replace('hh:mm', slot.startTime);
+                        tags.push(prefix + tag);
+                    }
+                    break;
+                case 'date':
+                    // Replace placeholder with actual date
+                    const date = new Date(deliveryData.date);
+                    tag = tag.replace('dd/mm/yyyy', date.toLocaleDateString('en-GB'));
+                    tag = tag.replace('dd/mm', date.toLocaleDateString('en-GB').slice(0, 5));
+                    tags.push(prefix + tag);
+                    break;
+            }
+        });
+        
+        return tags;
+    }
+    
+    // Generate delivery notes for order display
+    function generateDeliveryNotes(deliveryData, location) {
+        const notes = [];
+        
+        notes.push(\`🚚 DELIVERY DETAILS\`);
+        notes.push(\`📅 Date: \${new Date(deliveryData.date).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        })}\`);
+        notes.push(\`⏰ Time: \${deliveryData.timeslot}\`);
+        notes.push(\`📦 Type: \${deliveryData.type.charAt(0).toUpperCase() + deliveryData.type.slice(1)}\`);
+        
+        if (deliveryData.type === 'delivery' && deliveryData.postalCode) {
+            notes.push(\`📍 Postal Code: \${deliveryData.postalCode}\`);
+        }
+        
+        if (deliveryData.type === 'collection' && location) {
+            notes.push(\`📍 Collection Location: \${location.name}\`);
+            notes.push(\`📍 Address: \${location.address}\`);
+        }
+        
+        if (deliveryData.fee > 0) {
+            notes.push(\`💰 Delivery Fee: $\${deliveryData.fee}\`);
+        }
+        
+        notes.push(\`\\n⚡ Powered by Delivery Scheduler v1.11.4\`);
+        
+        return notes.join('\\n');
     };
     
     // Auto-initialize widgets

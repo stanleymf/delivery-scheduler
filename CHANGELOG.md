@@ -5,6 +5,65 @@ All notable changes to the Delivery Scheduler project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2024-12-19
+
+### 🚀 MAJOR RELEASE - Complete Shopify Cart Integration
+
+#### 🏷️ AUTOMATIC ORDER TAGGING (MOST IMPORTANT!)
+- **Automatic delivery tag application** to orders based on tag mapping settings
+- **Real-time tag processing** via webhook when orders are created
+- **Configurable tag mapping** from admin dashboard applied to customer orders
+- **Tag inheritance** from cart attributes to order tags seamlessly
+
+#### 🛒 COMPLETE CART INTEGRATION
+- **Cart attributes processing** - delivery preferences stored as cart attributes
+- **Shopify cart API integration** - proper `/cart/update.js` integration
+- **Error handling and validation** - comprehensive cart update error handling
+- **User feedback system** - detailed success/error messages for customers
+
+#### 📝 ORDER NOTES INTEGRATION
+- **Automatic order notes** - delivery details added to Shopify order notes section
+- **Formatted delivery information** - professional formatting matching Shopify admin
+- **Order confirmation display** - delivery details shown on order confirmation pages
+- **Admin order details** - enhanced order information for staff processing
+
+#### 🎨 SHOPIFY THEME INTEGRATION
+- **Complete theme integration file** (`shopify-theme-integration.liquid`)
+- **Cart page delivery summary** - shows delivery details on cart page
+- **Checkout confirmation banner** - delivery confirmation during checkout
+- **Order confirmation display** - delivery details on thank you page
+- **Responsive design** - mobile-friendly delivery displays
+- **Print-friendly styling** - proper order confirmation printing
+
+#### 🔧 TECHNICAL ENHANCEMENTS
+- **Tag mapping settings API** - `/api/public/widget/tag-mapping-settings` endpoint
+- **Enhanced widget data fetching** - includes tag mapping configuration
+- **Webhook order processing** - automatic tag application on order creation
+- **Cart attribute validation** - comprehensive delivery data validation
+- **Delivery fee handling** - proper fee calculation and display
+
+#### 📋 INTEGRATION FEATURES
+- **Cart attributes** → **Order attributes** → **Order tags** (complete flow)
+- **Delivery notes** → **Order notes** (automatic transfer)
+- **Tag mapping settings** → **Applied tags** (configurable tagging)
+- **Widget selections** → **Shopify order data** (seamless integration)
+
+#### 🛡️ BACKWARD COMPATIBILITY
+- **Fully backward compatible** - no breaking changes to existing functionality
+- **Enhanced existing features** - all previous features maintained and improved
+- **Optional integration** - theme integration is optional, widget works standalone
+
+### Files Added
+- `shopify-theme-integration.liquid` - Complete Shopify theme integration
+- Enhanced webhook handlers for automatic order processing
+- Tag mapping settings public API endpoint
+
+### Technical Implementation
+- Added `applyDeliveryTagsToOrder()` function for automatic tagging
+- Added `updateOrderNotesWithDeliveryInfo()` for order notes enhancement
+- Enhanced widget with tag generation and cart integration
+- Comprehensive error handling and user feedback systems
+
 ## [1.11.4] - 2024-12-19
 
 ### 🚨 CRITICAL FIX - Restore Data Persistence
