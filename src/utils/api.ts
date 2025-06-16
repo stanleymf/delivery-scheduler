@@ -1,4 +1,4 @@
-import { AUTH_CONFIG } from '@/config/auth';
+import { AUTH_CONFIG, updateSessionTimestamp, isSessionExpired } from '@/config/auth';
 
 // Get authentication headers for API requests
 export const getAuthHeaders = (): Record<string, string> => {
@@ -11,6 +11,15 @@ export const getAuthHeaders = (): Record<string, string> => {
 
 // Make authenticated API request
 export const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+  // Check if session is expired before making request
+  if (isSessionExpired()) {
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+    localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+    localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
+    window.location.href = '/';
+    throw new Error('Session expired');
+  }
+
   const headers = getAuthHeaders();
   
   const response = await fetch(url, {
@@ -26,8 +35,13 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
     localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
     localStorage.removeItem(AUTH_CONFIG.USER_KEY);
     localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
-    window.location.href = '/login';
+    window.location.href = '/';
     throw new Error('Unauthorized');
+  }
+
+  // If request was successful, refresh session timestamp
+  if (response.ok) {
+    updateSessionTimestamp();
   }
 
   return response;

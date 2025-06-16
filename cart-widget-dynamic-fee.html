@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Scheduler Widget - Dynamic Fee v1.13.0</title>
+    <title>Delivery Scheduler Widget - Enhanced Mobile & Session v1.15.1</title>
     <style>
         /* Widget Styles */
         .delivery-scheduler {
@@ -176,6 +176,43 @@
             text-align: center;
             padding: 20px;
             color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .button-loading {
+            position: relative;
+            color: transparent !important;
+        }
+
+        .button-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
         .widget-version {
@@ -183,6 +220,82 @@
             color: #999;
             text-align: center;
             margin-top: 10px;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .delivery-scheduler {
+                margin: 10px;
+                padding: 15px;
+                border-radius: 6px;
+            }
+
+            .delivery-scheduler h3 {
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+
+            .timeslot-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .timeslot-option {
+                padding: 15px;
+                border-radius: 8px;
+                min-height: 60px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .timeslot-option:hover {
+                transform: scale(1.02);
+            }
+
+            .timeslot-name {
+                font-size: 15px;
+                margin-bottom: 3px;
+            }
+
+            .timeslot-fee {
+                font-size: 13px;
+                font-weight: 700;
+            }
+
+            .timeslot-availability {
+                font-size: 12px;
+                margin-top: 3px;
+            }
+
+            .delivery-type-selector select,
+            .date-selector input {
+                padding: 12px;
+                font-size: 16px; /* Prevents iOS zoom */
+                border-radius: 6px;
+            }
+
+            .save-button {
+                padding: 15px;
+                font-size: 17px;
+                border-radius: 6px;
+                margin-top: 5px;
+            }
+        }
+
+        /* Touch optimization */
+        @media (hover: none) and (pointer: coarse) {
+            .timeslot-option:hover {
+                border-color: #e0e0e0;
+                background: white;
+                transform: none;
+            }
+
+            .timeslot-option:active {
+                transform: scale(0.98);
+                border-color: #007bff;
+                background: #e7f3ff;
+            }
         }
     </style>
 </head>
@@ -213,13 +326,13 @@
 
         <button class="save-button" id="saveButton" disabled>Save Delivery Preferences</button>
         
-        <div class="widget-version">Delivery Scheduler v1.13.0 - Dynamic Fee</div>
+        <div class="widget-version">Delivery Scheduler v1.15.1 - Enhanced Mobile & Session</div>
     </div>
 
     <script>
         // Widget Configuration
         const WIDGET_CONFIG = {
-            version: '1.13.0',
+            version: '1.15.1',
             apiBaseUrl: 'https://delivery-scheduler-production.up.railway.app',
             debug: true,
             dynamicFeeVariantId: null, // Will be set dynamically
@@ -248,8 +361,24 @@
             
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
-            errorDiv.textContent = message;
+            errorDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">⚠️</span>
+                    <span>${message}</span>
+                </div>
+            `;
             document.getElementById('saveButton').parentNode.insertBefore(errorDiv, document.getElementById('saveButton').nextSibling);
+            
+            // Auto-hide after 8 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.style.transition = 'opacity 0.3s ease';
+                    errorDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        if (errorDiv.parentNode) errorDiv.remove();
+                    }, 300);
+                }
+            }, 8000);
         }
 
         function showSuccess(message) {
@@ -258,8 +387,24 @@
             
             const successDiv = document.createElement('div');
             successDiv.className = 'success-message';
-            successDiv.textContent = message;
+            successDiv.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">✅</span>
+                    <span>${message}</span>
+                </div>
+            `;
             document.getElementById('saveButton').parentNode.insertBefore(successDiv, document.getElementById('saveButton').nextSibling);
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.style.transition = 'opacity 0.3s ease';
+                    successDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        if (successDiv.parentNode) successDiv.remove();
+                    }, 300);
+                }
+            }, 5000);
         }
 
         function clearMessages() {
@@ -468,8 +613,10 @@
 
             try {
                 clearMessages();
-                document.getElementById('saveButton').disabled = true;
-                document.getElementById('saveButton').textContent = 'Saving...';
+                const saveButton = document.getElementById('saveButton');
+                saveButton.disabled = true;
+                saveButton.classList.add('button-loading');
+                saveButton.textContent = 'Saving...';
 
                 const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
                 if (!selectedSlot) {
@@ -551,8 +698,10 @@
                 log('❌ Error saving to cart:', error);
                 showError('Failed to save delivery preferences. Please try again.');
             } finally {
-                document.getElementById('saveButton').disabled = false;
-                document.getElementById('saveButton').textContent = 'Save Delivery Preferences';
+                const saveButton = document.getElementById('saveButton');
+                saveButton.disabled = false;
+                saveButton.classList.remove('button-loading');
+                saveButton.textContent = 'Save Delivery Preferences';
             }
         }
 
@@ -561,7 +710,7 @@
             const grid = document.getElementById('timeslotGrid');
             
             if (widgetState.isLoading) {
-                grid.innerHTML = '<div class="loading">Loading available time slots...</div>';
+                grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading available time slots...</div>';
                 return;
             }
 

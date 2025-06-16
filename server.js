@@ -556,7 +556,7 @@ app.post('/api/shopify/webhook', express.raw({ type: 'application/json' }), asyn
   // Verify HMAC signature (critical for security)
   const generatedHmac = crypto
     .createHmac('sha256', userCredentials.appSecret)
-    .update(body, 'utf8')
+    .update(Buffer.isBuffer(body) ? body : Buffer.from(body), 'utf8')
     .digest('base64');
 
   if (generatedHmac !== hmacHeader) {

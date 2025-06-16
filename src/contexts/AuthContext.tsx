@@ -63,6 +63,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
+  // Auto-refresh session on activity
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const refreshSession = () => {
+      if (!isSessionExpired()) {
+        updateSessionTimestamp();
+      } else {
+        // Session expired, logout
+        logout();
+      }
+    };
+
+    // Refresh session on user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    const throttledRefresh = throttle(refreshSession, 60000); // Throttle to once per minute
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, throttledRefresh, true);
+    });
+
+    // Also refresh every 5 minutes regardless of activity
+    const interval = setInterval(() => {
+      if (isAuthenticated && !isSessionExpired()) {
+        updateSessionTimestamp();
+      } else if (isAuthenticated) {
+        logout();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => {
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, throttledRefresh, true);
+      });
+      clearInterval(interval);
+    };
+  }, [isAuthenticated]);
+
+  // Throttle function to limit how often we update the session
+  const throttle = (func: Function, limit: number) => {
+    let inThrottle: boolean;
+    return function(this: any, ...args: any[]) {
+      if (!inThrottle) {
+        func.apply(this, args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  };
+
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     

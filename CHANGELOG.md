@@ -1,5 +1,71 @@
 # Changelog
 
+## [1.15.1] - 2024-12-19
+
+### 🔐 CRITICAL SESSION MANAGEMENT FIX - NO MORE UNEXPECTED LOGOUTS!
+
+#### 🚨 PROBLEM SOLVED: Automatic Logout During Active Usage
+- **Fixed**: Users being logged out unexpectedly while actively using the admin dashboard
+- **Fixed**: Session expiring after navigating between pages for extended periods
+- **Fixed**: Lost work and configurations due to sudden authentication timeouts
+- **Fixed**: Having to re-login multiple times during long admin sessions
+
+#### 🔄 INTELLIGENT SESSION REFRESH SYSTEM
+- **Automatic Activity Detection** - Session refreshes on user activity (clicks, scrolls, typing, navigation)
+- **Throttled Updates** - Smart refresh limiting (once per minute) to prevent excessive API calls
+- **Background Monitoring** - Automatic session refresh every 5 minutes regardless of activity
+- **API Integration** - Session timestamp updates on every successful API call
+- **Graceful Expiration** - Proper handling when sessions actually need to expire
+
+#### ⏰ EXTENDED SESSION DURATION
+- **Increased from 24 hours to 7 days** - Much more user-friendly timeout period
+- **Active User Protection** - As long as you're using the app, session never expires
+- **Smart Inactivity** - Only logs out after 7 days of complete inactivity
+- **Peace of Mind** - Work on configurations without fear of losing progress
+
+#### 🎯 ENHANCED USER EXPERIENCE
+- **Seamless Navigation** - Move between pages without session concerns
+- **Work Protection** - Never lose configurations due to unexpected logouts
+- **Professional Feel** - App stays logged in like modern web applications
+- **Zero Interruption** - Focus on work instead of authentication issues
+
+#### 📱 MOBILE WIDGET ENHANCEMENTS
+- **Touch-Optimized Interface** - Better mobile responsiveness with larger touch targets
+- **iOS Safari Optimization** - 16px font size prevents unwanted zoom on form fields
+- **Enhanced Loading States** - Professional animated spinners and visual feedback
+- **Auto-Dismissing Messages** - Error and success messages fade automatically
+- **Visual Improvements** - Icons, better spacing, smooth transitions
+
+#### 🔧 TECHNICAL IMPROVEMENTS
+- **Activity Event Listeners** - Monitors mousedown, mousemove, keypress, scroll, touchstart, click
+- **Throttled Refresh Logic** - Prevents excessive session updates while maintaining responsiveness
+- **Pre-request Validation** - Checks session validity before making API calls
+- **Post-request Updates** - Refreshes session on successful API responses
+- **Memory Efficient** - Proper cleanup of event listeners and intervals
+
+### Technical Implementation
+- **Enhanced AuthContext** - Added automatic session refresh with activity detection
+- **Improved API Utils** - Session validation and refresh on API calls
+- **Extended Session Config** - 7-day timeout with intelligent refresh system
+- **Widget Mobile Optimization** - Responsive design improvements and loading states
+- **Event Management** - Proper event listener setup and cleanup
+
+### Files Updated
+- `src/contexts/AuthContext.tsx` - Added automatic session refresh functionality
+- `src/utils/api.ts` - Enhanced with session validation and refresh
+- `src/config/auth.ts` - Extended session timeout to 7 days
+- `cart-widget-dynamic-fee.html` - Mobile optimizations and loading improvements
+
+### Breaking Changes
+- None - fully backward compatible with existing authentication
+
+### Migration Notes
+- Existing logged-in users will automatically benefit from extended sessions
+- No action required - improvements are automatic and transparent
+- Session refresh happens seamlessly in the background
+
+---
+
 ## [1.15.0] - 2024-12-19
 
 ### 🔧 COMPLETE RAILWAY PERSISTENCE SOLUTION - NO MORE DATA LOSS!

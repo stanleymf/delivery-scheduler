@@ -5,7 +5,7 @@ export const AUTH_CONFIG = {
   ADMIN_PASSWORD: (import.meta as any).env?.VITE_ADMIN_PASSWORD || 'admin123',
   
   // Session configuration
-  SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  SESSION_TIMEOUT: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds (extended for better UX)
   
   // Storage keys
   TOKEN_KEY: 'admin_token',
