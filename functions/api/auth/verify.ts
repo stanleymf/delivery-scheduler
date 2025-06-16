@@ -3,7 +3,7 @@ interface Env {
   // Define environment variables if needed
 }
 
-export async function onRequestPost(context: { request: Request; env: Env }) {
+export async function onRequest(context: { request: Request; env: Env }) {
   const { request } = context;
   
   try {

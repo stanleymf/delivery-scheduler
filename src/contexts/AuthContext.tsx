@@ -24,37 +24,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('🔍 Checking authentication...');
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+      const storedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
       
-      if (token && !isSessionExpired()) {
+      if (token && storedUser && !isSessionExpired()) {
+        console.log('✅ Valid session found, user:', storedUser);
+        setIsAuthenticated(true);
+        setUser(storedUser);
+        updateSessionTimestamp();
+        
+        // Initialize sync service after successful authentication
         try {
-          // Verify token with server
-          const response = await fetch('/api/auth/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setIsAuthenticated(true);
-            setUser(data.user);
-            updateSessionTimestamp();
-            
-            // Initialize sync service after successful authentication
-            userDataSync.initialize();
-          } else {
-            // Token is invalid, clear it
-            logout();
-          }
+          userDataSync.initialize();
         } catch (error) {
-          console.error('Auth verification failed:', error);
-          logout();
+          console.warn('⚠️ Failed to initialize userDataSync:', error);
         }
       } else {
-        // No token or expired session
-        logout();
+        console.log('❌ No valid session found');
+        // Clear any stale data
+        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+        localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+        localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
+        setIsAuthenticated(false);
+        setUser(null);
       }
       
       setIsLoading(false);
@@ -72,6 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updateSessionTimestamp();
       } else {
         // Session expired, logout
+        console.log('⏱️ Session expired, logging out');
         logout();
       }
     };
@@ -115,6 +109,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    console.log('🔐 Attempting login for user:', username);
     
     try {
       const response = await fetch('/api/auth/login', {
@@ -127,6 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Login successful:', data);
         
         // Store authentication data
         localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, data.token);
@@ -137,25 +133,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.user);
         
         // Initialize sync service after successful login
-        userDataSync.initialize();
+        try {
+          userDataSync.initialize();
+        } catch (error) {
+          console.warn('⚠️ Failed to initialize userDataSync:', error);
+        }
         
         setIsLoading(false);
         return true;
       } else {
+        const errorData = await response.json();
+        console.log('❌ Login failed:', errorData);
         setIsLoading(false);
         return false;
       }
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('❌ Login error:', error);
       setIsLoading(false);
       return false;
     }
   };
 
   const logout = async (): Promise<void> => {
+    console.log('🚪 Logging out...');
     const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
     
-    // Try to logout from server
+    // Try to logout from server (but don't block on it)
     if (token) {
       try {
         await fetch('/api/auth/logout', {
@@ -176,7 +179,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
     
     // Stop sync service
-    userDataSync.stopAutoSync();
+    try {
+      userDataSync.stopAutoSync();
+    } catch (error) {
+      console.warn('⚠️ Failed to stop userDataSync:', error);
+    }
     
     setIsAuthenticated(false);
     setUser(null);
