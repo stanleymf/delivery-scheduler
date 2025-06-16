@@ -1,5 +1,101 @@
 # Changelog
 
+## [1.16.0] - 2024-12-20
+
+### 🚀 CLOUDFLARE MIGRATION COMPLETE - RESTORED MISSING FEATURES!
+
+#### 🔄 MAJOR INFRASTRUCTURE MIGRATION
+- **Platform Migration**: Successfully migrated from Railway to Cloudflare Pages + Workers
+- **Data Persistence**: Implemented Cloudflare KV storage for reliable data persistence
+- **Performance**: Improved global performance with Cloudflare's edge network
+- **Reliability**: Enhanced uptime and availability with Cloudflare infrastructure
+
+#### ✅ RESTORED BULK DAY ASSIGNMENT FOR TIMESLOTS
+- **Enhanced UI**: Bulk assignment buttons now prominently displayed in highlighted section
+- **Quick Selection**: ✅ All Days, ❌ Clear All, 📅 Mon-Fri, 🏖️ Sat-Sun buttons
+- **Visual Feedback**: Live preview of selected days with badge display
+- **Improved UX**: More discoverable and user-friendly than previous implementation
+- **Full Functionality**: Individual day checkboxes + bulk selection buttons working perfectly
+
+#### 🏷️ COMPREHENSIVE ORDER TAGGING SYSTEM (SIMPLIFIED 3-TAG APPROACH)
+- **New Module**: `src/lib/enhancedTagging.ts` - Clean, professional tagging functions
+- **Simplified Tags**: Only 3 essential tags per order for clean Shopify management
+  - **Delivery Type**: `Delivery`, `Collection`, or `Express`
+  - **Date Format**: `dd/mm/yyyy` (e.g., `20/12/2024`)
+  - **Timeslot Format**: `hh:mm-hh:mm` (e.g., `10:00-14:00`)
+- **Enhanced UI**: Updated TagMappingSettings component with live preview
+- **Cart Integration**: Comprehensive cart attributes and delivery notes generation
+- **Example Output**: `Delivery, 20/12/2024, 10:00-14:00`
+
+#### 💰 SHOPIFY FEE AUTOMATION SYSTEM (CONFIRMED WORKING)
+- **Server Endpoints**: All API endpoints confirmed working:
+  - `/api/shopify/automate-express-fees` - Auto-create fee products
+  - `/api/shopify/fee-automation-status` - Monitor automation status
+  - `/api/shopify/cleanup-fee-products` - Clean orphaned products
+- **UI Integration**: FeeAutomationPanel properly integrated in ShopifySettings
+- **Cloudflare Support**: Added KV storage for fee product management
+- **Auto-fee Products**: Seamless express delivery fee integration
+
+#### 🔧 ENHANCED CART WIDGET (v1.15.2)
+- **New Widget**: `cart-widget-enhanced-tagging.html` with modern UI
+- **Real-time Tagging**: Live tag preview for customers during selection
+- **Fee Integration**: Automatic Shopify fee product addition to cart
+- **Comprehensive Notes**: Detailed delivery information in order notes
+- **Mobile Optimized**: Responsive design with professional styling
+
+#### ☁️ CLOUDFLARE INFRASTRUCTURE ENHANCEMENTS
+- **KV Storage**: Full data persistence using Cloudflare KV
+- **Worker APIs**: New API endpoints for enhanced functionality:
+  - `/api/kv/data` - Get/save delivery data with backup support
+  - `/api/shopify-fees/products` - Manage fee products in KV storage
+  - `/api/enhanced-tagging/generate` - Generate simplified tags
+  - `/widget-enhanced.html` - Serve enhanced widget
+- **Fallback System**: Automatic fallback to KV when Railway dashboard unavailable
+- **Health Monitoring**: Enhanced health checks with KV connection testing
+
+#### 📊 DATA MIGRATION & BACKUP
+- **Backup System**: Automated KV backup creation with timestamps
+- **Data Restoration**: Seamless restoration of timeslots, settings, blocked dates
+- **Version Tracking**: Data versioning with lastUpdated timestamps
+- **Migration Tools**: Scripts and APIs for data migration between environments
+
+#### 🎯 TECHNICAL IMPROVEMENTS
+- **Enhanced Worker**: Updated worker interface with KV and D1 database support
+- **Error Handling**: Comprehensive error handling with graceful degradation
+- **Performance**: Optimized API calls with parallel data fetching
+- **Monitoring**: Enhanced debugging and health check endpoints
+- **Security**: Improved authentication and environment variable management
+
+#### 🔧 UPDATED COMPONENTS
+- **TimeSlots.tsx**: Enhanced bulk day assignment with visual improvements
+- **TagMappingSettings.tsx**: Simplified 3-tag system with live preview
+- **ShopifySettings.tsx**: Confirmed fee automation panel integration
+- **worker/index.ts**: Full Cloudflare infrastructure support
+- **enhancedTagging.ts**: New comprehensive tagging utility module
+
+#### 🚀 DEPLOYMENT IMPROVEMENTS
+- **Cloudflare Pages**: Automatic deployment from Git
+- **Worker Deployment**: Seamless worker updates with new APIs
+- **Environment Sync**: Proper environment variable management
+- **Version Control**: Git-based deployment with proper versioning
+
+### Migration Notes
+- All Railway features successfully restored on Cloudflare
+- Enhanced bulk day assignment more user-friendly than before
+- Simplified tagging system provides cleaner Shopify order management
+- Shopify fee automation working seamlessly with Cloudflare KV storage
+- No breaking changes - all existing functionality preserved and enhanced
+
+### Files Added/Updated
+- `src/lib/enhancedTagging.ts` - New comprehensive tagging system
+- `cart-widget-enhanced-tagging.html` - Enhanced customer widget
+- `src/components/modules/TimeSlots.tsx` - Enhanced bulk day assignment UI
+- `src/components/modules/TagMappingSettings.tsx` - Simplified tagging interface
+- `worker/index.ts` - Full Cloudflare infrastructure support
+- `package.json` - Version bump to 1.16.0
+
+---
+
 ## [1.15.2] - 2024-12-19
 
 ### 🗓️ CRITICAL WIDGET CALENDAR SYNC FIX - BLOCKED DATES NOW WORK!

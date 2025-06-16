@@ -1,147 +1,36 @@
-export interface Env {
-	ADMIN_DASHBOARD_URL: string;
-	// Cloudflare KV Storage for data persistence
-	DELIVERY_DATA: any; // KVNamespace type will be available in Cloudflare Workers runtime
-	// Optional D1 Database for more complex operations
-	DB?: any; // D1Database type will be available in Cloudflare Workers runtime
-	// Authentication secret for admin operations
-	ADMIN_SECRET?: string;
-}
-
-// Data models for persistence
-interface DeliveryData {
-	timeslots: any[];
-	blockedDates: any[];
-	blockedDateRanges: any[];
-	settings: any;
-	collectionLocations: any[];
-	tagMappingSettings: any;
-	expressSlots: any[];
-	lastUpdated: string;
-}
-
-interface ShopifyFeeProduct {
-	id: string;
-	handle: string;
-	title: string;
-	variantId: string;
-	price: string;
-	created: string;
-	timeslotId: string;
-}
-
-export default {
-	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
-		const url = new URL(request.url);
-		const path = url.pathname;
-
-		// CORS headers
-		const corsHeaders = {
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-		};
-
-		// Handle preflight requests
-		if (request.method === 'OPTIONS') {
-			return new Response(null, { headers: corsHeaders });
-		}
-
-		try {
-			// Serve customer widget bundle - PRIORITY ROUTE
-			if (path === '/widget.js') {
-				return await serveWidgetBundle();
-			}
-
-			// Serve widget CSS
-			if (path === '/widget.css') {
-				return await serveWidgetCSS();
-			}
-
-			// Enhanced cart widget with comprehensive tagging
-			if (path === '/widget-enhanced.html') {
-				return await serveEnhancedWidget();
-			}
-
-			// Cloudflare KV Data Persistence API Routes
-			if (path.startsWith('/api/kv/')) {
-				return await handleKVDataAPI(request, env, path, corsHeaders);
-			}
-
-			// Shopify Fee Automation API Routes
-			if (path.startsWith('/api/shopify-fees/')) {
-				return await handleShopifyFeeAPI(request, env, path, corsHeaders);
-			}
-
-			// Enhanced tagging API routes
-			if (path.startsWith('/api/enhanced-tagging/')) {
-				return await handleEnhancedTaggingAPI(request, env, path, corsHeaders);
-			}
-
-			// Proxy API requests to Railway admin dashboard (fallback to KV if unavailable)
-			if (path.startsWith('/api/')) {
-				return await proxyToAdminDashboardWithFallback(request, env, path);
-			}
-
-			// Health check
-			if (path === '/health') {
-				const kvStatus = await testKVConnection(env);
-				return new Response(JSON.stringify({ 
-					status: 'ok', 
-					version: '1.15.2',
-					adminDashboard: env.ADMIN_DASHBOARD_URL ? 'configured' : 'not configured',
-					cloudflareKV: kvStatus ? 'connected' : 'not available',
-					timestamp: new Date().toISOString()
-				}), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-				});
-			}
-
-			// Debug endpoint
-			if (path === '/debug') {
-				const kvTest = await testKVConnection(env);
-				return new Response(JSON.stringify({
-					adminDashboardUrl: env.ADMIN_DASHBOARD_URL || 'Not configured',
-					cloudflareKV: kvTest,
-					timestamp: new Date().toISOString(),
-					testUrl: env.ADMIN_DASHBOARD_URL ? `${env.ADMIN_DASHBOARD_URL}/api/version` : 'N/A'
-				}), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-				});
-			}
-
-			// Test proxy endpoint
-			if (path === '/test-proxy') {
-				try {
-					const testUrl = `${env.ADMIN_DASHBOARD_URL}/api/version`;
-					console.log(`Direct test fetch to: ${testUrl}`);
-					const response = await fetch(testUrl);
-					const text = await response.text();
-					console.log(`Response status: ${response.status}, text: ${text.substring(0, 200)}`);
-					
-					return new Response(JSON.stringify({
-						testUrl,
-						status: response.status,
-						statusText: response.statusText,
-						responseText: text.substring(0, 500),
-						headers: Object.fromEntries(response.headers.entries())
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-					});
-				} catch (error) {
-					return new Response(JSON.stringify({
-						error: error.message,
-						testUrl: `${env.ADMIN_DASHBOARD_URL}/api/version`
-					}), {
-						status: 500,
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-					});
-				}
-			}
-
-			// Widget documentation
-			if (path === '/widget-docs') {
-				return new Response(`
+const index = {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    };
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+    try {
+      if (path === "/widget.js") {
+        return await serveWidgetBundle();
+      }
+      if (path === "/widget.css") {
+        return await serveWidgetCSS();
+      }
+      if (path.startsWith("/api/")) {
+        return await proxyToAdminDashboard(request, env, path);
+      }
+      if (path === "/health") {
+        return new Response(JSON.stringify({
+          status: "ok",
+          version: "1.7.0",
+          adminDashboard: env.ADMIN_DASHBOARD_URL ? "configured" : "not configured"
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      if (path === "/widget-docs") {
+        return new Response(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -184,106 +73,28 @@ export default {
     </ul>
     
     <h2>Architecture</h2>
-    <p>This widget fetches live data from: <strong>${env.ADMIN_DASHBOARD_URL || 'Not configured'}</strong></p>
+    <p>This widget fetches live data from: <strong>${env.ADMIN_DASHBOARD_URL || "Not configured"}</strong></p>
 </body>
 </html>
 				`, {
-					headers: { 'Content-Type': 'text/html' }
-				});
-			}
-
-			// Root route - widget landing page
-			if (path === '/') {
-				return new Response(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Scheduler Widget</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px; background: #f8fafc; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .header { text-align: center; margin-bottom: 40px; }
-        .title { color: #1e293b; font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; }
-        .subtitle { color: #64748b; font-size: 1.125rem; }
-        .status { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 32px; }
-        .status-badge { background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; font-weight: 500; }
-        .info-grid { display: grid; gap: 24px; margin-bottom: 32px; }
-        .info-card { background: #f8fafc; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .info-title { font-weight: 600; color: #374151; margin-bottom: 8px; }
-        .info-value { color: #6b7280; }
-        .btn { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; margin: 8px; }
-        .btn:hover { background: #2563eb; }
-        .btn-secondary { background: #6b7280; }
-        .btn-secondary:hover { background: #4b5563; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1 class="title">🛒 Delivery Scheduler Widget</h1>
-            <p class="subtitle">Customer-Facing Delivery Widget Service</p>
-        </div>
-        
-        <div class="status">
-            <span class="status-badge">✅ Widget Active</span>
-        </div>
-        
-        <div class="info-grid">
-            <div class="info-card">
-                <div class="info-title">Widget Service</div>
-                <div class="info-value">Customer delivery scheduling interface for Shopify stores</div>
-            </div>
-            <div class="info-card">
-                <div class="info-title">Version</div>
-                <div class="info-value">v1.7.0</div>
-            </div>
-            <div class="info-card">
-                <div class="info-title">Service Status</div>
-                <div class="info-value">Active and serving widget requests</div>
-            </div>
-            <div class="info-card">
-                <div class="info-title">Integration</div>
-                <div class="info-value">Synced with admin dashboard for real-time settings</div>
-            </div>
-        </div>
-        
-        <div style="text-align: center;">
-            <a href="/widget-docs" class="btn">📖 Integration Guide</a>
-            <a href="/widget.js" class="btn btn-secondary">📄 Widget Script</a>
-            <a href="/health" class="btn btn-secondary">🔍 Health Check</a>
-        </div>
-        
-        <div style="margin-top: 32px; text-align: center; color: #9ca3af; font-size: 0.875rem;">
-            <p>Widget Endpoints: /widget.js, /widget.css, /health</p>
-            <p>For admin dashboard: <a href="https://delivery-scheduler-server.stanleytan92.workers.dev" style="color: #3b82f6;">Admin API</a></p>
-        </div>
-    </div>
-</body>
-</html>`, {
-					headers: { 'Content-Type': 'text/html' }
-				});
-			}
-
-			// Default response - don't serve static assets for widget.js
-			return new Response('Not Found', { 
-				status: 404,
-				headers: corsHeaders,
-			});
-		} catch (error) {
-			console.error('Worker error:', error);
-			return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-				status: 500,
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-			});
-		}
-	},
+          headers: { "Content-Type": "text/html" }
+        });
+      }
+      return new Response("Not Found", {
+        status: 404,
+        headers: corsHeaders
+      });
+    } catch (error) {
+      console.error("Worker error:", error);
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+  }
 };
-
-async function serveWidgetBundle(): Promise<Response> {
-	// Serve a synced widget that fetches data from Railway admin dashboard
-	return new Response(`
+async function serveWidgetBundle() {
+  return new Response(`
 // Delivery Scheduler Widget v1.7.0 - Synced with Admin Dashboard
 (function() {
     'use strict';
@@ -311,12 +122,12 @@ async function serveWidgetBundle(): Promise<Response> {
     let selectedLocation = null;
     let postalCode = '';
     
-    // Fetch data from admin backend directly
+    // Fetch data from admin dashboard via proxy
     async function fetchWidgetData(shopDomain) {
         try {
             console.log('Fetching widget data for shop:', shopDomain);
             
-            const baseUrl = 'https://delivery-scheduler-server.stanleytan92.workers.dev';
+            const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
             const [timeslotsRes, settingsRes, blockedDatesRes, blockedRangesRes, tagMappingRes] = await Promise.all([
                 fetch(baseUrl + '/api/public/widget/timeslots'),
                 fetch(baseUrl + '/api/public/widget/settings'), 
@@ -1028,12 +839,11 @@ Your delivery preferences have been added to your cart!\`;
     
 })();
 `, {
-		headers: { 'Content-Type': 'application/javascript' },
-	});
+    headers: { "Content-Type": "application/javascript" }
+  });
 }
-
-async function serveWidgetCSS(): Promise<Response> {
-	return new Response(`
+async function serveWidgetCSS() {
+  return new Response(`
 /* Delivery Scheduler Widget Styles */
 .delivery-scheduler-widget {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1058,482 +868,74 @@ async function serveWidgetCSS(): Promise<Response> {
     border-radius: 8px;
 }
 	`, {
-		headers: {
-			'Content-Type': 'text/css',
-			'Cache-Control': 'public, max-age=3600',
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-		}
-	});
+    headers: {
+      "Content-Type": "text/css",
+      "Cache-Control": "public, max-age=3600",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    }
+  });
 }
-
-async function proxyToAdminDashboard(request: Request, env: Env, path: string): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
-
-	if (!env.ADMIN_DASHBOARD_URL) {
-		return new Response(JSON.stringify({ 
-			error: 'Admin dashboard URL not configured',
-			message: 'Please configure ADMIN_DASHBOARD_URL in Cloudflare Worker secrets'
-		}), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-		});
-	}
-
-	const adminDashboardUrl = env.ADMIN_DASHBOARD_URL.replace(/\/$/, ''); // Remove trailing slash
-	const fullUrl = `${adminDashboardUrl}${path}`;
-	
-	// Forward query parameters
-	const url = new URL(request.url);
-	const finalUrl = `${fullUrl}${url.search}`;
-	console.log(`Proxy Debug - Original path: ${path}, Admin URL: ${adminDashboardUrl}, Final URL: ${finalUrl}`);
-
-	try {
-		// Clone the request headers but remove host-specific headers
-		const headers = new Headers();
-		for (const [key, value] of request.headers.entries()) {
-			if (!['host', 'cf-ray', 'cf-connecting-ip'].includes(key.toLowerCase())) {
-				headers.set(key, value);
-			}
-		}
-
-		// Ensure content-type is set for API requests
-		if (!headers.has('content-type') && request.method !== 'GET') {
-			headers.set('content-type', 'application/json');
-		}
-
-		const proxyRequest = new Request(finalUrl, {
-			method: request.method,
-			headers: headers,
-			body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.clone().arrayBuffer() : undefined,
-		});
-
-		const response = await fetch(proxyRequest);
-		
-		// Clone the response and add CORS headers
-		const responseHeaders = new Headers(response.headers);
-		Object.entries(corsHeaders).forEach(([key, value]) => {
-			responseHeaders.set(key, value);
-		});
-
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers: responseHeaders,
-		});
-	} catch (error) {
-		console.error('Proxy error:', error);
-		return new Response(JSON.stringify({ 
-			error: 'Proxy request failed',
-			details: error.message,
-			targetUrl: fullUrl
-		}), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-		});
-	}
+async function proxyToAdminDashboard(request, env, path) {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  };
+  if (!env.ADMIN_DASHBOARD_URL) {
+    return new Response(JSON.stringify({
+      error: "Admin dashboard URL not configured",
+      message: "Please configure ADMIN_DASHBOARD_URL in Cloudflare Worker secrets"
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+  const adminDashboardUrl = env.ADMIN_DASHBOARD_URL.replace(/\/$/, "");
+  const fullUrl = `${adminDashboardUrl}${path}`;
+  const url = new URL(request.url);
+  if (url.search) {
+    const fullUrlWithParams = `${fullUrl}${url.search}`;
+    console.log(`Proxying request to: ${fullUrlWithParams}`);
+  }
+  try {
+    const headers = new Headers();
+    for (const [key, value] of request.headers.entries()) {
+      if (!["host", "cf-ray", "cf-connecting-ip"].includes(key.toLowerCase())) {
+        headers.set(key, value);
+      }
+    }
+    if (!headers.has("content-type") && request.method !== "GET") {
+      headers.set("content-type", "application/json");
+    }
+    const proxyRequest = new Request(`${fullUrl}${url.search}`, {
+      method: request.method,
+      headers,
+      body: request.method !== "GET" && request.method !== "HEAD" ? await request.clone().arrayBuffer() : void 0
+    });
+    const response = await fetch(proxyRequest);
+    const responseHeaders = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      responseHeaders.set(key, value);
+    });
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders
+    });
+  } catch (error) {
+    console.error("Proxy error:", error);
+    return new Response(JSON.stringify({
+      error: "Proxy request failed",
+      details: error.message,
+      targetUrl: fullUrl
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
 }
-
-// Cloudflare KV Data Persistence Functions
-async function testKVConnection(env: Env): Promise<boolean> {
-	try {
-		if (!env.DELIVERY_DATA) return false;
-		
-		// Test write and read
-		await env.DELIVERY_DATA.put('test-connection', JSON.stringify({ timestamp: Date.now() }));
-		const result = await env.DELIVERY_DATA.get('test-connection');
-		await env.DELIVERY_DATA.delete('test-connection');
-		
-		return result !== null;
-	} catch (error) {
-		console.error('KV connection test failed:', error);
-		return false;
-	}
-}
-
-async function handleKVDataAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
-	try {
-		const segments = path.split('/').filter(Boolean);
-		// /api/kv/data or /api/kv/backup
-		const operation = segments[2];
-
-		if (operation === 'data') {
-			if (request.method === 'GET') {
-				// Get delivery data from KV
-				const data = await env.DELIVERY_DATA.get('delivery-data');
-				if (data) {
-					return new Response(data, {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				} else {
-					return new Response(JSON.stringify({ error: 'No data found' }), {
-						status: 404,
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				}
-			} else if (request.method === 'POST') {
-				// Save delivery data to KV
-				const body = await request.json() as DeliveryData;
-				body.lastUpdated = new Date().toISOString();
-				
-				await env.DELIVERY_DATA.put('delivery-data', JSON.stringify(body));
-				
-				return new Response(JSON.stringify({ success: true, lastUpdated: body.lastUpdated }), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		} else if (operation === 'backup') {
-			if (request.method === 'POST') {
-				// Create backup with timestamp
-				const data = await env.DELIVERY_DATA.get('delivery-data');
-				if (data) {
-					const backupKey = `backup-${Date.now()}`;
-					await env.DELIVERY_DATA.put(backupKey, data);
-					
-					return new Response(JSON.stringify({ success: true, backupKey }), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				}
-			} else if (request.method === 'GET') {
-				// List all backups
-				const list = await env.DELIVERY_DATA.list({ prefix: 'backup-' });
-				const backups = (list.keys || []).map((key: any) => ({
-					key: key.name,
-					timestamp: key.name.split('-')[1],
-					created: new Date(parseInt(key.name.split('-')[1])).toISOString()
-				}));
-				
-				return new Response(JSON.stringify({ backups }), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		}
-
-		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
-			status: 400,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	} catch (error) {
-		return new Response(JSON.stringify({ error: error.message }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	}
-}
-
-async function handleShopifyFeeAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
-	try {
-		const segments = path.split('/').filter(Boolean);
-		// /api/shopify-fees/products or /api/shopify-fees/cleanup
-		const operation = segments[2];
-
-		if (operation === 'products') {
-			if (request.method === 'GET') {
-				// Get fee products from KV
-				const data = await env.DELIVERY_DATA.get('fee-products');
-				const products = data ? JSON.parse(data) : [];
-				
-				return new Response(JSON.stringify({ success: true, data: products }), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			} else if (request.method === 'POST') {
-				// Add new fee product
-				const body = await request.json() as ShopifyFeeProduct;
-				
-				const existingData = await env.DELIVERY_DATA.get('fee-products');
-				const products = existingData ? JSON.parse(existingData) : [];
-				
-				products.push({
-					...body,
-					created: new Date().toISOString()
-				});
-				
-				await env.DELIVERY_DATA.put('fee-products', JSON.stringify(products));
-				
-				return new Response(JSON.stringify({ success: true, product: body }), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		} else if (operation === 'cleanup') {
-			if (request.method === 'POST') {
-				// Clean up orphaned fee products
-				const data = await env.DELIVERY_DATA.get('fee-products');
-				const products = data ? JSON.parse(data) : [];
-				
-				// Logic to clean up orphaned products would go here
-				// For now, just return the current list
-				
-				return new Response(JSON.stringify({ 
-					success: true, 
-					message: 'Cleanup completed',
-					productsCount: products.length 
-				}), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		}
-
-		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
-			status: 400,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	} catch (error) {
-		return new Response(JSON.stringify({ error: error.message }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	}
-}
-
-async function handleEnhancedTaggingAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
-	try {
-		const segments = path.split('/').filter(Boolean);
-		// /api/enhanced-tagging/generate or /api/enhanced-tagging/preview
-		const operation = segments[2];
-
-		if (operation === 'generate') {
-			if (request.method === 'POST') {
-				const body = await request.json();
-				const { deliveryData, tagSettings } = body;
-				
-				// Generate simplified 3-tag system
-				const tags = [];
-				
-				// 1. Delivery Type Tag
-				const typeMapping = {
-					'delivery': tagSettings?.deliveryTag || 'Delivery',
-					'collection': tagSettings?.collectionTag || 'Collection',
-					'express': tagSettings?.expressTag || 'Express'
-				};
-				tags.push(typeMapping[deliveryData.type] || deliveryData.type);
-				
-				// 2. Date Tag (dd/mm/yyyy format)
-				const date = new Date(deliveryData.date);
-				tags.push(date.toLocaleDateString('en-GB'));
-				
-				// 3. Timeslot Tag (hh:mm-hh:mm format)
-				if (deliveryData.timeslot) {
-					tags.push(`${deliveryData.timeslot.startTime}-${deliveryData.timeslot.endTime}`);
-				}
-				
-				return new Response(JSON.stringify({ 
-					success: true, 
-					tags,
-					tagString: tags.join(tagSettings?.separator || ',')
-				}), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		} else if (operation === 'preview') {
-			if (request.method === 'GET') {
-				// Return preview examples
-				const examples = [
-					{
-						title: 'Morning Delivery',
-						deliveryData: {
-							type: 'delivery',
-							date: '2024-12-20',
-							timeslot: { startTime: '10:00', endTime: '14:00' }
-						},
-						expectedTags: ['Delivery', '20/12/2024', '10:00-14:00']
-					},
-					{
-						title: 'Store Collection',
-						deliveryData: {
-							type: 'collection',
-							date: '2024-12-20',
-							timeslot: { startTime: '14:00', endTime: '16:00' }
-						},
-						expectedTags: ['Collection', '20/12/2024', '14:00-16:00']
-					},
-					{
-						title: 'Express Delivery',
-						deliveryData: {
-							type: 'express',
-							date: '2024-12-20',
-							timeslot: { startTime: '10:30', endTime: '11:30' }
-						},
-						expectedTags: ['Express', '20/12/2024', '10:30-11:30']
-					}
-				];
-				
-				return new Response(JSON.stringify({ success: true, examples }), {
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-		}
-
-		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
-			status: 400,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	} catch (error) {
-		return new Response(JSON.stringify({ error: error.message }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
-	}
-}
-
-async function proxyToAdminDashboardWithFallback(request: Request, env: Env, path: string): Promise<Response> {
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-	};
-
-	// Try Railway admin dashboard first
-	if (env.ADMIN_DASHBOARD_URL) {
-		try {
-			return await proxyToAdminDashboard(request, env, path);
-		} catch (error) {
-			console.log('Railway dashboard unavailable, falling back to KV storage');
-		}
-	}
-
-	// Fallback to KV storage for public widget API calls
-	if (path.startsWith('/api/public/widget/')) {
-		const endpoint = path.replace('/api/public/widget/', '');
-		
-		try {
-			const data = await env.DELIVERY_DATA.get('delivery-data');
-			if (!data) {
-				return new Response(JSON.stringify({ 
-					success: false, 
-					error: 'No data available' 
-				}), {
-					status: 404,
-					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-				});
-			}
-
-			const deliveryData = JSON.parse(data);
-
-			switch (endpoint) {
-				case 'timeslots':
-					return new Response(JSON.stringify({ 
-						success: true, 
-						data: deliveryData.timeslots || [] 
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				
-				case 'blocked-dates':
-					return new Response(JSON.stringify({ 
-						success: true, 
-						data: deliveryData.blockedDates || [] 
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				
-				case 'blocked-date-ranges':
-					return new Response(JSON.stringify({ 
-						success: true, 
-						data: deliveryData.blockedDateRanges || [] 
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				
-				case 'settings':
-					return new Response(JSON.stringify({ 
-						success: true, 
-						data: deliveryData.settings || {} 
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				
-				case 'tag-mapping-settings':
-					return new Response(JSON.stringify({ 
-						success: true, 
-						data: deliveryData.tagMappingSettings || {} 
-					}), {
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-				
-				default:
-					return new Response(JSON.stringify({ 
-						success: false, 
-						error: 'Endpoint not found' 
-					}), {
-						status: 404,
-						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-					});
-			}
-		} catch (error) {
-			return new Response(JSON.stringify({ 
-				success: false, 
-				error: error.message 
-			}), {
-				status: 500,
-				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-			});
-		}
-	}
-
-	// For non-widget API calls, return 503 Service Unavailable
-	return new Response(JSON.stringify({ 
-		error: 'Admin dashboard unavailable and no fallback for this endpoint',
-		fallbackAvailable: false
-	}), {
-		status: 503,
-		headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-	});
-}
-
-async function serveEnhancedWidget(): Promise<Response> {
-	// Read the enhanced cart widget file from the file system
-	// For now, return a basic enhanced widget response
-	return new Response(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Delivery Scheduler Widget - v1.15.2</title>
-    <style>
-        /* Enhanced widget styles would go here */
-        .delivery-scheduler-widget {
-            max-width: 500px;
-            margin: 20px auto;
-            padding: 24px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            background: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .widget-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
-            margin: 0 0 8px 0;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="delivery-scheduler-widget">
-        <h3 class="widget-title">🚚 Enhanced Delivery Scheduler v1.15.2</h3>
-        <p style="text-align: center; color: #6b7280;">
-            Comprehensive tagging system with simplified 3-tag approach
-        </p>
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="/widget-docs" style="color: #3b82f6; text-decoration: none;">
-                📖 View Integration Guide
-            </a>
-        </div>
-    </div>
-</body>
-</html>
-	`, {
-		headers: { 
-			'Content-Type': 'text/html',
-			'Access-Control-Allow-Origin': '*'
-		}
-	});
-}
+export {
+  index as default
+};

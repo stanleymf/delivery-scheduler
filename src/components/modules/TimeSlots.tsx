@@ -263,43 +263,46 @@ export function TimeSlots() {
                 <Label>Assigned Days</Label>
                 <div className="space-y-3 mt-2">
                   {/* Bulk selection buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectAllDays}
-                      className="text-xs"
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectNoDays}
-                      className="text-xs"
-                    >
-                      Select None
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectWeekdays}
-                      className="text-xs"
-                    >
-                      Weekdays
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectWeekends}
-                      className="text-xs"
-                    >
-                      Weekends
-                    </Button>
+                  <div className="p-3 bg-muted/20 rounded-lg border border-dashed">
+                    <p className="text-sm font-medium mb-2">📋 Quick Selection:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAllDays}
+                        className="text-xs"
+                      >
+                        ✅ All Days
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectNoDays}
+                        className="text-xs"
+                      >
+                        ❌ Clear All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectWeekdays}
+                        className="text-xs"
+                      >
+                        📅 Mon-Fri
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectWeekends}
+                        className="text-xs"
+                      >
+                        🏖️ Sat-Sun
+                      </Button>
+                    </div>
                   </div>
                   
                   {/* Individual day checkboxes */}
@@ -315,6 +318,20 @@ export function TimeSlots() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Selected days preview */}
+                  {formData.assignedDays.length > 0 && (
+                    <div className="p-2 bg-olive/10 rounded border">
+                      <p className="text-sm font-medium mb-1">✅ Selected Days:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.assignedDays.map((day) => (
+                          <Badge key={day} variant="secondary" className="text-xs">
+                            {getDayName(day).slice(0, 3)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

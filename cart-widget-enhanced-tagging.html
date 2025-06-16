@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Scheduler Widget - v1.15.2 Enhanced</title>
+    <style>
+        .delivery-scheduler-widget {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .widget-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .widget-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 8px 0;
+        }
+
+        .widget-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-select, .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #ffffff;
+            transition: border-color 0.15s ease-in-out;
+            box-sizing: border-box;
+        }
+
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .timeslot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .timeslot-option {
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            background: #ffffff;
+        }
+
+        .timeslot-option:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+
+        .timeslot-option.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .timeslot-name {
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .timeslot-time {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .timeslot-fee {
+            font-size: 13px;
+            color: #dc2626;
+            font-weight: 500;
+        }
+
+        .timeslot-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .badge-delivery { background: #dbeafe; color: #1d4ed8; }
+        .badge-collection { background: #fef3c7; color: #d97706; }
+        .badge-express { background: #fee2e2; color: #dc2626; }
+
+        .delivery-summary {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .summary-label {
+            color: #6b7280;
+        }
+
+        .summary-value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .generated-tags {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 16px 0;
+        }
+
+        .tags-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            padding: 14px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        .add-to-cart-btn:hover:not(:disabled) {
+            background: #2563eb;
+        }
+
+        .add-to-cart-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fee-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        @media (max-width: 480px) {
+            .delivery-scheduler-widget {
+                margin: 10px;
+                padding: 16px;
+                max-width: none;
+            }
+            
+            .timeslot-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="delivery-scheduler-widget" id="delivery-scheduler-widget">
+        <div class="widget-header">
+            <h3 class="widget-title">🚚 Schedule Your Delivery</h3>
+            <p class="widget-description">Choose your preferred delivery date and time</p>
+        </div>
+
+        <!-- Delivery Type Selection -->
+        <div class="form-group">
+            <label class="form-label" for="delivery-type">Delivery Type</label>
+            <select class="form-select" id="delivery-type">
+                <option value="">Select delivery type...</option>
+                <option value="delivery">🚚 Home Delivery</option>
+                <option value="collection">🏪 Store Collection</option>
+                <option value="express">⚡ Express Delivery</option>
+            </select>
+        </div>
+
+        <!-- Date Selection -->
+        <div class="form-group">
+            <label class="form-label" for="delivery-date">Delivery Date</label>
+            <input type="date" class="form-input" id="delivery-date">
+        </div>
+
+        <!-- Postal Code (for delivery only) -->
+        <div class="form-group" id="postal-code-group" style="display: none;">
+            <label class="form-label" for="postal-code">Postal Code</label>
+            <input type="text" class="form-input" id="postal-code" placeholder="Enter your postal code">
+        </div>
+
+        <!-- Collection Location (for collection only) -->
+        <div class="form-group" id="location-group" style="display: none;">
+            <label class="form-label" for="collection-location">Collection Location</label>
+            <select class="form-select" id="collection-location">
+                <option value="">Select a location...</option>
+            </select>
+        </div>
+
+        <!-- Timeslot Selection -->
+        <div class="form-group">
+            <label class="form-label">Available Time Slots</label>
+            <div class="timeslot-grid" id="timeslot-grid">
+                <!-- Timeslots will be populated here -->
+            </div>
+        </div>
+
+        <!-- Delivery Summary -->
+        <div class="delivery-summary" id="delivery-summary">
+            <div class="summary-title">📋 Delivery Summary</div>
+            <div id="summary-content"></div>
+            
+            <!-- Generated Tags Preview -->
+            <div class="generated-tags">
+                <div class="tags-title">🏷️ Generated Order Tags</div>
+                <div class="tag-list" id="generated-tags-list"></div>
+            </div>
+        </div>
+
+        <!-- Express Fee Info -->
+        <div class="fee-info" id="fee-info" style="display: none;">
+            <strong>💰 Express Delivery Fee:</strong> <span id="fee-amount"></span>
+            <br><small>This fee will be automatically added to your cart</small>
+        </div>
+
+        <!-- Messages -->
+        <div id="message-container"></div>
+
+        <!-- Add to Cart Button -->
+        <button class="add-to-cart-btn" id="add-to-cart-btn" disabled>
+            <span id="button-text">Select delivery options to continue</span>
+        </button>
+    </div>
+
+    <script>
+        // Widget Configuration
+        const WIDGET_CONFIG = {
+            version: 'v1.15.2',
+            apiBaseUrl: window.location.origin || 'https://your-delivery-app.railway.app',
+            debug: false
+        };
+
+        // Widget State
+        let widgetState = {
+            timeslots: [],
+            blockedDates: [],
+            blockedDateRanges: [],
+            settings: {},
+            collectionLocations: [],
+            tagMappingSettings: {},
+            selectedType: '',
+            selectedDate: null,
+            selectedTimeslot: '',
+            selectedLocation: '',
+            postalCode: '',
+            availableTimeslots: []
+        };
+
+        // Utility Functions
+        function log(...args) {
+            if (WIDGET_CONFIG.debug) {
+                console.log('[Delivery Widget]', ...args);
+            }
+        }
+
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('message-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `${type}-message`;
+            messageDiv.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(messageDiv);
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('message-container').innerHTML = '';
+        }
+
+        // Enhanced Tagging System - Simplified 3-Tag Approach
+        function generateDeliveryTags() {
+            if (!widgetState.selectedType || !widgetState.selectedDate || !widgetState.selectedTimeslot) {
+                return [];
+            }
+
+            const tags = [];
+            const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+            
+            if (!selectedSlot) return [];
+
+            // 1. Delivery Type Tag
+            const typeMapping = {
+                'delivery': widgetState.tagMappingSettings?.deliveryTag || 'Delivery',
+                'collection': widgetState.tagMappingSettings?.collectionTag || 'Collection', 
+                'express': widgetState.tagMappingSettings?.expressTag || 'Express'
+            };
+            tags.push(typeMapping[widgetState.selectedType] || widgetState.selectedType);
+
+            // 2. Date Tag (dd/mm/yyyy format)
+            const dateTag = widgetState.selectedDate.toLocaleDateString('en-GB'); // dd/mm/yyyy
+            tags.push(dateTag);
+
+            // 3. Timeslot Tag (hh:mm-hh:mm format)
+            const timeslotTag = `${selectedSlot.startTime}-${selectedSlot.endTime}`;
+            tags.push(timeslotTag);
+
+            return tags;
+        }
+
+        function generateDeliveryNotes() {
+            const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+            if (!selectedSlot) return '';
+
+            const notes = [];
+            notes.push('=== DELIVERY INFORMATION ===');
+            notes.push(`Type: ${widgetState.selectedType.charAt(0).toUpperCase() + widgetState.selectedType.slice(1)}`);
+            notes.push(`Date: ${widgetState.selectedDate.toLocaleDateString('en-GB')}`);
+            notes.push(`Timeslot: ${selectedSlot.name}`);
+            notes.push(`Time Window: ${selectedSlot.startTime} - ${selectedSlot.endTime}`);
+
+            if (widgetState.selectedType === 'collection' && widgetState.selectedLocation) {
+                const location = widgetState.collectionLocations.find(l => l.id === widgetState.selectedLocation);
+                if (location) {
+                    notes.push(`Collection Location: ${location.name}`);
+                    notes.push(`Address: ${location.address}`);
+                    notes.push(`Location ID: ${location.id}`);
+                }
+            } else if (widgetState.selectedType !== 'collection' && widgetState.postalCode) {
+                notes.push(`Delivery Postal Code: ${widgetState.postalCode}`);
+                notes.push(`Delivery Area: ${widgetState.postalCode.substring(0, 2)}`);
+            }
+
+            if (selectedSlot.fee && selectedSlot.fee > 0) {
+                notes.push(`Express Delivery Fee: $${selectedSlot.fee.toFixed(2)}`);
+            }
+
+            const tags = generateDeliveryTags();
+            notes.push(`Generated Tags: ${tags.join(', ')}`);
+            notes.push(`Widget Version: ${WIDGET_CONFIG.version}`);
+            notes.push(`Scheduled: ${new Date().toISOString()}`);
+            notes.push('=== END DELIVERY INFO ===');
+
+            return notes.join('\n');
+        }
+
+        function generateCartAttributes() {
+            const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+            if (!selectedSlot) return {};
+
+            const tags = generateDeliveryTags();
+            const notes = generateDeliveryNotes();
+
+            const attributes = {
+                'delivery_date': widgetState.selectedDate.toISOString().split('T')[0],
+                'delivery_timeslot': selectedSlot.name,
+                'delivery_timeslot_start': selectedSlot.startTime,
+                'delivery_timeslot_end': selectedSlot.endTime,
+                'delivery_type': widgetState.selectedType,
+                'delivery_tags': tags.join(','),
+                'delivery_notes': notes,
+                'delivery_widget_version': WIDGET_CONFIG.version,
+                'delivery_timestamp': new Date().toISOString()
+            };
+
+            // Add fee information if applicable
+            if (selectedSlot.fee && selectedSlot.fee > 0) {
+                attributes['delivery_fee'] = selectedSlot.fee.toString();
+            }
+
+            // Add location-specific attributes
+            if (widgetState.selectedType === 'collection' && widgetState.selectedLocation) {
+                const location = widgetState.collectionLocations.find(l => l.id === widgetState.selectedLocation);
+                if (location) {
+                    attributes['delivery_location_name'] = location.name;
+                    attributes['delivery_location_address'] = location.address;
+                    attributes['delivery_location_id'] = location.id;
+                }
+            } else if (widgetState.selectedType !== 'collection' && widgetState.postalCode) {
+                attributes['delivery_postal_code'] = widgetState.postalCode;
+                attributes['delivery_postal_area'] = widgetState.postalCode.substring(0, 2);
+            }
+
+            return attributes;
+        }
+
+        // Fee Product Integration
+        async function addExpressFeeToCart(feeVariantId, feeAmount) {
+            if (!feeVariantId) {
+                log('No fee variant ID available, falling back to cart notes');
+                return true;
+            }
+
+            try {
+                const feeData = {
+                    items: [{
+                        id: feeVariantId,
+                        quantity: 1
+                    }]
+                };
+
+                const response = await fetch('/cart/add.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(feeData)
+                });
+
+                if (response.ok) {
+                    log(`✅ Successfully added fee product (variant ${feeVariantId}) for $${feeAmount}`);
+                    return true;
+                } else {
+                    log(`❌ Failed to add fee product: ${response.status}`);
+                    return false;
+                }
+            } catch (error) {
+                log('❌ Error adding fee product:', error);
+                return false;
+            }
+        }
+
+        // Data Loading Functions
+        async function loadWidgetData() {
+            try {
+                const [timelots, blockedDates, blockedRanges, settings, tagMapping] = await Promise.all([
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/timeslots`).then(r => r.json()),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/blocked-dates`).then(r => r.json()),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/blocked-date-ranges`).then(r => r.json()),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/settings`).then(r => r.json()),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/tag-mapping-settings`).then(r => r.json())
+                ]);
+
+                widgetState.timeslots = timelots.success ? timelots.data : [];
+                widgetState.blockedDates = blockedDates.success ? blockedDates.data : [];
+                widgetState.blockedDateRanges = blockedRanges.success ? blockedRanges.data : [];
+                widgetState.settings = settings.success ? settings.data : {};
+                widgetState.tagMappingSettings = tagMapping.success ? tagMapping.data : {};
+                widgetState.collectionLocations = widgetState.settings.collectionLocations || [];
+
+                log('✅ Widget data loaded successfully');
+                populateCollectionLocations();
+                setMinDate();
+            } catch (error) {
+                log('❌ Error loading widget data:', error);
+                showMessage('Unable to load delivery options. Please refresh the page.');
+            }
+        }
+
+        function populateCollectionLocations() {
+            const locationSelect = document.getElementById('collection-location');
+            locationSelect.innerHTML = '<option value="">Select a location...</option>';
+            
+            widgetState.collectionLocations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location.id;
+                option.textContent = `${location.name} - ${location.address}`;
+                locationSelect.appendChild(option);
+            });
+        }
+
+        function setMinDate() {
+            const dateInput = document.getElementById('delivery-date');
+            const today = new Date();
+            const minDate = new Date(today.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+            dateInput.min = minDate.toISOString().split('T')[0];
+        }
+
+        function isDateBlocked(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            
+            // Check individual blocked dates
+            const isBlocked = widgetState.blockedDates.some(blocked => blocked.date === dateStr);
+            if (isBlocked) return true;
+
+            // Check blocked date ranges
+            const isInRange = widgetState.blockedDateRanges.some(range => {
+                return range.dates && range.dates.includes(dateStr);
+            });
+
+            return isInRange;
+        }
+
+        function filterAvailableTimeslots() {
+            if (!widgetState.selectedType || !widgetState.selectedDate) {
+                return [];
+            }
+
+            return widgetState.timeslots.filter(slot => {
+                // Filter by type
+                if (widgetState.selectedType === 'express') {
+                    return slot.type === 'express';
+                } else {
+                    return slot.type === widgetState.selectedType;
+                }
+            });
+        }
+
+        function renderTimeslots() {
+            const grid = document.getElementById('timeslot-grid');
+            widgetState.availableTimeslots = filterAvailableTimeslots();
+
+            if (widgetState.availableTimeslots.length === 0) {
+                grid.innerHTML = '<p style="color: #6b7280; text-align: center; grid-column: 1 / -1;">No available timeslots for selected options.</p>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            widgetState.availableTimeslots.forEach(slot => {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'timeslot-option';
+                slotDiv.dataset.slotId = slot.id;
+
+                const badgeClass = `badge-${slot.type}`;
+                const feeDisplay = slot.fee && slot.fee > 0 ? `<div class="timeslot-fee">+$${slot.fee.toFixed(2)} Express Fee</div>` : '';
+
+                slotDiv.innerHTML = `
+                    <div class="timeslot-name">${slot.name}</div>
+                    <div class="timeslot-time">${slot.startTime} - ${slot.endTime}</div>
+                    ${feeDisplay}
+                    <div class="timeslot-badge ${badgeClass}">${slot.type.toUpperCase()}</div>
+                `;
+
+                slotDiv.addEventListener('click', () => selectTimeslot(slot.id));
+                grid.appendChild(slotDiv);
+            });
+        }
+
+        function selectTimeslot(slotId) {
+            widgetState.selectedTimeslot = slotId;
+            
+            // Update UI
+            document.querySelectorAll('.timeslot-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-slot-id="${slotId}"]`).classList.add('selected');
+
+            updateSummary();
+            validateForm();
+        }
+
+        function updateSummary() {
+            if (!widgetState.selectedType || !widgetState.selectedDate || !widgetState.selectedTimeslot) {
+                document.getElementById('delivery-summary').style.display = 'none';
+                return;
+            }
+
+            const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+            if (!selectedSlot) return;
+
+            const summary = document.getElementById('summary-content');
+            const summaryDiv = document.getElementById('delivery-summary');
+            const feeInfo = document.getElementById('fee-info');
+
+            // Generate summary content
+            let summaryHTML = `
+                <div class="summary-item">
+                    <span class="summary-label">Type:</span>
+                    <span class="summary-value">${widgetState.selectedType.charAt(0).toUpperCase() + widgetState.selectedType.slice(1)}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Date:</span>
+                    <span class="summary-value">${widgetState.selectedDate.toLocaleDateString('en-GB')}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Time:</span>
+                    <span class="summary-value">${selectedSlot.name} (${selectedSlot.startTime} - ${selectedSlot.endTime})</span>
+                </div>
+            `;
+
+            if (widgetState.selectedType === 'collection' && widgetState.selectedLocation) {
+                const location = widgetState.collectionLocations.find(l => l.id === widgetState.selectedLocation);
+                if (location) {
+                    summaryHTML += `
+                        <div class="summary-item">
+                            <span class="summary-label">Location:</span>
+                            <span class="summary-value">${location.name}</span>
+                        </div>
+                    `;
+                }
+            } else if (widgetState.selectedType !== 'collection' && widgetState.postalCode) {
+                summaryHTML += `
+                    <div class="summary-item">
+                        <span class="summary-label">Postal Code:</span>
+                        <span class="summary-value">${widgetState.postalCode}</span>
+                    </div>
+                `;
+            }
+
+            summary.innerHTML = summaryHTML;
+
+            // Show/hide fee info
+            if (selectedSlot.fee && selectedSlot.fee > 0) {
+                document.getElementById('fee-amount').textContent = `$${selectedSlot.fee.toFixed(2)}`;
+                feeInfo.style.display = 'block';
+            } else {
+                feeInfo.style.display = 'none';
+            }
+
+            // Generate and display tags
+            const tags = generateDeliveryTags();
+            const tagsList = document.getElementById('generated-tags-list');
+            tagsList.innerHTML = '';
+            tags.forEach(tag => {
+                const tagSpan = document.createElement('span');
+                tagSpan.className = 'tag';
+                tagSpan.textContent = tag;
+                tagsList.appendChild(tagSpan);
+            });
+
+            summaryDiv.style.display = 'block';
+        }
+
+        function validateForm() {
+            const isValid = widgetState.selectedType && 
+                           widgetState.selectedDate && 
+                           widgetState.selectedTimeslot &&
+                           (widgetState.selectedType === 'collection' ? widgetState.selectedLocation : 
+                            widgetState.selectedType !== 'collection' ? widgetState.postalCode : true);
+
+            const button = document.getElementById('add-to-cart-btn');
+            const buttonText = document.getElementById('button-text');
+
+            button.disabled = !isValid;
+            
+            if (isValid) {
+                const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+                const feeText = selectedSlot && selectedSlot.fee > 0 ? ` (+$${selectedSlot.fee.toFixed(2)})` : '';
+                buttonText.textContent = `Add to Cart with ${widgetState.selectedType.charAt(0).toUpperCase() + widgetState.selectedType.slice(1)}${feeText}`;
+            } else {
+                buttonText.textContent = 'Select delivery options to continue';
+            }
+        }
+
+        // Shopify Cart Integration with Enhanced Fee Handling
+        async function addToCart() {
+            if (!widgetState.selectedType || !widgetState.selectedDate || !widgetState.selectedTimeslot) {
+                showMessage('Please select all delivery options.');
+                return;
+            }
+
+            const button = document.getElementById('add-to-cart-btn');
+            const buttonText = document.getElementById('button-text');
+            const originalText = buttonText.textContent;
+
+            try {
+                button.disabled = true;
+                buttonText.innerHTML = '<span class="loading-spinner"></span>Updating Cart...';
+                clearMessages();
+
+                const selectedSlot = widgetState.availableTimeslots.find(slot => slot.id === widgetState.selectedTimeslot);
+                if (!selectedSlot) {
+                    throw new Error('Selected timeslot not found');
+                }
+
+                // Generate cart attributes
+                const cartAttributes = generateCartAttributes();
+
+                log('💾 Updating cart with delivery attributes:', cartAttributes);
+
+                // Update cart attributes
+                const cartUpdateResponse = await fetch('/cart/update.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        attributes: cartAttributes
+                    })
+                });
+
+                if (!cartUpdateResponse.ok) {
+                    throw new Error('Failed to update cart attributes');
+                }
+
+                // Handle express fee product if applicable
+                if (selectedSlot.fee && selectedSlot.fee > 0 && selectedSlot.feeVariantId) {
+                    log(`💰 Adding express fee product: $${selectedSlot.fee} (variant: ${selectedSlot.feeVariantId})`);
+                    const feeAdded = await addExpressFeeToCart(selectedSlot.feeVariantId, selectedSlot.fee);
+                    
+                    if (feeAdded) {
+                        showMessage(`✅ Delivery scheduled successfully! Express fee of $${selectedSlot.fee.toFixed(2)} added to cart.`, 'success');
+                    } else {
+                        showMessage('✅ Delivery scheduled successfully! Express fee will be processed manually.', 'success');
+                    }
+                } else {
+                    showMessage('✅ Delivery scheduled successfully!', 'success');
+                }
+
+                // Optional: Reload cart to reflect changes
+                if (typeof window.updateCartDrawer === 'function') {
+                    window.updateCartDrawer();
+                }
+
+                log('✅ Cart updated successfully with delivery information');
+
+            } catch (error) {
+                log('❌ Error updating cart:', error);
+                showMessage('Failed to update cart. Please try again.');
+            } finally {
+                button.disabled = false;
+                buttonText.textContent = originalText;
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Enhanced Delivery Scheduler Widget v1.15.2 initializing...');
+            
+            loadWidgetData();
+
+            // Delivery type change
+            document.getElementById('delivery-type').addEventListener('change', function() {
+                widgetState.selectedType = this.value;
+                widgetState.selectedTimeslot = '';
+                
+                // Show/hide relevant fields
+                const postalGroup = document.getElementById('postal-code-group');
+                const locationGroup = document.getElementById('location-group');
+                
+                if (this.value === 'collection') {
+                    postalGroup.style.display = 'none';
+                    locationGroup.style.display = 'block';
+                } else if (this.value === 'delivery' || this.value === 'express') {
+                    postalGroup.style.display = 'block';
+                    locationGroup.style.display = 'none';
+                } else {
+                    postalGroup.style.display = 'none';
+                    locationGroup.style.display = 'none';
+                }
+
+                renderTimeslots();
+                validateForm();
+                document.getElementById('delivery-summary').style.display = 'none';
+            });
+
+            // Date change
+            document.getElementById('delivery-date').addEventListener('change', function() {
+                const selectedDate = new Date(this.value + 'T00:00:00');
+                
+                if (isDateBlocked(selectedDate)) {
+                    showMessage('Selected date is not available for delivery.');
+                    this.value = '';
+                    return;
+                }
+
+                widgetState.selectedDate = selectedDate;
+                widgetState.selectedTimeslot = '';
+                renderTimeslots();
+                validateForm();
+                document.getElementById('delivery-summary').style.display = 'none';
+            });
+
+            // Postal code change
+            document.getElementById('postal-code').addEventListener('input', function() {
+                widgetState.postalCode = this.value;
+                validateForm();
+            });
+
+            // Collection location change
+            document.getElementById('collection-location').addEventListener('change', function() {
+                widgetState.selectedLocation = this.value;
+                validateForm();
+                updateSummary();
+            });
+
+            // Add to cart button
+            document.getElementById('add-to-cart-btn').addEventListener('click', addToCart);
+
+            log('✅ Widget initialized successfully');
+        });
+    </script>
+</body>
+</html> 

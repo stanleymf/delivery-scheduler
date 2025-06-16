@@ -48,7 +48,7 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
 };
 
 // API base URL
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://delivery-scheduler-server.stanleytan92.workers.dev';
 
 // Common API endpoints
 export const API_ENDPOINTS = {
