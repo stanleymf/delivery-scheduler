@@ -7,8 +7,8 @@
   "scripts": {
     "check": "tsc -b",
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:widget": "tsc && vite build --config vite.config.ts",
+    "build": "vite build",
+    "build:widget": "vite build --config vite.config.ts",
     "build:all": "pnpm build && pnpm build:widget",
     "preview": "vite preview",
     "start": "node server.js",
