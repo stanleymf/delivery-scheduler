@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Scheduler Widget - Enhanced Mobile & Session v1.15.1</title>
+    <title>Delivery Scheduler Widget - Calendar Sync Fixed v1.15.2</title>
     <style>
         /* Widget Styles */
         .delivery-scheduler {
@@ -326,14 +326,14 @@
 
         <button class="save-button" id="saveButton" disabled>Save Delivery Preferences</button>
         
-        <div class="widget-version">Delivery Scheduler v1.15.1 - Enhanced Mobile & Session</div>
+        <div class="widget-version">Delivery Scheduler v1.15.2 - Calendar Sync Fixed</div>
     </div>
 
     <script>
         // Widget Configuration
         const WIDGET_CONFIG = {
-            version: '1.15.1',
-            apiBaseUrl: 'https://delivery-scheduler-production.up.railway.app',
+            version: '1.15.2',
+            apiBaseUrl: 'https://delivery-schedule2-production.up.railway.app',
             debug: true,
             dynamicFeeVariantId: null, // Will be set dynamically
             shopifyDomain: window.location.hostname
@@ -345,7 +345,10 @@
             selectedDate: null,
             selectedTimeslot: null,
             availableTimeslots: [],
-            isLoading: false
+            isLoading: false,
+            blockedDates: [],
+            blockedDateRanges: [],
+            settings: {}
         };
 
         // Utility Functions
@@ -434,25 +437,83 @@
         }
 
         // API Functions
+        async function fetchWidgetData() {
+            try {
+                log('📡 Fetching widget data...');
+
+                // Fetch all required data in parallel
+                const [timeslotsRes, blockedDatesRes, blockedRangesRes, settingsRes] = await Promise.all([
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/timeslots`),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/blocked-dates`),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/blocked-date-ranges`),
+                    fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/settings`)
+                ]);
+
+                if (!timeslotsRes.ok) throw new Error('Failed to fetch timeslots');
+                if (!blockedDatesRes.ok) throw new Error('Failed to fetch blocked dates');
+                if (!blockedRangesRes.ok) throw new Error('Failed to fetch blocked ranges');
+                if (!settingsRes.ok) throw new Error('Failed to fetch settings');
+
+                const [timeslotsData, blockedDatesData, blockedRangesData, settingsData] = await Promise.all([
+                    timeslotsRes.json(),
+                    blockedDatesRes.json(),
+                    blockedRangesRes.json(),
+                    settingsRes.json()
+                ]);
+
+                // Store data in widget state
+                widgetState.blockedDates = blockedDatesData.data || [];
+                widgetState.blockedDateRanges = blockedRangesData.data || [];
+                widgetState.settings = settingsData.data || {};
+
+                log('✅ Widget data loaded', {
+                    timeslots: timeslotsData.data?.length || 0,
+                    blockedDates: widgetState.blockedDates.length,
+                    blockedRanges: widgetState.blockedDateRanges.length,
+                    settings: Object.keys(widgetState.settings).length
+                });
+
+                return timeslotsData.data || [];
+
+            } catch (error) {
+                log('❌ Error fetching widget data:', error);
+                // Use fallback data that matches the admin dashboard
+                return [
+                    {id: 'morning-delivery', name: 'Morning Delivery', type: 'delivery', startTime: '10:00', endTime: '14:00', maxOrders: 10},
+                    {id: 'afternoon-delivery', name: 'Afternoon Delivery', type: 'delivery', startTime: '14:00', endTime: '18:00', maxOrders: 10},
+                    {id: 'evening-delivery', name: 'Evening Delivery', type: 'delivery', startTime: '18:00', endTime: '22:00', maxOrders: 5},
+                    {id: 'morning-collection', name: 'Morning Collection', type: 'collection', startTime: '09:00', endTime: '12:00', maxOrders: 15},
+                    {id: 'afternoon-collection', name: 'Afternoon Collection', type: 'collection', startTime: '14:00', endTime: '18:00', maxOrders: 15}
+                ];
+            }
+        }
+
         async function fetchTimeslots(deliveryType, date) {
             try {
                 widgetState.isLoading = true;
                 updateTimeslotGrid();
 
                 const dateStr = date.toISOString().split('T')[0];
-                const url = `${WIDGET_CONFIG.apiBaseUrl}/api/timeslots?delivery_type=${deliveryType}&date=${dateStr}`;
                 
-                log('📡 Fetching timeslots', { url, deliveryType, date: dateStr });
-
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // First fetch all widget data if not already loaded
+                if (widgetState.blockedDates.length === 0 && widgetState.blockedDateRanges.length === 0) {
+                    const allTimeslots = await fetchWidgetData();
+                    widgetState.availableTimeslots = getAvailableTimeslots(allTimeslots, deliveryType, date);
+                } else {
+                    // Use cached data to determine available timeslots
+                    const timeslotsRes = await fetch(`${WIDGET_CONFIG.apiBaseUrl}/api/public/widget/timeslots`);
+                    if (timeslotsRes.ok) {
+                        const timeslotsData = await timeslotsRes.json();
+                        widgetState.availableTimeslots = getAvailableTimeslots(timeslotsData.data || [], deliveryType, date);
+                    }
                 }
 
-                const data = await response.json();
-                log('✅ Timeslots loaded', data);
+                log('✅ Timeslots filtered for date', { 
+                    date: dateStr, 
+                    type: deliveryType, 
+                    available: widgetState.availableTimeslots.length 
+                });
 
-                widgetState.availableTimeslots = data.timeslots || [];
                 return widgetState.availableTimeslots;
 
             } catch (error) {
@@ -464,6 +525,81 @@
                 widgetState.isLoading = false;
                 updateTimeslotGrid();
             }
+        }
+
+        function getAvailableTimeslots(allTimeslots, deliveryType, date) {
+            const dateStr = date.toISOString().split('T')[0];
+            
+            // Check if date is completely blocked
+            if (isDateBlocked(date)) {
+                log('🚫 Date is completely blocked:', dateStr);
+                return [];
+            }
+
+            // Filter timeslots by delivery type
+            const baseTimeslots = allTimeslots.filter(slot => slot.type === deliveryType);
+            
+            // Check for blocked timeslots on this specific date
+            const blockedTimeslots = new Set();
+            
+            // Check individual blocked dates
+            const blockedDate = widgetState.blockedDates.find(b => b.date === dateStr);
+            if (blockedDate && blockedDate.blockedTimeslots) {
+                blockedDate.blockedTimeslots.forEach(ts => blockedTimeslots.add(ts));
+            }
+            
+            // Check blocked date ranges
+            const blockedRange = widgetState.blockedDateRanges.find(range => 
+                range.dates && range.dates.includes(dateStr)
+            );
+            if (blockedRange && blockedRange.blockedTimeslots) {
+                blockedRange.blockedTimeslots.forEach(ts => blockedTimeslots.add(ts));
+            }
+            
+            // Filter out blocked timeslots
+            const availableSlots = baseTimeslots.filter(slot => !blockedTimeslots.has(slot.id));
+            
+            log('🕐 Timeslot filtering', {
+                base: baseTimeslots.length,
+                blocked: blockedTimeslots.size,
+                available: availableSlots.length,
+                blockedList: Array.from(blockedTimeslots)
+            });
+            
+            return availableSlots;
+        }
+
+        function isDateBlocked(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            
+            // Check individual blocked dates
+            const blockedDate = widgetState.blockedDates.find(b => b.date === dateStr);
+            if (blockedDate && blockedDate.type === 'full') {
+                log('🚫 Date blocked (individual):', dateStr, blockedDate.reason);
+                return true;
+            }
+            
+            // Check blocked date ranges
+            const blockedRange = widgetState.blockedDateRanges.find(range => 
+                range.dates && range.dates.includes(dateStr)
+            );
+            if (blockedRange && blockedRange.type === 'full') {
+                log('🚫 Date blocked (range):', dateStr, blockedRange.reason);
+                return true;
+            }
+            
+            // Check future order limit
+            const today = new Date();
+            const futureLimit = widgetState.settings.futureOrderLimit || 30;
+            const maxDate = new Date(today);
+            maxDate.setDate(today.getDate() + futureLimit);
+            
+            if (date > maxDate) {
+                log('🚫 Date blocked (future limit):', dateStr, `Limit: ${futureLimit} days`);
+                return true;
+            }
+            
+            return false;
         }
 
         // Dynamic Fee Handling
@@ -778,8 +914,29 @@
 
         function handleDateChange() {
             const input = document.getElementById('deliveryDate');
-            widgetState.selectedDate = input.value ? new Date(input.value + 'T00:00:00') : null;
+            const selectedDate = input.value ? new Date(input.value + 'T00:00:00') : null;
             widgetState.selectedTimeslot = null;
+            
+            // Check if selected date is blocked
+            if (selectedDate && isDateBlocked(selectedDate)) {
+                const dateStr = selectedDate.toLocaleDateString('en-GB');
+                const blockedDate = widgetState.blockedDates.find(b => b.date === selectedDate.toISOString().split('T')[0]);
+                const blockedRange = widgetState.blockedDateRanges.find(range => 
+                    range.dates && range.dates.includes(selectedDate.toISOString().split('T')[0])
+                );
+                
+                const reason = blockedDate?.reason || blockedRange?.reason || 'Date is not available for delivery';
+                showError(`Sorry, ${dateStr} is not available. ${reason}`);
+                
+                // Clear the selected date
+                input.value = '';
+                widgetState.selectedDate = null;
+                updateTimeslotGrid();
+                updateSaveButton();
+                return;
+            }
+            
+            widgetState.selectedDate = selectedDate;
             
             if (widgetState.selectedDeliveryType && widgetState.selectedDate) {
                 fetchTimeslots(widgetState.selectedDeliveryType, widgetState.selectedDate);
@@ -794,6 +951,9 @@
         // Initialize Widget
         async function initializeWidget() {
             log('🚀 Initializing Delivery Scheduler Widget');
+            
+            // Load widget data first
+            await fetchWidgetData();
             
             // Set minimum date to today
             const today = new Date();

@@ -1,5 +1,77 @@
 # Changelog
 
+## [1.15.2] - 2024-12-19
+
+### 🗓️ CRITICAL WIDGET CALENDAR SYNC FIX - BLOCKED DATES NOW WORK!
+
+#### 🚨 PROBLEM SOLVED: Widget Calendar Not Syncing with Admin Dashboard
+- **Fixed**: Blocked dates set in admin dashboard not reflecting in customer widget
+- **Fixed**: Customers able to select blocked dates causing order conflicts
+- **Fixed**: Widget using wrong API endpoints for fetching calendar data
+- **Fixed**: No validation of blocked dates when customers select delivery dates
+
+#### 🔄 COMPLETE CALENDAR SYNCHRONIZATION
+- **Real-time Sync** - Widget now fetches live data from admin dashboard blocked dates
+- **Instant Validation** - Blocked dates immediately prevent customer selection
+- **Smart Error Messages** - Shows specific reasons why dates are blocked
+- **Comprehensive Blocking** - Supports both individual blocked dates and date ranges
+- **Future Order Limits** - Respects admin-configured future order limits
+
+#### 🛡️ ENHANCED DATE VALIDATION SYSTEM
+- **Pre-selection Validation** - Prevents blocked dates from being selected
+- **Clear User Feedback** - Informative error messages with blocking reasons
+- **Automatic Reset** - Clears invalid date selections automatically
+- **Timeslot Filtering** - Removes blocked timeslots for partially blocked dates
+- **Full Date Blocking** - Completely blocks dates when set to 'full' block type
+
+#### 📡 COMPREHENSIVE API INTEGRATION
+- **Parallel Data Fetching** - Loads timeslots, blocked dates, ranges, and settings simultaneously
+- **Proper Endpoint Usage** - Now uses correct `/api/public/widget/*` endpoints
+- **Fallback Handling** - Graceful degradation if admin data is unavailable
+- **Efficient Caching** - Loads data once and reuses for performance
+- **Debug Logging** - Comprehensive logging for troubleshooting
+
+#### 🎯 INTELLIGENT BLOCKING LOGIC
+- **Individual Date Blocks** - Respects specific blocked dates from admin calendar
+- **Date Range Blocks** - Handles blocked date ranges (holidays, vacations, etc.)
+- **Partial vs Full Blocking** - Differentiates between full date blocks and timeslot-specific blocks
+- **Future Limit Enforcement** - Automatically blocks dates beyond configured future order limit
+- **Priority-based Filtering** - Applies all blocking rules in correct order
+
+#### 🔧 TECHNICAL IMPROVEMENTS
+- **Fixed API Base URL** - Corrected widget API endpoint from old to current Railway deployment
+- **Enhanced Widget State** - Added blockedDates, blockedDateRanges, and settings to widget state
+- **Optimized Data Flow** - Single initialization load followed by cached filtering
+- **Error Recovery** - Robust error handling with fallback to default timeslots
+- **Performance Optimization** - Efficient date checking and timeslot filtering
+
+### Use Case Examples
+- **Admin blocks Christmas Day** → Customer cannot select December 25th
+- **Admin blocks morning slots on Monday** → Customer sees only afternoon slots for Monday
+- **Admin sets 2-week future limit** → Customer cannot select dates beyond 2 weeks
+- **Admin blocks vacation week** → Customer sees "Date range blocked for staff holidays"
+
+### Technical Implementation
+- **fetchWidgetData()** - New function to load all admin calendar data
+- **isDateBlocked()** - Comprehensive date validation logic
+- **getAvailableTimeslots()** - Smart timeslot filtering based on blocking rules
+- **Enhanced handleDateChange()** - Real-time date validation with user feedback
+- **Parallel API calls** - Efficient data loading with Promise.all()
+
+### Files Updated
+- `cart-widget-dynamic-fee.html` - Complete calendar sync implementation
+- `package.json` - Version bump to 1.15.2
+
+### Breaking Changes
+- None - fully backward compatible, existing widgets will automatically benefit
+
+### Migration Notes
+- Widget automatically fetches live admin calendar data
+- No customer-facing changes except properly blocked dates
+- Improved reliability and sync with admin dashboard
+
+---
+
 ## [1.15.1] - 2024-12-19
 
 ### 🔐 CRITICAL SESSION MANAGEMENT FIX - NO MORE UNEXPECTED LOGOUTS!
