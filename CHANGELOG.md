@@ -1,5 +1,72 @@
 # Changelog
 
+## [1.17.0] - 2024-12-21
+
+### 🚀 AUTO-SAVE FUNCTIONALITY - NO MORE MANUAL SAVING REQUIRED!
+
+#### 💾 COMPREHENSIVE AUTO-SAVE SYSTEM
+- **Smart Auto-Save**: Changes automatically saved 1.5 seconds after you stop editing
+- **Real-time Sync**: All changes instantly synced to Widget KV storage
+- **Visual Feedback**: Auto-save status indicators show current save state
+- **Zero Interruption**: Background saving without disrupting your workflow
+- **Universal Coverage**: Auto-save enabled for all major components
+
+#### ✅ COMPONENTS WITH AUTO-SAVE
+- **⏰ Time Slots**: Auto-saves when creating, editing, or deleting time slots
+- **📅 Availability Calendar**: Auto-saves blocked dates, date ranges, and settings
+- **⚙️ Settings**: Auto-saves collection locations and theme preferences
+- **🔄 Background Sync**: All changes automatically pushed to Widget KV storage
+
+#### 🎯 INTELLIGENT SAVE LOGIC
+- **Change Detection**: Only saves when actual changes are detected
+- **Debouncing**: Prevents excessive save attempts during rapid changes
+- **Error Recovery**: Graceful error handling with retry mechanisms
+- **Performance Optimized**: Smart scheduling prevents system overload
+
+#### 📊 VISUAL STATUS INDICATORS
+- **💾 Saving...** (blue, animated) - Currently saving changes
+- **📝 Unsaved changes** (orange) - Changes detected, will save soon
+- **✅ Saved Xs ago** (green) - Successfully saved with timestamp
+- **💾 Auto-save enabled** (gray) - Ready to detect changes
+
+#### 🔧 ENHANCED USER EXPERIENCE
+- **No Manual Save Buttons**: Eliminated need for manual saving in most cases
+- **Peace of Mind**: Never lose work due to forgotten saves
+- **Professional Feel**: Modern auto-save like Google Docs or Notion
+- **Header Indicators**: Save status shown in component headers
+- **Toast Notifications**: Discrete notifications for save events
+
+#### 📡 TECHNICAL IMPROVEMENTS
+- **Auto-Save Library**: Comprehensive `src/lib/autoSave.ts` utility
+- **React Hooks**: `useAutoSave` hook for easy component integration
+- **Status Component**: `AutoSaveIndicator` for consistent UI feedback
+- **Error Handling**: Robust error recovery and user notifications
+- **Memory Efficient**: Smart change detection prevents unnecessary saves
+
+### Auto-Save Configuration
+- **1.5 second delay** - Optimal balance between responsiveness and performance
+- **Toast notifications** - Keep you informed without being intrusive
+- **Error recovery** - Automatic retry on failed saves
+- **Background sync** - Changes pushed to Widget KV storage automatically
+
+### Files Added/Updated
+- `src/lib/autoSave.ts` - Comprehensive auto-save utility library
+- `src/components/ui/auto-save-indicator.tsx` - Visual status indicator component
+- `src/components/modules/TimeSlots.tsx` - Added auto-save functionality
+- `src/components/modules/AvailabilityCalendar.tsx` - Added auto-save functionality  
+- `src/components/modules/Settings.tsx` - Added auto-save functionality
+- `package.json` - Version bump to 1.17.0
+
+### Breaking Changes
+- None - fully backward compatible with enhanced user experience
+
+### Migration Notes
+- Auto-save functionality is immediately available after update
+- Existing manual save workflows still work but are no longer necessary
+- All changes now automatically sync to Widget KV storage
+
+---
+
 ## [1.16.0] - 2024-12-20
 
 ### 🚀 CLOUDFLARE MIGRATION COMPLETE - RESTORED MISSING FEATURES!

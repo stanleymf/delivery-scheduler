@@ -6,8 +6,8 @@ export interface VersionInfo {
 }
 
 export const VERSION_CONFIG: VersionInfo = {
-  version: "1.7.1",
-  buildNumber: "1.7.1.0",
+  version: "1.17.0",
+  buildNumber: "1.17.0.0",
   releaseDate: new Date().toISOString().split('T')[0],
   changelog: [
     "Initial release of Delivery Scheduler",
@@ -44,7 +44,11 @@ export const VERSION_CONFIG: VersionInfo = {
     "Added data migration system for localStorage to server storage transition",
     "Added sync status dashboard with manual sync controls and cross-device synchronization",
     "Fixed LivePreview white screen error caused by undefined tagMapping properties",
-    "Enhanced settings validation and data integrity with comprehensive safety checks"
+    "Enhanced settings validation and data integrity with comprehensive safety checks",
+    "Implemented comprehensive auto-save functionality with intelligent debouncing and visual feedback",
+    "Added auto-save to TimeSlots, AvailabilityCalendar, and Settings components",
+    "Created auto-save utility library with React hooks and status indicators",
+    "Enhanced user experience with automatic background saving and sync to Widget KV storage"
   ]
 };
 
@@ -78,11 +82,37 @@ export function compareVersions(v1: string, v2: string): number {
   return 0;
 }
 
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.17.0';
 
-export const VERSION = '1.9.2';
+export const VERSION = '1.17.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.17.0',
+    date: '2024-12-21',
+    type: 'feature' as const,
+    title: 'Auto-Save Functionality',
+    description: 'Comprehensive auto-save system eliminates manual saving requirements',
+    changes: [
+      '💾 **Smart Auto-Save** - Changes automatically saved 1.5 seconds after editing stops',
+      '🔄 **Real-time Sync** - All changes instantly synced to Widget KV storage',
+      '📊 **Visual Feedback** - Auto-save status indicators show current save state',
+      '⏰ **Time Slots Auto-Save** - Auto-saves when creating, editing, or deleting time slots',
+      '📅 **Calendar Auto-Save** - Auto-saves blocked dates, date ranges, and settings',
+      '⚙️ **Settings Auto-Save** - Auto-saves collection locations and theme preferences',
+      '🎯 **Intelligent Logic** - Only saves when actual changes are detected',
+      '🚫 **Duplicate Prevention** - Smart debouncing prevents excessive save attempts',
+      '🔧 **Enhanced UX** - No manual save buttons needed, peace of mind workflow'
+    ],
+    technical: [
+      'Created comprehensive auto-save utility library (src/lib/autoSave.ts)',
+      'Added useAutoSave React hook for easy component integration',
+      'Built AutoSaveIndicator component for consistent UI feedback',
+      'Enhanced TimeSlots, AvailabilityCalendar, and Settings with auto-save',
+      'Implemented intelligent change detection and debouncing',
+      'Added toast notifications and error recovery mechanisms'
+    ]
+  },
   {
     version: '1.9.2',
     date: '2024-06-15',
