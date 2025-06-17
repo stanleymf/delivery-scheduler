@@ -78,6 +78,11 @@ export default {
 				return await handleEnhancedTaggingAPI(request, env, path, corsHeaders);
 			}
 
+			// Shopify Settings API Routes (direct KV handling)
+			if (path.startsWith('/api/shopify/')) {
+				return await handleShopifyAPI(request, env, path, corsHeaders);
+			}
+
 			// Proxy API requests to Railway admin dashboard (fallback to KV if unavailable)
 			if (path.startsWith('/api/')) {
 				return await proxyToAdminDashboardWithFallback(request, env, path);
@@ -1373,6 +1378,144 @@ async function handleEnhancedTaggingAPI(request: Request, env: Env, path: string
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 		});
 	} catch (error) {
+		return new Response(JSON.stringify({ error: error.message }), {
+			status: 500,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+		});
+	}
+}
+
+async function handleShopifyAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
+	try {
+		const segments = path.split('/').filter(Boolean);
+		// /api/shopify/settings, /api/shopify/test-connection, etc.
+		const operation = segments[2];
+
+		// Extract user ID from authorization (simplified for now - in production, verify JWT)
+		const authHeader = request.headers.get('Authorization');
+		const userId = authHeader ? 'default-user' : 'anonymous'; // Simplified auth
+
+		if (operation === 'settings') {
+			if (request.method === 'GET') {
+				// Get Shopify credentials from KV
+				const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
+				if (!credentials) {
+					return new Response(JSON.stringify({ 
+						success: false, 
+						error: 'No credentials found' 
+					}), {
+						status: 404,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+
+				const creds = JSON.parse(credentials);
+				return new Response(JSON.stringify({
+					success: true,
+					credentials: {
+						shopDomain: creds.shopDomain,
+						accessToken: creds.accessToken,
+						apiVersion: creds.apiVersion,
+						appSecret: creds.appSecret
+					}
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			} else if (request.method === 'POST') {
+				// Save Shopify credentials to KV
+				const body = await request.json();
+				const { shopDomain, accessToken, apiVersion, appSecret } = body as any;
+
+				// Validate required fields
+				if (!shopDomain || !accessToken) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'Shop domain and access token are required'
+					}), {
+						status: 400,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+
+				// Store credentials (in production, encrypt these)
+				const credentials = {
+					shopDomain: shopDomain.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+					accessToken,
+					apiVersion: apiVersion || '2024-01',
+					appSecret: appSecret || '',
+					savedAt: new Date().toISOString()
+				};
+
+				await env.DELIVERY_DATA.put(`user:${userId}:shopify-credentials`, JSON.stringify(credentials));
+
+				return new Response(JSON.stringify({
+					success: true,
+					message: 'Credentials saved successfully and persisted to storage'
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			}
+		} else if (operation === 'test-connection') {
+			if (request.method === 'GET') {
+				// Test Shopify connection
+				const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
+				if (!credentials) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'No credentials configured. Please set up your credentials first.'
+					}), {
+						status: 400,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+
+				const creds = JSON.parse(credentials);
+				const shopifyUrl = `https://${creds.shopDomain}/admin/api/${creds.apiVersion}/shop.json`;
+
+				try {
+					const response = await fetch(shopifyUrl, {
+						headers: {
+							'X-Shopify-Access-Token': creds.accessToken,
+							'Content-Type': 'application/json',
+						},
+					});
+
+					if (response.ok) {
+						const shopData = await response.json() as any;
+						return new Response(JSON.stringify({
+							success: true,
+							shopName: shopData.shop.name,
+							plan: shopData.shop.plan_name,
+							email: shopData.shop.email
+						}), {
+							headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+						});
+					} else {
+						return new Response(JSON.stringify({
+							success: false,
+							error: 'Invalid credentials or connection failed'
+						}), {
+							status: 400,
+							headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+						});
+					}
+				} catch (error: any) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'Shopify API request failed: ' + error.message
+					}), {
+						status: 500,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+			}
+		}
+
+		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
+			status: 400,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+		});
+	} catch (error: any) {
 		return new Response(JSON.stringify({ error: error.message }), {
 			status: 500,
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' }

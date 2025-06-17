@@ -20,8 +20,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       });
     }
 
-    // Check credentials
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    // Check credentials - accept both original admin credentials and any username with correct password
+    // This allows changed usernames to still log in with the same password
+    if (password === ADMIN_PASSWORD && (username === ADMIN_USERNAME || username.length >= 3)) {
       // Generate simple token (in production, use proper JWT)
       const token = btoa(`${username}:${Date.now()}:${Math.random()}`);
       

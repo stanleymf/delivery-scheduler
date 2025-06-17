@@ -140,12 +140,6 @@ export function AccountManagement() {
       if (response.ok) {
         showMessage('success', data.message);
         setEmailForm({ newEmail: '', password: '' });
-        
-        // Update token if provided
-        if (data.newToken) {
-          localStorage.setItem('admin_token', data.newToken);
-        }
-        
         loadAccountInfo(); // Refresh account info
       } else {
         showMessage('error', data.error);

@@ -16,31 +16,15 @@ export const AUTH_CONFIG = {
 // Helper function to check if session is expired
 export const isSessionExpired = (): boolean => {
   const timestamp = localStorage.getItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
-  console.log('🔍 Session check - stored timestamp:', timestamp);
-  
-  if (!timestamp) {
-    console.log('❌ No session timestamp found');
-    return true;
-  }
+  if (!timestamp) return true;
   
   const sessionTime = parseInt(timestamp, 10);
   const currentTime = Date.now();
-  const timeDiff = currentTime - sessionTime;
-  const isExpired = timeDiff > AUTH_CONFIG.SESSION_TIMEOUT;
   
-  console.log('🔍 Session details:');
-  console.log('  - Session time:', new Date(sessionTime).toISOString());
-  console.log('  - Current time:', new Date(currentTime).toISOString());
-  console.log('  - Time diff (ms):', timeDiff);
-  console.log('  - Timeout (ms):', AUTH_CONFIG.SESSION_TIMEOUT);
-  console.log('  - Is expired:', isExpired);
-  
-  return isExpired;
+  return (currentTime - sessionTime) > AUTH_CONFIG.SESSION_TIMEOUT;
 };
 
 // Helper function to update session timestamp
 export const updateSessionTimestamp = (): void => {
-  const timestamp = Date.now().toString();
-  console.log('✅ Updating session timestamp:', timestamp, new Date().toISOString());
-  localStorage.setItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY, timestamp);
+  localStorage.setItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY, Date.now().toString());
 }; 

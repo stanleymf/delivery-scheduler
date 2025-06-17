@@ -24,49 +24,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check for existing session on mount
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('🔍 Checking authentication...');
-      console.log('📦 LocalStorage contents:');
-      console.log('  - Token:', localStorage.getItem(AUTH_CONFIG.TOKEN_KEY));
-      console.log('  - User:', localStorage.getItem(AUTH_CONFIG.USER_KEY));
-      console.log('  - Timestamp:', localStorage.getItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY));
-      
       const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-      const storedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
       
-      if (token && storedUser) {
-        console.log('✅ Token and user found in localStorage');
-        const sessionExpired = isSessionExpired();
-        console.log('🕒 Session expired result:', sessionExpired);
-        
-        if (!sessionExpired) {
-          console.log('✅ Valid session found, user:', storedUser);
-          setIsAuthenticated(true);
-          setUser(storedUser);
-          updateSessionTimestamp();
-          
-          // Initialize sync service after successful authentication
-          try {
+      if (token && !isSessionExpired()) {
+        try {
+          // Verify token with server
+          const response = await fetch('/api/auth/verify', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setIsAuthenticated(true);
+            setUser(data.user);
+            updateSessionTimestamp();
+            
+            // Initialize sync service after successful authentication
             userDataSync.initialize();
-          } catch (error) {
-            console.warn('⚠️ Failed to initialize userDataSync:', error);
+          } else {
+            // Token is invalid, clear it
+            logout();
           }
-        } else {
-          console.log('❌ Session expired, clearing data');
-          // Clear any stale data
-          localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-          localStorage.removeItem(AUTH_CONFIG.USER_KEY);
-          localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
-          setIsAuthenticated(false);
-          setUser(null);
+        } catch (error) {
+          console.error('Auth verification failed:', error);
+          logout();
         }
       } else {
-        console.log('❌ No valid session found - missing token or user');
-        // Clear any stale data
-        localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-        localStorage.removeItem(AUTH_CONFIG.USER_KEY);
-        localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
-        setIsAuthenticated(false);
-        setUser(null);
+        // No token or expired session
+        logout();
       }
       
       setIsLoading(false);
@@ -84,7 +72,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         updateSessionTimestamp();
       } else {
         // Session expired, logout
-        console.log('⏱️ Session expired, logging out');
         logout();
       }
     };
@@ -128,7 +115,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    console.log('🔐 Attempting login for user:', username);
     
     try {
       const response = await fetch('/api/auth/login', {
@@ -141,7 +127,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Login successful:', data);
         
         // Store authentication data
         localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, data.token);
@@ -152,32 +137,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.user);
         
         // Initialize sync service after successful login
-        try {
-          userDataSync.initialize();
-        } catch (error) {
-          console.warn('⚠️ Failed to initialize userDataSync:', error);
-        }
+        userDataSync.initialize();
         
         setIsLoading(false);
         return true;
       } else {
-        const errorData = await response.json();
-        console.log('❌ Login failed:', errorData);
         setIsLoading(false);
         return false;
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
+      console.error('Login failed:', error);
       setIsLoading(false);
       return false;
     }
   };
 
   const logout = async (): Promise<void> => {
-    console.log('🚪 Logging out...');
     const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
     
-    // Try to logout from server (but don't block on it)
+    // Try to logout from server
     if (token) {
       try {
         await fetch('/api/auth/logout', {
@@ -198,11 +176,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.removeItem(AUTH_CONFIG.SESSION_TIMESTAMP_KEY);
     
     // Stop sync service
-    try {
-      userDataSync.stopAutoSync();
-    } catch (error) {
-      console.warn('⚠️ Failed to stop userDataSync:', error);
-    }
+    userDataSync.stopAutoSync();
     
     setIsAuthenticated(false);
     setUser(null);
