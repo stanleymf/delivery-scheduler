@@ -5,5 +5,11 @@
   "compatibility_date": "2024-12-01",
   "observability": {
     "enabled": true
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "DELIVERY_DATA",
+      "id": "a9db3bd06ff84ac087a712ac4406447a"
+    }
+  ]
 }
