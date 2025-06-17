@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Clock, Plus, Edit, Trash2, Truck, Building } from "lucide-react";
 import { mockTimeslots, type Timeslot, formatTimeRange, getDayName, loadTimeslots, saveTimeslots } from "@/lib/mockData";
+import { useAutoSave } from "@/lib/autoSave";
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator";
 
 export function TimeSlots() {
   const [timeslots, setTimeslots] = useState<Timeslot[]>(() => {
@@ -17,6 +19,24 @@ export function TimeSlots() {
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<Timeslot | null>(null);
+
+  // Auto-save functionality
+  const { saveNow, state: autoSaveState } = useAutoSave(
+    timeslots,
+    async (updatedTimeslots: Timeslot[]) => {
+      // Save to localStorage - need to merge with express slots
+      const allTimeslots = loadTimeslots();
+      const expressSlots = allTimeslots.filter(slot => slot.type === 'express');
+      saveTimeslots([...updatedTimeslots, ...expressSlots]);
+    },
+    {
+      delay: 1500, // Save 1.5 seconds after changes
+      showToast: true,
+      onError: (error) => {
+        console.error('Auto-save failed for timeslots:', error);
+      }
+    }
+  );
   const [formData, setFormData] = useState({
     name: "",
     startTime: "",
@@ -85,11 +105,7 @@ export function TimeSlots() {
     }
     
     setTimeslots(updatedTimeslots);
-    
-    // Save to localStorage - need to merge with express slots
-    const allTimeslots = loadTimeslots();
-    const expressSlots = allTimeslots.filter(slot => slot.type === 'express');
-    saveTimeslots([...updatedTimeslots, ...expressSlots]);
+    // Auto-save will trigger automatically due to state change
 
     setIsCreateDialogOpen(false);
     resetForm();
@@ -99,11 +115,7 @@ export function TimeSlots() {
   const handleDelete = (id: string) => {
     const updatedTimeslots = timeslots.filter(slot => slot.id !== id);
     setTimeslots(updatedTimeslots);
-    
-    // Save to localStorage - need to merge with express slots
-    const allTimeslots = loadTimeslots();
-    const expressSlots = allTimeslots.filter(slot => slot.type === 'express');
-    saveTimeslots([...updatedTimeslots, ...expressSlots]);
+    // Auto-save will trigger automatically due to state change
   };
 
   const handleDayToggle = (day: string, checked: boolean) => {
@@ -160,8 +172,11 @@ export function TimeSlots() {
         <div className="flex items-center gap-2">
           <Clock className="w-6 h-6 text-olive" />
           <div>
-            <h1 className="text-2xl font-bold">Time Slots</h1>
-            <p className="text-muted-foreground">Manage global delivery and collection time slots</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Time Slots</h1>
+              <AutoSaveIndicator state={autoSaveState} variant="badge" />
+            </div>
+            <p className="text-muted-foreground">Manage global delivery and collection time slots • Changes save automatically</p>
           </div>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

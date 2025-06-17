@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon, Settings, Ban, Clock, AlertCircle, CalendarRange, Upload, Trash2, CalendarDays, Edit, List } from "lucide-react";
 import { mockTimeslots, loadBlockedDates, saveBlockedDates, loadBlockedDateRanges, saveBlockedDateRanges, loadSettings, saveSettings, type BlockedDate, type Timeslot, type BlockedDateRange, formatTimeRange } from "@/lib/mockData";
+import { useAutoSave } from "@/lib/autoSave";
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator";
 
 export function AvailabilityCalendar() {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>(loadBlockedDates());
@@ -42,7 +44,47 @@ export function AvailabilityCalendar() {
 
   const timeslots = mockTimeslots;
 
-  // Helper function to update blocked dates with persistence
+  // Auto-save for blocked dates
+  const { state: blockedDatesAutoSaveState } = useAutoSave(
+    blockedDates,
+    async (updatedBlockedDates: BlockedDate[]) => {
+      saveBlockedDates(updatedBlockedDates);
+    },
+    {
+      delay: 1500,
+      showToast: true,
+      onError: (error) => console.error('Auto-save failed for blocked dates:', error)
+    }
+  );
+
+  // Auto-save for blocked date ranges
+  const { state: blockedRangesAutoSaveState } = useAutoSave(
+    blockedDateRanges,
+    async (updatedBlockedDateRanges: BlockedDateRange[]) => {
+      saveBlockedDateRanges(updatedBlockedDateRanges);
+    },
+    {
+      delay: 1500,
+      showToast: true,
+      onError: (error) => console.error('Auto-save failed for blocked date ranges:', error)
+    }
+  );
+
+  // Auto-save for future order limit
+  const { state: settingsAutoSaveState } = useAutoSave(
+    futureOrderLimit,
+    async (newLimit: number) => {
+      const currentSettings = loadSettings();
+      saveSettings({ ...currentSettings, futureOrderLimit: newLimit });
+    },
+    {
+      delay: 1500,
+      showToast: true,
+      onError: (error) => console.error('Auto-save failed for settings:', error)
+    }
+  );
+
+  // Helper function to update blocked dates with auto-save
   const updateBlockedDates = (newBlockedDates: BlockedDate[]) => {
     console.log('💾 updateBlockedDates called:', { 
       oldCount: blockedDates.length, 
@@ -50,21 +92,17 @@ export function AvailabilityCalendar() {
       newDates: newBlockedDates.map(d => ({ id: d.id, date: d.date, type: d.type }))
     });
     setBlockedDates(newBlockedDates);
-    saveBlockedDates(newBlockedDates);
-    console.log('✅ Blocked dates updated and saved');
+    console.log('✅ Blocked dates updated (auto-save will trigger)');
   };
 
-  // Helper function to update blocked date ranges with persistence
+  // Helper function to update blocked date ranges with auto-save
   const updateBlockedDateRanges = (newBlockedDateRanges: BlockedDateRange[]) => {
     setBlockedDateRanges(newBlockedDateRanges);
-    saveBlockedDateRanges(newBlockedDateRanges);
   };
 
-  // Helper function to update future order limit with persistence
+  // Helper function to update future order limit with auto-save
   const updateFutureOrderLimit = (newLimit: number) => {
     setFutureOrderLimit(newLimit);
-    const currentSettings = loadSettings();
-    saveSettings({ ...currentSettings, futureOrderLimit: newLimit });
   };
 
   const isDateBlocked = (date: Date): boolean => {
@@ -433,8 +471,11 @@ export function AvailabilityCalendar() {
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-6 h-6 text-olive" />
           <div>
-            <h1 className="text-2xl font-bold">Availability Calendar</h1>
-            <p className="text-muted-foreground">Manage service availability and blocked dates</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Availability Calendar</h1>
+              <AutoSaveIndicator state={blockedDatesAutoSaveState} variant="badge" />
+            </div>
+            <p className="text-muted-foreground">Manage service availability and blocked dates • Changes save automatically</p>
           </div>
         </div>
         <div className="flex gap-2">

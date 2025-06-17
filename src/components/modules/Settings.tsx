@@ -12,11 +12,28 @@ import { authenticatedFetch } from "@/utils/api";
 import { getVersionInfo, formatVersion, VERSION_RULES } from "@/lib/version";
 import { TagMappingSettings } from "./TagMappingSettings";
 import { SyncStatus } from "./SyncStatus";
+import { useAutoSave } from "@/lib/autoSave";
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator";
 
 export function Settings() {
   const [settings, setSettings] = useState(loadSettings());
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<CollectionLocation | null>(null);
+
+  // Auto-save functionality
+  const { saveNow, state: autoSaveState } = useAutoSave(
+    settings,
+    async (updatedSettings: typeof settings) => {
+      saveSettings(updatedSettings);
+    },
+    {
+      delay: 1500,
+      showToast: true,
+      onError: (error) => {
+        console.error('Auto-save failed for settings:', error);
+      }
+    }
+  );
   const [locationForm, setLocationForm] = useState({
     name: "",
     address: ""
@@ -66,7 +83,7 @@ export function Settings() {
     }
 
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    // Auto-save will trigger automatically due to state change
 
     setIsLocationDialogOpen(false);
     setEditingLocation(null);
@@ -79,7 +96,7 @@ export function Settings() {
       collectionLocations: settings.collectionLocations.filter(loc => loc.id !== id)
     };
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    // Auto-save will trigger automatically due to state change
   };
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
@@ -88,7 +105,7 @@ export function Settings() {
       theme
     };
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    // Auto-save will trigger automatically due to state change
   };
 
   const handleEmergencyReset = async () => {
@@ -128,8 +145,11 @@ export function Settings() {
       <div className="flex items-center gap-2">
         <SettingsIcon className="w-6 h-6 text-olive" />
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure collection locations and dashboard preferences</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold">Settings</h1>
+            <AutoSaveIndicator state={autoSaveState} variant="badge" />
+          </div>
+          <p className="text-muted-foreground">Configure collection locations and dashboard preferences • Changes save automatically</p>
         </div>
       </div>
 
