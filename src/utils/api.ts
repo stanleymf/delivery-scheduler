@@ -22,7 +22,13 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
 
   const headers = getAuthHeaders();
   
-  const response = await fetch(url, {
+  // For Shopify endpoints, use Worker directly since Pages Functions don't have KV access
+  let finalUrl = url;
+  if (url.startsWith('/api/shopify/')) {
+    finalUrl = `https://delivery-scheduler-widget.stanleytan92.workers.dev${url}`;
+  }
+  
+  const response = await fetch(finalUrl, {
     ...options,
     headers: {
       ...headers,
