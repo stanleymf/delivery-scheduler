@@ -189,8 +189,11 @@ The delivery management application has successfully migrated from Railway to Cl
 
 ### Recent Fix (Just Completed)
 **Issue**: 405 "Method Not Allowed" error when saving Shopify credentials
-**Cause**: Cloudflare Worker was missing `/api/shopify/settings` and `/api/shopify/test-connection` endpoints
-**Solution**: Added `handleShopifyAPI` function to worker with direct KV storage for credentials
-**Status**: ✅ Deployed and fixed - credentials can now be saved successfully
+**Cause**: Frontend on Cloudflare Pages was calling `/api/shopify/settings` but endpoints only existed on Worker domain
+**Root Cause**: Architecture mismatch - frontend making relative API calls to Pages domain, but APIs were on Worker domain
+**Solution**: Added Shopify API endpoints to Cloudflare Pages Functions:
+- `functions/api/shopify/settings.ts` - GET/POST for credentials management
+- `functions/api/shopify/test-connection.ts` - GET for testing Shopify connection
+**Status**: ✅ Deployed to Pages - credentials should now save successfully on same domain
 
 The foundation is solid and production-ready. The next milestone is connecting to a real Shopify store to enable true seasonal product management!

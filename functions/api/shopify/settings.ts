@@ -1,5 +1,5 @@
 interface Env {
-  DELIVERY_DATA: any; // KVNamespace type
+  // No KV access in Pages Functions by default
 }
 
 export async function onRequestGet(context: { env: Env; request: Request }) {
@@ -13,32 +13,13 @@ export async function onRequestGet(context: { env: Env; request: Request }) {
   };
 
   try {
-    // Extract user ID from authorization (simplified for now - in production, verify JWT)
-    const authHeader = request.headers.get('Authorization');
-    const userId = authHeader ? 'default-user' : 'anonymous'; // Simplified auth
-
-    // Get Shopify credentials from KV
-    const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
-    if (!credentials) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'No credentials found' 
-      }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const creds = JSON.parse(credentials);
-    return new Response(JSON.stringify({
-      success: true,
-      credentials: {
-        shopDomain: creds.shopDomain,
-        accessToken: creds.accessToken,
-        apiVersion: creds.apiVersion,
-        appSecret: creds.appSecret
-      }
+    // For now, return a test response since we don't have KV access in Pages Functions
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'No credentials found',
+      info: 'Pages Functions need KV configuration - use Worker endpoint instead'
     }), {
+      status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error: any) {
@@ -63,11 +44,7 @@ export async function onRequestPost(context: { env: Env; request: Request }) {
   };
 
   try {
-    // Extract user ID from authorization (simplified for now - in production, verify JWT)
-    const authHeader = request.headers.get('Authorization');
-    const userId = authHeader ? 'default-user' : 'anonymous'; // Simplified auth
-
-    // Save Shopify credentials to KV
+    // Parse the request to validate format
     const body = await request.json();
     const { shopDomain, accessToken, apiVersion, appSecret } = body as any;
 
@@ -82,21 +59,13 @@ export async function onRequestPost(context: { env: Env; request: Request }) {
       });
     }
 
-    // Store credentials (in production, encrypt these)
-    const credentials = {
-      shopDomain: shopDomain.replace(/^https?:\/\//, '').replace(/\/$/, ''),
-      accessToken,
-      apiVersion: apiVersion || '2024-01',
-      appSecret: appSecret || '',
-      savedAt: new Date().toISOString()
-    };
-
-    await env.DELIVERY_DATA.put(`user:${userId}:shopify-credentials`, JSON.stringify(credentials));
-
+    // For now, return error since we can't save to KV from Pages Functions
     return new Response(JSON.stringify({
-      success: true,
-      message: 'Credentials saved successfully and persisted to storage'
+      success: false,
+      error: 'Cannot save credentials from Pages Functions. Please use Worker endpoint.',
+      info: 'Pages Functions need KV configuration - use Worker endpoint instead'
     }), {
+      status: 501,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error: any) {
