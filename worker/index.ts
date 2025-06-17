@@ -1530,6 +1530,208 @@ async function handleShopifyAPI(request: Request, env: Env, path: string, corsHe
 					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 				});
 			}
+		} else if (operation === 'register-webhooks') {
+			if (request.method === 'POST') {
+				// Register Shopify webhooks
+				const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
+				if (!credentials) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'No credentials configured. Please set up your credentials first.'
+					}), {
+						status: 400,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+
+				const creds = JSON.parse(credentials);
+				const webhookBaseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
+
+				// Define webhooks to register
+				const webhooksToRegister = [
+					{ topic: 'orders/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'orders/updated', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'orders/cancelled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'orders/fulfilled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'orders/paid', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'products/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'products/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'products/delete', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'inventory_levels/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'customers/create', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'customers/update', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' },
+					{ topic: 'app/uninstalled', address: `${webhookBaseUrl}/api/shopify/webhook`, format: 'json' }
+				];
+
+				try {
+					const results = [];
+					
+					// Get existing webhooks to avoid duplicates
+					const existingWebhooksResponse = await fetch(`https://${creds.shopDomain}/admin/api/${creds.apiVersion}/webhooks.json`, {
+						headers: {
+							'X-Shopify-Access-Token': creds.accessToken,
+							'Content-Type': 'application/json',
+						}
+					});
+
+					let existingWebhooks = [];
+					if (existingWebhooksResponse.ok) {
+						const existingData = await existingWebhooksResponse.json();
+						existingWebhooks = existingData.webhooks || [];
+					}
+
+					// Register each webhook
+					for (const webhook of webhooksToRegister) {
+						try {
+							const existingWebhook = existingWebhooks.find((w: any) => w.topic === webhook.topic);
+							
+							if (existingWebhook) {
+								if (existingWebhook.address !== webhook.address) {
+									// Update existing webhook
+									const updateResponse = await fetch(`https://${creds.shopDomain}/admin/api/${creds.apiVersion}/webhooks/${existingWebhook.id}.json`, {
+										method: 'PUT',
+										headers: {
+											'X-Shopify-Access-Token': creds.accessToken,
+											'Content-Type': 'application/json',
+										},
+										body: JSON.stringify({ webhook: { address: webhook.address } })
+									});
+
+									if (updateResponse.ok) {
+										const updatedData = await updateResponse.json();
+										results.push({
+											topic: webhook.topic,
+											status: 'updated',
+											webhook: updatedData.webhook
+										});
+									} else {
+										const errorData = await updateResponse.json();
+										results.push({
+											topic: webhook.topic,
+											status: 'error',
+											error: errorData.errors || 'Failed to update existing webhook'
+										});
+									}
+								} else {
+									results.push({
+										topic: webhook.topic,
+										status: 'exists',
+										webhook: existingWebhook
+									});
+								}
+							} else {
+								// Create new webhook
+								const response = await fetch(`https://${creds.shopDomain}/admin/api/${creds.apiVersion}/webhooks.json`, {
+									method: 'POST',
+									headers: {
+										'X-Shopify-Access-Token': creds.accessToken,
+										'Content-Type': 'application/json',
+									},
+									body: JSON.stringify({ webhook })
+								});
+
+								const data = await response.json();
+								
+								if (response.ok) {
+									results.push({
+										topic: webhook.topic,
+										status: 'success',
+										webhook: data.webhook
+									});
+								} else {
+									results.push({
+										topic: webhook.topic,
+										status: 'error',
+										error: data.errors || 'Unknown error'
+									});
+								}
+							}
+						} catch (error: any) {
+							results.push({
+								topic: webhook.topic,
+								status: 'error',
+								error: error.message
+							});
+						}
+					}
+
+					const summary = {
+						total: webhooksToRegister.length,
+						success: results.filter(r => r.status === 'success').length,
+						updated: results.filter(r => r.status === 'updated').length,
+						exists: results.filter(r => r.status === 'exists').length,
+						errors: results.filter(r => r.status === 'error').length
+					};
+
+					return new Response(JSON.stringify({
+						success: true,
+						message: 'Webhook registration completed',
+						results,
+						summary,
+						webhookBaseUrl
+					}), {
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+
+				} catch (error: any) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'Failed to register webhooks: ' + error.message
+					}), {
+						status: 500,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+			}
+		} else if (operation === 'webhooks') {
+			if (request.method === 'GET') {
+				// List existing webhooks
+				const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
+				if (!credentials) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'No credentials configured. Please set up your credentials first.'
+					}), {
+						status: 400,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+
+				const creds = JSON.parse(credentials);
+
+				try {
+					const response = await fetch(`https://${creds.shopDomain}/admin/api/${creds.apiVersion}/webhooks.json`, {
+						headers: {
+							'X-Shopify-Access-Token': creds.accessToken,
+							'Content-Type': 'application/json',
+						}
+					});
+
+					const data = await response.json();
+					
+					if (response.ok) {
+						return new Response(JSON.stringify({
+							success: true,
+							webhooks: data.webhooks
+						}), {
+							headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+						});
+					} else {
+						return new Response(JSON.stringify(data), {
+							status: response.status,
+							headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+						});
+					}
+				} catch (error: any) {
+					return new Response(JSON.stringify({
+						success: false,
+						error: 'Failed to fetch webhooks: ' + error.message
+					}), {
+						status: 500,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+			}
 		}
 
 		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
