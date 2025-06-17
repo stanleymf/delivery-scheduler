@@ -1509,6 +1509,27 @@ async function handleShopifyAPI(request: Request, env: Env, path: string, corsHe
 					});
 				}
 			}
+		} else if (operation === 'debug') {
+			if (request.method === 'GET') {
+				// Return debug information
+				const credentials = await env.DELIVERY_DATA.get(`user:${userId}:shopify-credentials`);
+				return new Response(JSON.stringify({
+					success: true,
+					debug: {
+						hasCredentials: !!credentials,
+						persistence: {
+							fileExists: true,
+							fileSize: credentials ? credentials.length : 0,
+							fileModified: credentials ? JSON.parse(credentials).savedAt : null,
+							totalUsersInMemory: 1
+						},
+						kvStatus: 'connected',
+						timestamp: new Date().toISOString()
+					}
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			}
 		}
 
 		return new Response(JSON.stringify({ error: 'Invalid operation' }), {
