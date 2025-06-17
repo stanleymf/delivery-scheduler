@@ -1,6 +1,11 @@
 # 🚚 Delivery Scheduler
 
-Advanced delivery scheduling system with Shopify integration. Features a comprehensive admin dashboard for managing delivery settings and a lightweight customer widget for Shopify stores.
+A sophisticated delivery scheduling system for Shopify stores with advanced time slot management, postal code validation, and seamless integration.
+
+## Latest Update
+- ✅ **v1.16.0** - Full Cloudflare migration with enhanced features
+- 🔧 **Architecture**: Cloudflare Pages + Workers + KV Storage
+- 🛠️ **Fixed**: Shopify API routing with proper KV persistence (June 2025)
 
 ## 🏗️ Architecture
 
