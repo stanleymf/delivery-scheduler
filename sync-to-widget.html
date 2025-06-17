@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sync Dashboard Data to Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .loading { background: #fef3c7; color: #92400e; }
+        .info { background: #dbeafe; color: #1d4ed8; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 10px 10px 10px 0;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .data-preview {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Sync Dashboard Data to Widget</h1>
+        <p>This page will sync your admin dashboard configuration to the widget's KV storage.</p>
+        
+        <div id="status"></div>
+        
+        <div>
+            <button onclick="loadLocalData()">1. Load Local Data</button>
+            <button onclick="syncToWidget()" id="syncBtn" disabled>2. Sync to Widget</button>
+            <button onclick="testWidget()">3. Test Widget</button>
+        </div>
+        
+        <div id="dataPreview"></div>
+    </div>
+
+    <script>
+        let localData = null;
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function loadLocalData() {
+            try {
+                showStatus('⏳ Loading data from localStorage...', 'loading');
+                
+                // Load all data from localStorage with the correct keys
+                const timeslots = JSON.parse(localStorage.getItem('delivery-timeslots') || '[]');
+                const blockedDates = JSON.parse(localStorage.getItem('blocked-dates') || '[]');
+                const blockedDateRanges = JSON.parse(localStorage.getItem('blocked-date-ranges') || '[]');
+                const settings = JSON.parse(localStorage.getItem('delivery-settings') || '{}');
+                const collectionLocations = JSON.parse(localStorage.getItem('collection-locations') || '[]');
+                const tagMappingSettings = JSON.parse(localStorage.getItem('tag-mapping-settings') || '{}');
+                const expressSlots = JSON.parse(localStorage.getItem('express-slots') || '[]');
+                
+                localData = {
+                    timeslots,
+                    blockedDates,
+                    blockedDateRanges,
+                    settings,
+                    collectionLocations,
+                    tagMappingSettings,
+                    expressSlots,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                // Show preview
+                document.getElementById('dataPreview').innerHTML = `
+                    <h3>📊 Local Data Preview:</h3>
+                    <div class="data-preview">${JSON.stringify(localData, null, 2)}</div>
+                `;
+                
+                showStatus(`✅ Loaded data: ${timeslots.length} timeslots, ${collectionLocations.length} collection locations, ${blockedDates.length} blocked dates`, 'success');
+                document.getElementById('syncBtn').disabled = false;
+                
+            } catch (error) {
+                showStatus(`❌ Error loading local data: ${error.message}`, 'error');
+            }
+        }
+        
+        async function syncToWidget() {
+            if (!localData) {
+                showStatus('❌ No local data loaded. Click "Load Local Data" first.', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('⏳ Syncing data to widget...', 'loading');
+                
+                const response = await fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/sync/delivery-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(localData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(`✅ Sync successful! ${result.message}`, 'success');
+                } else {
+                    showStatus(`❌ Sync failed: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Sync error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWidget() {
+            try {
+                showStatus('⏳ Testing widget endpoints...', 'loading');
+                
+                const [timeslotsRes, settingsRes] = await Promise.all([
+                    fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/public/widget/timeslots'),
+                    fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/public/widget/settings')
+                ]);
+                
+                const timeslotsData = await timeslotsRes.json();
+                const settingsData = await settingsRes.json();
+                
+                if (timeslotsData.success && settingsData.success) {
+                    showStatus(
+                        `✅ Widget test successful!<br>
+                        - Timeslots: ${timeslotsData.data.length}<br>
+                        - Collection Locations: ${settingsData.data.collectionLocations?.length || 0}`, 
+                        'success'
+                    );
+                } else {
+                    showStatus('❌ Widget test failed: Invalid response', 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ Widget test error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if we're on the admin dashboard domain
+            if (window.location.hostname.includes('delivery-scheduler')) {
+                setTimeout(loadLocalData, 500);
+            } else {
+                showStatus('ℹ️ Open this page from your admin dashboard (delivery-scheduler.pages.dev) to access your local data.', 'info');
+            }
+        });
+    </script>
+</body>
+</html> 

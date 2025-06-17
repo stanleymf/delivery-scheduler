@@ -39,7 +39,7 @@ export default {
 		const corsHeaders = {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, Expires',
 		};
 
 		// Handle preflight requests
@@ -81,6 +81,16 @@ export default {
 			// Shopify Settings API Routes (direct KV handling)
 			if (path.startsWith('/api/shopify/')) {
 				return await handleShopifyAPI(request, env, path, corsHeaders);
+			}
+
+			// Data Sync API for admin dashboard
+			if (path.startsWith('/api/sync/')) {
+				return await handleSyncAPI(request, env, path, corsHeaders);
+			}
+
+			// Direct widget endpoints for KV data (no proxy)
+			if (path.startsWith('/api/public/widget/')) {
+				return await handleWidgetAPI(request, env, path, corsHeaders);
 			}
 
 			// Proxy API requests to Railway admin dashboard (fallback to KV if unavailable)
@@ -289,11 +299,11 @@ export default {
 async function serveWidgetBundle(): Promise<Response> {
 	// Serve a synced widget that fetches data from Railway admin dashboard
 	return new Response(`
-// Delivery Scheduler Widget v1.7.0 - Synced with Admin Dashboard
+// Delivery Scheduler Widget v1.8.0 - Live Sync with Admin Dashboard  
 (function() {
     'use strict';
     
-    console.log('Delivery Scheduler Widget v1.7.0 loaded - Synced with Admin Dashboard');
+    console.log('Delivery Scheduler Widget v1.8.0 loaded - Live Sync with Admin Dashboard');
     
     // Widget state management
     let widgetData = {
@@ -321,7 +331,7 @@ async function serveWidgetBundle(): Promise<Response> {
         try {
             console.log('Fetching widget data for shop:', shopDomain);
             
-            const baseUrl = 'https://delivery-scheduler-server.stanleytan92.workers.dev';
+            const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
             const [timeslotsRes, settingsRes, blockedDatesRes, blockedRangesRes, tagMappingRes] = await Promise.all([
                 fetch(baseUrl + '/api/public/widget/timeslots'),
                 fetch(baseUrl + '/api/public/widget/settings'), 
@@ -1033,7 +1043,15 @@ Your delivery preferences have been added to your cart!\`;
     
 })();
 `, {
-		headers: { 'Content-Type': 'application/javascript' },
+		headers: { 
+			'Content-Type': 'application/javascript',
+			'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+			'Pragma': 'no-cache',
+			'Expires': '0',
+			'Access-Control-Allow-Origin': '*',
+			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+		},
 	});
 }
 
@@ -1158,6 +1176,155 @@ async function testKVConnection(env: Env): Promise<boolean> {
 	} catch (error) {
 		console.error('KV connection test failed:', error);
 		return false;
+	}
+}
+
+async function handleSyncAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
+	try {
+		const segments = path.split('/').filter(Boolean);
+		// /api/sync/delivery-data
+		const operation = segments[2];
+
+		if (operation === 'delivery-data') {
+			if (request.method === 'POST') {
+				// Receive data from admin dashboard and store in KV
+				const body = await request.json() as DeliveryData;
+				body.lastUpdated = new Date().toISOString();
+				
+				await env.DELIVERY_DATA.put('delivery-data', JSON.stringify(body));
+				
+				return new Response(JSON.stringify({ 
+					success: true, 
+					message: 'Data synced successfully',
+					lastUpdated: body.lastUpdated 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			} else if (request.method === 'GET') {
+				// Return current sync status
+				const data = await env.DELIVERY_DATA.get('delivery-data');
+				if (data) {
+					const deliveryData = JSON.parse(data);
+					return new Response(JSON.stringify({ 
+						success: true, 
+						lastUpdated: deliveryData.lastUpdated,
+						dataSize: JSON.stringify(deliveryData).length,
+						timeslotsCount: deliveryData.timeslots?.length || 0,
+						settingsCount: Object.keys(deliveryData.settings || {}).length
+					}), {
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				} else {
+					return new Response(JSON.stringify({ 
+						success: false,
+						error: 'No data found'
+					}), {
+						status: 404,
+						headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+					});
+				}
+			}
+		} else if (operation === 'test') {
+			// Test sync connection
+			return new Response(JSON.stringify({ 
+				success: true,
+				message: 'Sync API is working',
+				timestamp: new Date().toISOString()
+			}), {
+				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+			});
+		}
+
+		return new Response(JSON.stringify({ error: 'Invalid sync operation' }), {
+			status: 400,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+		});
+	} catch (error: any) {
+		return new Response(JSON.stringify({ 
+			error: error.message,
+			operation: 'sync'
+		}), {
+			status: 500,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+		});
+	}
+}
+
+async function handleWidgetAPI(request: Request, env: Env, path: string, corsHeaders: any): Promise<Response> {
+	try {
+		const endpoint = path.replace('/api/public/widget/', '');
+		
+		const data = await env.DELIVERY_DATA.get('delivery-data');
+		if (!data) {
+			return new Response(JSON.stringify({ 
+				success: false, 
+				error: 'No data available' 
+			}), {
+				status: 404,
+				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+			});
+		}
+
+		const deliveryData = JSON.parse(data);
+
+		switch (endpoint) {
+			case 'timeslots':
+				return new Response(JSON.stringify({ 
+					success: true, 
+					data: deliveryData.timeslots || [] 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			
+			case 'blocked-dates':
+				return new Response(JSON.stringify({ 
+					success: true, 
+					data: deliveryData.blockedDates || [] 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			
+			case 'blocked-date-ranges':
+				return new Response(JSON.stringify({ 
+					success: true, 
+					data: deliveryData.blockedDateRanges || [] 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			
+			case 'settings':
+				return new Response(JSON.stringify({ 
+					success: true, 
+					data: deliveryData.settings || {} 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			
+			case 'tag-mapping-settings':
+				return new Response(JSON.stringify({ 
+					success: true, 
+					data: deliveryData.tagMappingSettings || {} 
+				}), {
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+			
+			default:
+				return new Response(JSON.stringify({ 
+					success: false, 
+					error: 'Endpoint not found' 
+				}), {
+					status: 404,
+					headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+				});
+		}
+	} catch (error: any) {
+		return new Response(JSON.stringify({ 
+			success: false, 
+			error: error.message 
+		}), {
+			status: 500,
+			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+		});
 	}
 }
 

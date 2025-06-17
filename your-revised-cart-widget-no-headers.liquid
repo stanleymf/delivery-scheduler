@@ -1,0 +1,765 @@
+<!-- DELIVERY SCHEDULER - WITH DYNAMIC FEE HANDLING + COLLECTION BRANCHES + FULL SHOPIFY INTEGRATION -->
+<div id="delivery-scheduler-cart-widget"></div>
+
+<script>
+// DELIVERY SCHEDULER WITH DYNAMIC FEE HANDLING + COLLECTION BRANCH SUPPORT + SHOPIFY CART INTEGRATION
+// Updated with cache-busting parameters only (no problematic headers)
+(function() {
+    console.log('🚀 Delivery scheduler with dynamic fee handling + collection branches + Shopify integration starting...');
+    
+    let widgetData = { timeslots: [], settings: {}, collectionLocations: [], tagMappingSettings: {} };
+    let selectedType = 'delivery';
+    let selectedDate = null;
+    let selectedTimeslot = null;
+    let selectedLocation = null;
+    let postalCode = '';
+    let dynamicFeeVariantId = null; // Will be set automatically
+    
+    async function loadData() {
+        try {
+            const baseUrl = 'https://delivery-scheduler-widget.stanleytan92.workers.dev';
+            const timestamp = new Date().getTime();
+            
+            console.log('🔄 Loading data from synced endpoints...');
+            
+            const [timeslotsRes, settingsRes] = await Promise.all([
+                fetch(`${baseUrl}/api/public/widget/timeslots?v=1.8.0&t=${timestamp}`),
+                fetch(`${baseUrl}/api/public/widget/settings?v=1.8.0&t=${timestamp}`)
+            ]);
+            
+            if (timeslotsRes.ok) {
+                const data = await timeslotsRes.json();
+                widgetData.timeslots = data.data || [];
+                console.log('✅ Loaded', widgetData.timeslots.length, 'timeslots from synced data');
+            } else {
+                console.error('❌ Failed to load timeslots:', timeslotsRes.status);
+            }
+            
+            if (settingsRes.ok) {
+                const data = await settingsRes.json();
+                widgetData.settings = data.data || {};
+                // Load collection locations from synced settings
+                widgetData.collectionLocations = widgetData.settings.collectionLocations || [
+                    {id: '1', name: 'Main Store', address: '123 Orchard Road, Singapore 238858'},
+                    {id: '2', name: 'Marina Bay Branch', address: '456 Marina Bay Sands, Singapore 018956'},
+                    {id: '3', name: 'Sentosa Outlet', address: '789 Sentosa Gateway, Singapore 098269'}
+                ];
+                
+                // Load tag mapping settings from synced data
+                widgetData.tagMappingSettings = widgetData.settings.tagMappingSettings || getDefaultTagMappingSettings();
+                
+                console.log('✅ Loaded', widgetData.collectionLocations.length, 'collection locations from synced data');
+                console.log('✅ Loaded tag mapping settings from synced data');
+            } else {
+                console.error('❌ Failed to load settings:', settingsRes.status);
+                // Use defaults if sync fails
+                widgetData.collectionLocations = [
+                    {id: '1', name: 'Main Store', address: '123 Orchard Road, Singapore 238858'},
+                    {id: '2', name: 'Marina Bay Branch', address: '456 Marina Bay Sands, Singapore 018956'},
+                    {id: '3', name: 'Sentosa Outlet', address: '789 Sentosa Gateway, Singapore 098269'}
+                ];
+                widgetData.tagMappingSettings = getDefaultTagMappingSettings();
+            }
+            
+            // Initialize dynamic fee product
+            await initializeDynamicFeeProduct();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to load data:', error);
+            // Use fallback defaults
+            widgetData.timeslots = [];
+            widgetData.collectionLocations = [
+                {id: '1', name: 'Main Store', address: '123 Orchard Road, Singapore 238858'},
+                {id: '2', name: 'Marina Bay Branch', address: '456 Marina Bay Sands, Singapore 018956'},
+                {id: '3', name: 'Sentosa Outlet', address: '789 Sentosa Gateway, Singapore 098269'}
+            ];
+            widgetData.tagMappingSettings = getDefaultTagMappingSettings();
+            return false;
+        }
+    }
+    
+    // Default tag mapping settings fallback
+    function getDefaultTagMappingSettings() {
+        return {
+            deliveryTag: 'Delivery',
+            collectionTag: 'Collection',
+            expressTag: 'Express'
+        };
+    }
+    
+    // Initialize Dynamic Fee Product
+    async function initializeDynamicFeeProduct() {
+        try {
+            console.log('🔍 Checking for dynamic fee product...');
+            
+            // Try to find existing dynamic fee product
+            const response = await fetch('/products/express-delivery-fee.json');
+            
+            if (response.ok) {
+                const productData = await response.json();
+                dynamicFeeVariantId = productData.product.variants[0].id;
+                console.log('✅ Found dynamic fee product', { variantId: dynamicFeeVariantId });
+            } else {
+                console.log('⚠️ Dynamic fee product not found - fees will be saved as cart attributes only');
+                console.log('💡 To enable automatic fee line items: Create a product with handle "express-delivery-fee" and $0.00 price');
+            }
+        } catch (error) {
+            console.log('⚠️ Could not check for dynamic fee product:', error);
+        }
+    }
+    
+    // Generate delivery tags based on selections and tag mapping settings
+    function generateDeliveryTags() {
+        const tags = [];
+        const tagMapping = widgetData.tagMappingSettings;
+        
+        // 1. Delivery Type (Delivery/Express/Collection)
+        if (selectedType === 'delivery') {
+            tags.push(tagMapping.deliveryTag || 'Delivery');
+        } else if (selectedType === 'collection') {
+            tags.push(tagMapping.collectionTag || 'Collection');
+        } else if (selectedType === 'express') {
+            tags.push(tagMapping.expressTag || 'Express');
+        }
+        
+        // 2. Delivery Date in dd/mm/yyyy format
+        if (selectedDate) {
+            const formattedDate = selectedDate.toLocaleDateString('en-GB'); // dd/mm/yyyy format
+            tags.push(formattedDate);
+        }
+        
+        // 3. Delivery Timeslot in hh:mm format
+        if (selectedTimeslot) {
+            const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+            if (slot && slot.startTime && slot.endTime) {
+                tags.push(`${slot.startTime}-${slot.endTime}`);
+            }
+        }
+        
+        return tags;
+    }
+    
+    // Generate comprehensive delivery notes
+    function generateDeliveryNotes() {
+        const notes = [];
+        const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+        
+        notes.push(`=== DELIVERY INFORMATION ===`);
+        notes.push(`Type: ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}`);
+        notes.push(`Date: ${selectedDate.toLocaleDateString()}`);
+        
+        if (slot) {
+            notes.push(`Timeslot: ${slot.name}`);
+            notes.push(`Time Window: ${slot.startTime} - ${slot.endTime}`);
+            notes.push(`Timeslot Type: ${slot.type}`);
+            if (slot.maxOrders) {
+                notes.push(`Max Orders: ${slot.maxOrders}`);
+            }
+            if (slot.cutoffTime) {
+                notes.push(`Cutoff Time: ${slot.cutoffTime}`);
+            }
+        } else {
+            notes.push(`Time: N/A`);
+        }
+        
+        if (selectedType === 'collection' && selectedLocation) {
+            const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+            if (location) {
+                notes.push(`Collection Location: ${location.name}`);
+                notes.push(`Address: ${location.address}`);
+                notes.push(`Location ID: ${location.id}`);
+            }
+        } else if (selectedType !== 'collection' && postalCode) {
+            notes.push(`Delivery Postal Code: ${postalCode}`);
+            notes.push(`Delivery Area: ${postalCode.substring(0, 2)}`);
+        }
+        
+        if (slot && slot.fee && slot.fee > 0) {
+            notes.push(`Express Delivery Fee: $${slot.fee}`);
+        }
+        
+        // Add generated tags for reference
+        const tags = generateDeliveryTags();
+        notes.push(`Generated Tags: ${tags.join(', ')}`);
+        
+        notes.push(`Widget Version: v1.8.0-cors-fixed`);
+        notes.push(`Scheduled: ${new Date().toISOString()}`);
+        notes.push(`=== END DELIVERY INFO ===`);
+        
+        return notes.join('\n');
+    }
+    
+    function createUI() {
+        const container = document.getElementById('delivery-scheduler-cart-widget');
+        if (!container) return;
+        
+        // Show loading state first
+        container.innerHTML = `
+            <div style="max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center;">
+                <div style="color: #6b7280;">Loading delivery options...</div>
+            </div>
+        `;
+        
+        // Check if we have any timeslots
+        if (!widgetData.timeslots || widgetData.timeslots.length === 0) {
+            container.innerHTML = `
+                <div style="max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center;">
+                    <div style="color: #ef4444;">⚠️ No delivery options available</div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">Please check your delivery settings or try again later.</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div style="max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <h3 style="margin: 0 0 20px 0; color: #374151;">🚚 Delivery Options</h3>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Delivery Type</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" id="delivery-btn" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: #3b82f6; color: white; cursor: pointer;">🚚 Delivery</button>
+                        <button type="button" id="express-btn" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: white; cursor: pointer;">⚡ Express</button>
+                        <button type="button" id="collection-btn" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; background: white; cursor: pointer;">🏢 Collection</button>
+                    </div>
+                </div>
+                
+                <div id="postal-code-section" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Postal Code</label>
+                    <input type="text" id="postal-code" placeholder="Enter postal code" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box;">
+                </div>
+                
+                <div id="collection-location-section" style="margin-bottom: 20px; display: none;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Collection Location</label>
+                    <select id="collection-location" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box;">
+                        <option value="">Choose a collection location</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Date</label>
+                    <input type="date" id="delivery-date" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box;">
+                </div>
+                
+                <div id="timeslot-section" style="margin-bottom: 20px; display: none;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Select Time</label>
+                    <div id="timeslot-options"></div>
+                </div>
+                
+                <div id="summary" style="margin-bottom: 20px; display: none; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                    <h4 style="margin: 0 0 12px 0;">Delivery Summary</h4>
+                    <div id="summary-content"></div>
+                </div>
+                
+                <button type="button" id="add-btn" style="width: 100%; padding: 14px; background: #616B53; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; opacity: 0.5;" disabled>
+                    <span id="button-text">Update Cart with Delivery</span>
+                </button>
+                
+                <div style="text-align: center; margin-top: 16px; font-size: 12px; color: #6b7280;">
+                    Powered by Delivery Scheduler v1.8.0 - CORS Fixed
+                    <br>
+                    <span style="font-size: 10px;">Loaded ${widgetData.timeslots.length} timeslots</span>
+                </div>
+            </div>
+        `;
+        
+        // Set date limits
+        const dateInput = document.getElementById('delivery-date');
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.min = tomorrow.toISOString().split('T')[0];
+        
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 30);
+        dateInput.max = maxDate.toISOString().split('T')[0];
+        
+        // Populate collection locations
+        const locationSelect = document.getElementById('collection-location');
+        widgetData.collectionLocations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            option.textContent = `${location.name} - ${location.address}`;
+            locationSelect.appendChild(option);
+        });
+        
+        // Add event listeners
+        document.getElementById('delivery-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            selectType('delivery');
+        });
+        
+        document.getElementById('express-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            selectType('express');
+        });
+        
+        document.getElementById('collection-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            selectType('collection');
+        });
+        
+        document.getElementById('delivery-date').addEventListener('change', function(e) {
+            updateTimeslots();
+        });
+        
+        document.getElementById('postal-code').addEventListener('input', function(e) {
+            postalCode = e.target.value;
+            updateSummary();
+        });
+        
+        document.getElementById('collection-location').addEventListener('change', function(e) {
+            selectedLocation = e.target.value;
+            updateSummary();
+        });
+        
+        document.getElementById('add-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            addToCart();
+        });
+        
+        // Initialize button text
+        updateButtonText();
+        
+        console.log('✅ UI created with', widgetData.timeslots.length, 'timeslots');
+    }
+    
+    // Dynamic Button Text Function
+    function updateButtonText() {
+        const buttonTextElement = document.getElementById('button-text');
+        if (!buttonTextElement) return;
+        
+        let buttonText = 'Update Cart with Delivery'; // Default for cart page
+        
+        if (selectedType === 'collection') {
+            buttonText = 'Update Cart with Collection';
+        } else if (selectedType === 'delivery') {
+            // Check if selected timeslot has a fee (Express Delivery)
+            if (selectedTimeslot) {
+                const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+                if (slot && slot.fee && slot.fee > 0) {
+                    buttonText = 'Update Cart with Express Delivery';
+                } else {
+                    buttonText = 'Update Cart with Delivery';
+                }
+            } else {
+                buttonText = 'Update Cart with Delivery';
+            }
+        } else if (selectedType === 'express') {
+            buttonText = 'Update Cart with Express Delivery';
+        }
+        
+        buttonTextElement.textContent = buttonText;
+        console.log('🔄 Button text updated to:', buttonText);
+    }
+    
+    function selectType(type) {
+        selectedType = type;
+        console.log('Selected delivery type:', type);
+        
+        // Update button styles
+        document.querySelectorAll('[id$="-btn"]').forEach(btn => {
+            if (btn.id !== 'add-btn') {
+                btn.style.background = 'white';
+                btn.style.color = '#374151';
+            }
+        });
+        
+        const btn = document.getElementById(type + '-btn');
+        if (btn) {
+            btn.style.background = type === 'express' ? '#f59e0b' : '#3b82f6';
+            btn.style.color = 'white';
+        }
+        
+        // Show/hide appropriate sections based on delivery type
+        const postalSection = document.getElementById('postal-code-section');
+        const locationSection = document.getElementById('collection-location-section');
+        
+        if (type === 'collection') {
+            // Show collection location, hide postal code
+            postalSection.style.display = 'none';
+            locationSection.style.display = 'block';
+        } else {
+            // Show postal code, hide collection location
+            postalSection.style.display = 'block';
+            locationSection.style.display = 'none';
+        }
+        
+        // Reset selections when switching types
+        selectedLocation = null;
+        postalCode = '';
+        document.getElementById('postal-code').value = '';
+        document.getElementById('collection-location').value = '';
+        
+        updateTimeslots();
+        updateButtonText(); // Update button text when type changes
+    }
+    
+    function updateTimeslots() {
+        const dateValue = document.getElementById('delivery-date').value;
+        if (!dateValue) return;
+        
+        selectedDate = new Date(dateValue);
+        console.log('Selected date:', selectedDate);
+        
+        const availableSlots = widgetData.timeslots.filter(slot => 
+            slot.type === selectedType || (selectedType === 'express' && slot.type === 'express')
+        );
+        
+        const timeslotSection = document.getElementById('timeslot-section');
+        const timeslotOptions = document.getElementById('timeslot-options');
+        
+        if (availableSlots.length === 0) {
+            timeslotSection.style.display = 'none';
+            console.log('No timeslots available for type:', selectedType);
+            return;
+        }
+        
+        timeslotOptions.innerHTML = availableSlots.map(slot => `
+            <button type="button" data-timeslot-id="${slot.id}" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: white; cursor: pointer; text-align: left;">
+                <div style="font-weight: 500;">${slot.name}</div>
+                <div style="font-size: 12px; color: #6b7280;">${slot.startTime} - ${slot.endTime}${slot.fee ? ' (+$' + slot.fee + ')' : ''}</div>
+            </button>
+        `).join('');
+        
+        // Add event listeners to timeslot buttons
+        timeslotOptions.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const timeslotId = this.getAttribute('data-timeslot-id');
+                selectTimeslot(timeslotId, this);
+            });
+        });
+        
+        timeslotSection.style.display = 'block';
+        console.log('Updated timeslots:', availableSlots.length, 'available for', selectedType);
+    }
+    
+    function selectTimeslot(timeslotId, buttonElement) {
+        selectedTimeslot = timeslotId;
+        console.log('Selected timeslot:', timeslotId);
+        
+        // Update button styles
+        document.querySelectorAll('#timeslot-options button').forEach(btn => {
+            btn.style.background = 'white';
+            btn.style.borderColor = '#d1d5db';
+        });
+        
+        buttonElement.style.background = '#e0f2fe';
+        buttonElement.style.borderColor = '#0ea5e9';
+        
+        updateSummary();
+        updateButtonText(); // Update button text when timeslot changes
+    }
+    
+    function updateSummary() {
+        if (!selectedDate || !selectedTimeslot) {
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('add-btn').disabled = true;
+            document.getElementById('add-btn').style.opacity = '0.5';
+            return;
+        }
+        
+        // For collection, require location selection
+        if (selectedType === 'collection' && !selectedLocation) {
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('add-btn').disabled = true;
+            document.getElementById('add-btn').style.opacity = '0.5';
+            return;
+        }
+        
+        // For delivery/express, require postal code
+        if (selectedType !== 'collection' && !postalCode.trim()) {
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('add-btn').disabled = true;
+            document.getElementById('add-btn').style.opacity = '0.5';
+            return;
+        }
+        
+        const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+        let summaryHTML = `
+            <div><strong>Date:</strong> ${selectedDate.toLocaleDateString()}</div>
+            <div><strong>Time:</strong> ${slot.name}</div>
+            <div><strong>Type:</strong> ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}</div>
+        `;
+        
+        if (selectedType === 'collection' && selectedLocation) {
+            const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+            if (location) {
+                summaryHTML += `<div><strong>Location:</strong> ${location.name}</div>`;
+                summaryHTML += `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${location.address}</div>`;
+            }
+        } else if (selectedType !== 'collection' && postalCode) {
+            summaryHTML += `<div><strong>Postal Code:</strong> ${postalCode}</div>`;
+        }
+        
+        if (slot.fee) {
+            summaryHTML += `<div style="color: #ef4444; font-weight: 600; margin-top: 8px;">Express Fee: +$${slot.fee}</div>`;
+        }
+        
+        document.getElementById('summary-content').innerHTML = summaryHTML;
+        document.getElementById('summary').style.display = 'block';
+        document.getElementById('add-btn').disabled = false;
+        document.getElementById('add-btn').style.opacity = '1';
+    }
+    
+    // Dynamic Fee Handling Functions
+    async function addDynamicFeeToCart(feeAmount, timeslotName, deliveryDate) {
+        if (!dynamicFeeVariantId || feeAmount <= 0) {
+            console.log('⚠️ No dynamic fee product or zero fee amount');
+            return false;
+        }
+
+        try {
+            console.log(`💰 Adding dynamic fee: $${feeAmount}`);
+
+            // First, remove any existing fee items
+            await removeFeeFromCart();
+
+            // Add fee item with dynamic price
+            const response = await fetch('/cart/add.js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: [{
+                        id: dynamicFeeVariantId,
+                        quantity: 1,
+                        properties: {
+                            '_delivery_fee': 'true',
+                            '_fee_amount': feeAmount.toString(),
+                            '_delivery_date': deliveryDate,
+                            '_delivery_timeslot': timeslotName,
+                            '_dynamic_price': 'true'
+                        }
+                    }]
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Dynamic fee added successfully');
+                return true;
+            } else {
+                const errorData = await response.json();
+                console.log('❌ Failed to add fee:', errorData);
+                return false;
+            }
+
+        } catch (error) {
+            console.log('❌ Error adding dynamic fee:', error);
+            return false;
+        }
+    }
+
+    async function removeFeeFromCart() {
+        try {
+            const cartResponse = await fetch('/cart.js');
+            const cart = await cartResponse.json();
+
+            // Find existing fee items
+            const feeItems = cart.items.filter(item => 
+                item.variant_id === dynamicFeeVariantId ||
+                (item.properties && item.properties._delivery_fee === 'true')
+            );
+
+            if (feeItems.length > 0) {
+                const updates = {};
+                feeItems.forEach(item => {
+                    updates[item.key] = 0; // Set quantity to 0 to remove
+                });
+
+                const response = await fetch('/cart/update.js', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ updates })
+                });
+
+                if (response.ok) {
+                    console.log('✅ Existing fee items removed');
+                }
+            }
+
+        } catch (error) {
+            console.log('⚠️ Error removing existing fees:', error);
+        }
+    }
+    
+    // ENHANCED: Full Shopify Cart Integration with Automatic Order Tagging + Dynamic Fee Line Item
+    async function addToCart() {
+        if (!selectedDate || !selectedTimeslot) return;
+        
+        const slot = widgetData.timeslots.find(s => s.id === selectedTimeslot);
+        const deliveryTags = generateDeliveryTags();
+        const deliveryNotes = generateDeliveryNotes();
+        
+        // Comprehensive cart attributes for Shopify integration
+        const cartAttributes = {
+            'delivery_date': selectedDate.toISOString().split('T')[0],
+            'delivery_timeslot': slot.name,
+            'delivery_timeslot_start': slot.startTime,
+            'delivery_timeslot_end': slot.endTime,
+            'delivery_type': selectedType,
+            'delivery_fee': slot.fee || 0,
+            'delivery_tags': deliveryTags.join(','),
+            'delivery_notes': deliveryNotes,
+            'delivery_widget_version': 'v1.8.0-cors-fixed',
+            'delivery_timestamp': new Date().toISOString()
+        };
+        
+        // Add location-specific attributes
+        if (selectedType === 'collection' && selectedLocation) {
+            const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+            if (location) {
+                cartAttributes['delivery_location_name'] = location.name;
+                cartAttributes['delivery_location_address'] = location.address;
+                cartAttributes['delivery_location_id'] = location.id;
+            }
+        } else if (selectedType !== 'collection' && postalCode) {
+            cartAttributes['delivery_postal_code'] = postalCode;
+            cartAttributes['delivery_postal_area'] = postalCode.substring(0, 2);
+        }
+        
+        console.log('🎯 Adding to cart with comprehensive delivery data:', cartAttributes);
+        
+        // Update button text during processing
+        const buttonTextElement = document.getElementById('button-text');
+        const originalText = buttonTextElement.textContent;
+        buttonTextElement.textContent = 'Updating Cart...';
+        document.getElementById('add-btn').disabled = true;
+        
+        try {
+            // Step 1: Update cart attributes
+            const response = await fetch('/cart/update.js', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    attributes: cartAttributes
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Cart update failed: ${response.status} ${response.statusText}`);
+            }
+            
+            // Step 2: Add express fee as line item if applicable (DYNAMIC FEE)
+            if (slot.fee && slot.fee > 0) {
+                const feeAdded = await addDynamicFeeToCart(slot.fee, slot.name, selectedDate.toLocaleDateString());
+                if (!feeAdded) {
+                    console.warn('⚠️ Could not add fee as line item - using cart attributes only');
+                }
+            }
+            
+            const result = await response.json();
+            console.log('✅ Cart updated successfully:', result);
+            
+            // Success message with delivery details
+            let message = `✅ Cart updated with ${selectedType === 'collection' ? 'collection' : 'delivery'} details!\n\n`;
+            message += `📅 ${selectedDate.toLocaleDateString()} - ${slot.name}\n`;
+            
+            if (selectedType === 'collection' && selectedLocation) {
+                const location = widgetData.collectionLocations.find(l => l.id === selectedLocation);
+                message += `📍 ${location.name}\n`;
+            }
+            
+            if (slot.fee) {
+                message += `💰 Express fee: +$${slot.fee} (added to cart total)\n`;
+            }
+            
+            message += `\n🏷️ Order will be automatically tagged: ${deliveryTags.join(', ')}`;
+            
+            alert(message);
+            
+            // Optional: Trigger cart drawer update or page refresh
+            if (typeof window.cartDrawerUpdate === 'function') {
+                window.cartDrawerUpdate();
+            } else if (typeof Shopify !== 'undefined' && Shopify.theme && Shopify.theme.cartUpdate) {
+                Shopify.theme.cartUpdate();
+            } else {
+                // Force page refresh to show updated cart total
+                window.location.reload();
+            }
+            
+        } catch (error) {
+            console.error('❌ Cart update failed:', error);
+            
+            // Fallback: Try alternative cart update method
+            try {
+                const formData = new FormData();
+                Object.keys(cartAttributes).forEach(key => {
+                    formData.append(`attributes[${key}]`, cartAttributes[key]);
+                });
+                
+                const fallbackResponse = await fetch('/cart', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (fallbackResponse.ok) {
+                    console.log('✅ Cart updated via fallback method');
+                    alert('✅ Delivery details added to cart successfully!');
+                } else {
+                    throw new Error('Both cart update methods failed');
+                }
+                
+            } catch (fallbackError) {
+                console.error('❌ Fallback cart update also failed:', fallbackError);
+                alert('❌ Failed to update cart. Please try again or contact support.');
+            }
+        }
+        
+        // Restore button
+        buttonTextElement.textContent = originalText;
+        document.getElementById('add-btn').disabled = false;
+    }
+    
+    // Initialize
+    async function init() {
+        console.log('🚀 Initializing Delivery Scheduler v1.8.0 with CORS fix...');
+        const success = await loadData();
+        createUI(); // Always create UI, even if data loading failed
+        
+        if (success) {
+            console.log('✅ Delivery scheduler with synced data ready!');
+        } else {
+            console.warn('⚠️ Running with fallback data due to sync issues');
+        }
+    }
+    
+    // Add retry mechanism for initialization
+    let initAttempts = 0;
+    const maxAttempts = 3;
+    
+    function attemptInit() {
+        initAttempts++;
+        console.log(`🔄 Init attempt ${initAttempts}/${maxAttempts}`);
+        
+        init().catch(error => {
+            console.error('❌ Init failed:', error);
+            if (initAttempts < maxAttempts) {
+                console.log(`🔄 Retrying in 2 seconds...`);
+                setTimeout(attemptInit, 2000);
+            } else {
+                console.error('❌ Max init attempts reached, showing error state');
+                const container = document.getElementById('delivery-scheduler-cart-widget');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center;">
+                            <div style="color: #ef4444;">⚠️ Unable to load delivery options</div>
+                            <div style="font-size: 12px; color: #6b7280; margin-top: 8px;">Please refresh the page or contact support.</div>
+                        </div>
+                    `;
+                }
+            }
+        });
+    }
+    
+    // Start initialization after a short delay
+    setTimeout(attemptInit, 500);
+})();
+</script> 

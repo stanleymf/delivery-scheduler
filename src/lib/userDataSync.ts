@@ -173,15 +173,21 @@ class UserDataSyncService {
     }
   }
 
-  // Save data to server
+  // Save data to server (push to Widget KV)
   async saveToServer(data: UserData): Promise<boolean> {
     try {
-      const response = await authenticatedFetch('/api/user/data', {
+      console.log('📤 Pushing admin dashboard data to Widget KV storage...', {
+        timeslots: data.timeslots?.length || 0,
+        blockedDates: data.blockedDates?.length || 0,
+        settings: Object.keys(data.settings || {}).length
+      });
+
+      const response = await authenticatedFetch('/api/user/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ userData: data })
       });
 
       if (response.ok) {
@@ -191,6 +197,7 @@ class UserDataSyncService {
             serverAvailable: true,
             lastSync: new Date().toISOString()
           });
+          console.log('✅ Successfully synced to Widget:', result.message);
           return true;
         }
       }
@@ -281,7 +288,7 @@ class UserDataSyncService {
     }
   }
 
-  // Sync data between localStorage and server
+  // Sync data between localStorage and Widget KV (prioritize push)
   async syncData(): Promise<boolean> {
     if (this.syncInProgress) {
       console.log('Sync already in progress, skipping...');
@@ -297,34 +304,23 @@ class UserDataSyncService {
         await this.migrateToServer();
       }
 
-      // Load data from server
-      const serverData = await this.loadFromServer();
-      
-      if (serverData) {
-        // Update localStorage with server data
-        this.saveLocalData(STORAGE_KEYS.TIMESLOTS, serverData.timeslots);
-        this.saveLocalData(STORAGE_KEYS.BLOCKED_DATES, serverData.blockedDates);
-        this.saveLocalData(STORAGE_KEYS.BLOCKED_DATE_RANGES, serverData.blockedDateRanges);
-        this.saveLocalData(STORAGE_KEYS.SETTINGS, serverData.settings);
-        this.saveLocalData(STORAGE_KEYS.PRODUCTS, serverData.products);
-        this.saveLocalData(STORAGE_KEYS.BLOCKED_CODES, serverData.blockedCodes);
-        if (serverData.tagMappingSettings) {
-          this.saveLocalData(STORAGE_KEYS.TAG_MAPPING_SETTINGS, serverData.tagMappingSettings);
-        }
-        
-        console.log('Data synced from server to localStorage');
+      // Always push local changes to Widget KV storage
+      const localData = this.getLocalStorageData();
+      console.log('🔄 Syncing admin dashboard changes to Widget...', {
+        timeslots: localData.timeslots?.length || 0,
+        blockedDates: localData.blockedDates?.length || 0,
+        settings: Object.keys(localData.settings || {}).length
+      });
+
+      const saved = await this.saveToServer(localData);
+      if (saved) {
+        console.log('✅ Local data successfully pushed to Widget KV storage');
         return true;
       } else {
-        // Server not available, try to push local data
-        const localData = this.getLocalStorageData();
-        const saved = await this.saveToServer(localData);
-        if (saved) {
-          console.log('Local data pushed to server');
-          return true;
-        }
+        console.warn('⚠️ Failed to push local data to Widget');
+        return false;
       }
       
-      return false;
     } catch (error) {
       console.error('Error during sync:', error);
       return false;
@@ -409,41 +405,52 @@ class UserDataSyncService {
 // Export singleton instance
 export const userDataSync = new UserDataSyncService();
 
-// Export helper functions for backward compatibility
+// Import auto sync function
+import { autoSyncOnChange } from '@/utils/api';
+
+// Export helper functions with widget auto-sync
 export const loadTimeslots = () => userDataSync['getLocalData'](STORAGE_KEYS.TIMESLOTS, []);
 export const saveTimeslots = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.TIMESLOTS, data);
-  userDataSync.saveDataTypeToServer('timeslots', data);
+  // Auto-sync to Widget KV when timeslots change
+  setTimeout(() => userDataSync.syncData(), 1000);
+  autoSyncOnChange('timeslots', data);
 };
 
 export const loadBlockedDates = () => userDataSync['getLocalData'](STORAGE_KEYS.BLOCKED_DATES, []);
 export const saveBlockedDates = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.BLOCKED_DATES, data);
   userDataSync.saveDataTypeToServer('blockedDates', data);
+  autoSyncOnChange('blockedDates', data);
 };
 
 export const loadBlockedDateRanges = () => userDataSync['getLocalData'](STORAGE_KEYS.BLOCKED_DATE_RANGES, []);
 export const saveBlockedDateRanges = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.BLOCKED_DATE_RANGES, data);
   userDataSync.saveDataTypeToServer('blockedDateRanges', data);
+  autoSyncOnChange('blockedDateRanges', data);
 };
 
 export const loadSettings = () => userDataSync['getLocalData'](STORAGE_KEYS.SETTINGS, {});
 export const saveSettings = (data: any) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.SETTINGS, data);
-  userDataSync.saveDataTypeToServer('settings', data);
+  // Auto-sync to Widget KV when settings change
+  setTimeout(() => userDataSync.syncData(), 1000);
+  autoSyncOnChange('settings', data);
 };
 
 export const loadProducts = () => userDataSync['getLocalData'](STORAGE_KEYS.PRODUCTS, []);
 export const saveProducts = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.PRODUCTS, data);
   userDataSync.saveDataTypeToServer('products', data);
+  autoSyncOnChange('products', data);
 };
 
 export const loadBlockedCodes = () => userDataSync['getLocalData'](STORAGE_KEYS.BLOCKED_CODES, []);
 export const saveBlockedCodes = (data: any[]) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.BLOCKED_CODES, data);
   userDataSync.saveDataTypeToServer('blockedCodes', data);
+  autoSyncOnChange('blockedCodes', data);
 };
 
 export const loadTagMappingSettings = () => userDataSync['getLocalData'](STORAGE_KEYS.TAG_MAPPING_SETTINGS, {
@@ -455,4 +462,5 @@ export const loadTagMappingSettings = () => userDataSync['getLocalData'](STORAGE
 export const saveTagMappingSettings = (data: any) => {
   userDataSync['saveLocalData'](STORAGE_KEYS.TAG_MAPPING_SETTINGS, data);
   userDataSync.saveDataTypeToServer('tagMappingSettings', data);
+  autoSyncOnChange('tagMappingSettings', data);
 }; 

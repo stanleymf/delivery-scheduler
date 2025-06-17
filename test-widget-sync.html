@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Sync Test - v1.16.0</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .test-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .test-status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .loading { background: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="test-header">
+        <h1>🚚 Widget Sync Test - v1.16.0</h1>
+        <p>Testing widget sync with admin dashboard data from KV storage</p>
+        <div id="test-results">
+            <div class="test-status loading">⏳ Running tests...</div>
+        </div>
+        
+        <!-- Manual Sync Controls -->
+        <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px;">
+            <h3>🔄 Manual Sync & Status</h3>
+            <button onclick="checkSyncStatus()" style="margin: 5px; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Check Sync Status
+            </button>
+            <button onclick="performManualSync()" style="margin: 5px; padding: 8px 16px; background: #059669; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Trigger Full Sync
+            </button>
+            <div id="sync-status" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- Widget Container -->
+    <div id="delivery-scheduler-widget" 
+         data-delivery-scheduler 
+         data-shop-domain="test.myshopify.com"
+         data-cart-mode="false"
+         data-theme="light">
+    </div>
+
+    <script src="https://delivery-scheduler-widget.stanleytan92.workers.dev/widget.js"></script>
+    
+    <script>
+        // Widget sync test
+        async function runSyncTests() {
+            const results = document.getElementById('test-results');
+            const tests = [];
+            
+            try {
+                // Test 1: Check widget API endpoints
+                console.log('Testing widget API endpoints...');
+                
+                const timeslotsRes = await fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/public/widget/timeslots');
+                const timeslotsData = await timeslotsRes.json();
+                
+                if (timeslotsData.success && timeslotsData.data.length > 0) {
+                    tests.push({
+                        name: 'Timeslots API',
+                        status: 'success',
+                        message: `✅ Found ${timeslotsData.data.length} timeslots`
+                    });
+                } else {
+                    tests.push({
+                        name: 'Timeslots API',
+                        status: 'error',
+                        message: '❌ No timeslots found'
+                    });
+                }
+
+                // Test 2: Check settings API
+                const settingsRes = await fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/public/widget/settings');
+                const settingsData = await settingsRes.json();
+                
+                if (settingsData.success && settingsData.data.collectionLocations) {
+                    tests.push({
+                        name: 'Settings API',
+                        status: 'success',
+                        message: `✅ Found ${settingsData.data.collectionLocations.length} collection locations`
+                    });
+                } else {
+                    tests.push({
+                        name: 'Settings API',
+                        status: 'error',
+                        message: '❌ No settings found'
+                    });
+                }
+
+                // Test 3: Check widget loading
+                setTimeout(() => {
+                    if (window.DeliverySchedulerWidget) {
+                        tests.push({
+                            name: 'Widget Script',
+                            status: 'success',
+                            message: '✅ Widget script loaded successfully'
+                        });
+                    } else {
+                        tests.push({
+                            name: 'Widget Script',
+                            status: 'error',
+                            message: '❌ Widget script failed to load'
+                        });
+                    }
+
+                    // Test 4: Check if widget is displaying data
+                    const widgetElement = document.getElementById('delivery-scheduler-widget');
+                    if (widgetElement && widgetElement.innerHTML.trim() !== '') {
+                        tests.push({
+                            name: 'Widget Display',
+                            status: 'success',
+                            message: '✅ Widget is displaying content'
+                        });
+                    } else {
+                        tests.push({
+                            name: 'Widget Display',
+                            status: 'error',
+                            message: '❌ Widget is not displaying content'
+                        });
+                    }
+
+                    // Display results
+                    displayResults(tests);
+                }, 2000);
+
+            } catch (error) {
+                tests.push({
+                    name: 'API Connection',
+                    status: 'error',
+                    message: `❌ API Error: ${error.message}`
+                });
+                displayResults(tests);
+            }
+        }
+
+        function displayResults(tests) {
+            const results = document.getElementById('test-results');
+            let html = '';
+
+            tests.forEach(test => {
+                const className = test.status === 'success' ? 'success' : 'error';
+                html += `<div class="test-status ${className}">
+                    <strong>${test.name}:</strong> ${test.message}
+                </div>`;
+            });
+
+            // Add summary
+            const successCount = tests.filter(t => t.status === 'success').length;
+            const totalCount = tests.length;
+            const summaryClass = successCount === totalCount ? 'success' : 'error';
+            
+            html += `<div class="test-status ${summaryClass}">
+                <strong>Summary:</strong> ${successCount}/${totalCount} tests passed
+            </div>`;
+
+            results.innerHTML = html;
+        }
+
+        // Sync Status Functions
+        async function checkSyncStatus() {
+            const statusDiv = document.getElementById('sync-status');
+            statusDiv.innerHTML = '<div class="test-status loading">⏳ Checking sync status...</div>';
+            
+            try {
+                const response = await fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/sync/delivery-data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `
+                        <div class="test-status success">
+                            ✅ <strong>Sync Status:</strong><br>
+                            Last Updated: ${data.lastUpdated ? new Date(data.lastUpdated).toLocaleString() : 'Never'}<br>
+                            Data Size: ${formatBytes(data.dataSize || 0)}<br>
+                            Timeslots: ${data.timeslotsCount || 0}<br>
+                            Settings: ${data.settingsCount || 0}
+                        </div>
+                    `;
+                } else {
+                    statusDiv.innerHTML = `<div class="test-status error">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="test-status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function performManualSync() {
+            const statusDiv = document.getElementById('sync-status');
+            statusDiv.innerHTML = '<div class="test-status loading">⏳ Performing full sync...</div>';
+            
+            try {
+                // Simulate admin dashboard data
+                const sampleData = {
+                    timeslots: [
+                        {
+                            id: "morning-delivery",
+                            name: "Morning Delivery",
+                            type: "delivery",
+                            startTime: "10:00",
+                            endTime: "14:00",
+                            maxOrders: 10,
+                            cutoffTime: "09:00",
+                            cutoffDay: "same",
+                            assignedDays: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+                        },
+                        {
+                            id: "afternoon-delivery", 
+                            name: "Afternoon Delivery",
+                            type: "delivery",
+                            startTime: "14:00",
+                            endTime: "18:00",
+                            maxOrders: 10,
+                            cutoffTime: "13:00",
+                            cutoffDay: "same",
+                            assignedDays: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+                        },
+                        {
+                            id: "morning-collection",
+                            name: "Morning Collection",
+                            type: "collection",
+                            startTime: "09:00",
+                            endTime: "12:00", 
+                            maxOrders: 15,
+                            cutoffTime: "08:00",
+                            cutoffDay: "same",
+                            assignedDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+                        }
+                    ],
+                    blockedDates: [],
+                    blockedDateRanges: [],
+                    settings: {
+                        futureOrderLimit: 14,
+                        collectionLocations: [
+                            {
+                                id: "1",
+                                name: "Main Store",
+                                address: "123 Orchard Road, Singapore 238858"
+                            },
+                            {
+                                id: "2", 
+                                name: "Marina Bay Branch",
+                                address: "456 Marina Bay Sands, Singapore 018956"
+                            }
+                        ],
+                        theme: "light"
+                    },
+                    collectionLocations: [
+                        {
+                            id: "1",
+                            name: "Main Store", 
+                            address: "123 Orchard Road, Singapore 238858"
+                        }
+                    ],
+                    tagMappingSettings: {
+                        deliveryTag: "Delivery",
+                        collectionTag: "Collection",
+                        expressTag: "Express"
+                    },
+                    expressSlots: [],
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                const response = await fetch('https://delivery-scheduler-widget.stanleytan92.workers.dev/api/sync/delivery-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(sampleData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = `
+                        <div class="test-status success">
+                            ✅ <strong>Sync Successful!</strong><br>
+                            ${result.message}<br>
+                            Last Updated: ${new Date(result.lastUpdated).toLocaleString()}
+                        </div>
+                    `;
+                    
+                    // Re-run widget tests to verify sync
+                    setTimeout(() => {
+                        runSyncTests();
+                    }, 1000);
+                } else {
+                    statusDiv.innerHTML = `<div class="test-status error">❌ Sync failed: ${result.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="test-status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
+        }
+
+        // Run tests after page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runSyncTests, 500);
+        });
+    </script>
+</body>
+</html> 
