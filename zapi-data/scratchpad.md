@@ -189,11 +189,17 @@ The delivery management application has successfully migrated from Railway to Cl
 
 ### Recent Fix (Just Completed)
 **Issue**: 405 "Method Not Allowed" error when saving Shopify credentials
-**Cause**: Frontend on Cloudflare Pages was calling `/api/shopify/settings` but endpoints only existed on Worker domain
-**Root Cause**: Architecture mismatch - frontend making relative API calls to Pages domain, but APIs were on Worker domain
-**Solution**: Added Shopify API endpoints to Cloudflare Pages Functions:
-- `functions/api/shopify/settings.ts` - GET/POST for credentials management
-- `functions/api/shopify/test-connection.ts` - GET for testing Shopify connection
-**Status**: ✅ Deployed to Pages - credentials should now save successfully on same domain
+**Root Cause Analysis**:
+1. Frontend on Cloudflare Pages was calling `/api/shopify/settings` (relative URLs)
+2. Worker had the endpoints with KV access, but Pages Functions don't have KV access by default
+3. Pages Functions returned HTML instead of JSON due to configuration issues
+
+**Final Solution**: Updated frontend to route Shopify API calls directly to Worker:
+- Modified `authenticatedFetch` in `src/utils/api.ts` 
+- Shopify endpoints (`/api/shopify/*`) now call Worker directly: `https://delivery-scheduler-widget.stanleytan92.workers.dev`
+- Other endpoints still use Pages Functions (auth, etc.)
+- Worker has proper KV access for credential storage
+
+**Status**: ✅ Deployed - Shopify endpoints now route to Worker with KV access
 
 The foundation is solid and production-ready. The next milestone is connecting to a real Shopify store to enable true seasonal product management!
