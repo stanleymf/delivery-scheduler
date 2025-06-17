@@ -7,8 +7,24 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Save, TestTube, CheckCircle, XCircle, Eye, EyeOff, Store, Key, Globe, Database, RefreshCw } from 'lucide-react';
-import { authenticatedFetch } from '@/utils/api';
+import { authenticatedFetch, getAuthHeaders } from '@/utils/api';
 import { FeeAutomationPanel } from './FeeAutomationPanel';
+
+// Temporary direct API function for Shopify endpoints until deployment updates
+const shopifyFetch = async (url: string, options: RequestInit = {}) => {
+  const headers = getAuthHeaders();
+  const workerUrl = `https://delivery-scheduler-widget.stanleytan92.workers.dev${url}`;
+  
+  const response = await fetch(workerUrl, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers
+    }
+  });
+
+  return response;
+};
 
 interface ShopifyCredentials {
   shopDomain: string;
@@ -62,7 +78,7 @@ export function ShopifySettings() {
 
   const loadCredentials = async () => {
     try {
-      const response = await authenticatedFetch('/api/shopify/settings');
+      const response = await shopifyFetch('/api/shopify/settings');
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -97,7 +113,7 @@ export function ShopifySettings() {
     setSuccess(null);
 
     try {
-      const response = await authenticatedFetch('/api/shopify/settings', {
+      const response = await shopifyFetch('/api/shopify/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -129,7 +145,7 @@ export function ShopifySettings() {
     setError(null);
 
     try {
-      const response = await authenticatedFetch('/api/shopify/test-connection');
+      const response = await shopifyFetch('/api/shopify/test-connection');
       const data = await response.json();
 
       if (data.success) {
